@@ -1,0 +1,13 @@
+# Product-planning documents — maintained privately, never published.
+ROADMAP.md
+BUILD-PROMPTS.md
+Live-To-Do-List.md
+
+# Icon source assets (the docs site carries its own copies).
+images/
+
+# Build artifacts (for when the app source lands).
+/target
+**/target
+node_modules/
+dist/

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Freally Teleprompt — Changelog</title>
+    <meta
+      name="description"
+      content="The Freally Teleprompt changelog. In development — releases will land here, downloadable per release."
+    />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      :root {
+        --panel: #0e1626;
+        --panel-2: #111b2e;
+        --border: #283650;
+        --text: #f5f7fa;
+        --muted: #93a0b5;
+        --accent: #6ea8fe;
+      }
+      .changelog-body {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 1rem 2rem 3rem;
+      }
+      .empty-state {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        padding: 32px;
+        text-align: center;
+      }
+      .empty-state h2 {
+        margin: 0 0 10px;
+        color: var(--text);
+      }
+      .empty-state p {
+        margin: 0 auto;
+        max-width: 40rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .empty-state a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <img class="logo" src="freally-icon.png" alt="Freally Teleprompt icon" width="288" height="288" />
+      <h1>Changelog</h1>
+      <p class="sub">Every Freally Teleprompt release will land here, downloadable per release.</p>
+    </header>
+
+    <main class="changelog-body">
+      <div class="empty-state">
+        <h2>In development — no releases yet</h2>
+        <p>
+          Freally Teleprompt is being built as the standalone grow-out of the teleprompter inside
+          <a href="https://mikesruthless12.github.io/freally-capture/">Freally Capture</a>
+          (shipped there in 0.910.0's Teleprompter Rework). When the first release is cut it will
+          appear here with installers for Windows, macOS, and Linux — free, local-first, no
+          account. Meanwhile, the <a href="documentation.html">documentation</a> describes what
+          the app does.
+        </p>
+      </div>
+    </main>
+
+    <footer>
+      <p>© 2026 Mike Weaver — Freally Teleprompt · local-first · no account · your scripts stay on your device</p>
+      <p>
+        <a href="https://github.com/MikesRuthless12/freally-teleprompt">GitHub</a> ·
+        <a href="index.html">Home</a> ·
+        <a href="documentation.html">Documentation</a>
+      </p>
+    </footer>
+  </body>
+</html>

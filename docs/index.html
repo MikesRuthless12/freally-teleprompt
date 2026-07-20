@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Freally Teleprompt — Look confident. Stay on script.</title>
+    <meta
+      name="description"
+      content="Freally Teleprompt — a local-first teleprompter that reads at a real human pace (chars/sec or BPM), marks your pauses, and writes with you offline. Windows, macOS, Linux."
+    />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      :root {
+        --panel: #0e1626;
+        --panel-2: #111b2e;
+        --border: #283650;
+        --text: #f5f7fa;
+        --muted: #93a0b5;
+        --accent: #6ea8fe;
+      }
+      .landing {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1rem 2rem 3rem;
+      }
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+        padding: 12px 22px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 700;
+        color: #08111f;
+        background: linear-gradient(180deg, var(--accent), #4d8bf0);
+        border: 1px solid rgba(110, 168, 254, 0.5);
+      }
+      .cta:hover {
+        filter: brightness(1.06);
+      }
+      .cta-row {
+        text-align: center;
+        margin: 0 0 2.5rem;
+      }
+      .cta-note {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .feature-grid li {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px 18px;
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      }
+      .feature-grid h3 {
+        margin: 0 0 6px;
+        font-size: 1.02rem;
+        color: var(--text);
+      }
+      .feature-grid p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.55;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <img class="logo" src="freally-icon.png" alt="Freally Teleprompt icon" width="288" height="288" />
+      <h1>Freally Teleprompt</h1>
+      <p class="sub">Look confident. Stay on script. — a local-first teleprompter that reads at a real human pace, marks your pauses, and writes with you offline.</p>
+    </header>
+
+    <main class="landing">
+      <div class="cta-row">
+        <a class="cta" href="documentation.html">Read the Documentation →</a>
+        <p class="cta-note">In development — Windows, macOS &amp; Linux. Free core, local-first, no subscription required.</p>
+      </div>
+
+      <ul class="feature-grid">
+        <li>
+          <h3>A real reading pace</h3>
+          <p>Set speed in <strong>characters per second</strong> or by <strong>BPM</strong> (20–250) to read lyrics and verses in time with music — not an arbitrary 1–10 slider.</p>
+        </li>
+        <li>
+          <h3>Pause chips (caesuras)</h3>
+          <p>Type <code>--</code> for a beat or <code>--N</code> for an N-second hold; each becomes an atomic marker, lit one at a time as you read.</p>
+        </li>
+        <li>
+          <h3>Preview = projector</h3>
+          <p>One character-based engine keeps the operator preview, the talent projector, and any LAN device in step — even at different fonts.</p>
+        </li>
+        <li>
+          <h3>Writes with you — offline</h3>
+          <p>A built-in writer helps with scripts, speeches, verses and song sections. Pick your comfort: your own dictionary, your own API key, or a local model you download once.</p>
+        </li>
+        <li>
+          <h3>Start countdown &amp; read-aloud</h3>
+          <p>An optional 3-2-1 pre-roll on preview and projector, plus a read-aloud preview through your operating system's own speech engine.</p>
+        </li>
+        <li>
+          <h3>Yours, privately</h3>
+          <p>Local-first and account-free — your scripts stay on your machine. Permissively licensed end to end.</p>
+        </li>
+      </ul>
+    </main>
+
+    <footer>
+      <p>© 2026 Mike Weaver — Freally Teleprompt · local-first · no account · your scripts stay on your device</p>
+      <p>
+        <a href="https://github.com/MikesRuthless12/freally-teleprompt">GitHub</a> ·
+        <a href="documentation.html">Documentation</a>
+      </p>
+    </footer>
+  </body>
+</html>

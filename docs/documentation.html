@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Freally Teleprompt — Documentation</title>
+    <meta
+      name="description"
+      content="Documentation for Freally Teleprompt — the standalone teleprompter that writes with you offline: chars/sec or BPM pacing, caesura pause chips, a mirror-able talent projector, read-aloud, per-language autocomplete, and an opt-in local or bring-your-own-key AI writer."
+    />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Fallback tokens so this page renders even if styles.css differs. */
+      :root{--panel:#0e1626;--panel-2:#111b2e;--border:#283650;--text:#f5f7fa;--muted:#93a0b5;--accent:#6ea8fe;}
+
+      /* ---- Two-column doc layout ---- */
+      .doc-layout {
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+        max-width: 1150px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .doc-toc {
+        position: sticky;
+        top: 90px;
+        flex: 0 0 230px;
+        align-self: flex-start;
+      }
+
+      .doc-toc nav {
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px 10px;
+      }
+
+      .doc-toc .toc-label {
+        display: block;
+        padding: .25rem .6rem .6rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .doc-toc a {
+        display: block;
+        padding: .35rem .6rem;
+        text-decoration: none;
+        border-left: 2px solid transparent;
+        color: #c7d1e0;
+        font-size: 0.92rem;
+        border-radius: 0 6px 6px 0;
+        transition: color 0.12s, border-left-color 0.12s, background 0.12s;
+      }
+
+      .doc-toc a:hover,
+      .doc-toc a.active {
+        border-left-color: var(--accent);
+        color: var(--accent);
+        background: rgba(110, 168, 254, 0.07);
+      }
+
+      .doc-body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .doc-body section {
+        margin-bottom: 2.5rem;
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 28px 32px;
+        box-shadow: 0 12px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      .doc-body section h2 {
+        margin: 0 0 6px;
+        font-size: 1.55rem;
+        font-weight: 700;
+      }
+
+      .doc-body section .section-intro {
+        color: #c7d1e0;
+        font-size: 1.02rem;
+        margin: 0 0 22px;
+      }
+
+      /* ---- Document index cards ---- */
+      .doc-index {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 12px;
+      }
+
+      .doc-index li {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.015);
+      }
+
+      .doc-index a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      .doc-index a:hover {
+        text-decoration: underline;
+      }
+
+      .doc-index p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.93rem;
+      }
+
+      /* ---- Step lists ---- */
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: step;
+      }
+
+      .steps > li {
+        counter-increment: step;
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        padding: 13px 0;
+        border-bottom: 1px solid rgba(40, 54, 80, 0.45);
+      }
+
+      .steps > li:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .steps > li::before {
+        content: counter(step);
+        flex: 0 0 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        background: rgba(110, 168, 254, 0.12);
+        border: 1px solid rgba(110, 168, 254, 0.3);
+        border-radius: 50%;
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin-top: 1px;
+      }
+
+      .steps > li > span {
+        flex: 1;
+        color: #d4dcea;
+        font-size: 0.98rem;
+        line-height: 1.6;
+      }
+
+      .steps > li > span strong {
+        color: var(--text);
+      }
+
+      .doc-body h3 {
+        margin: 26px 0 10px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      kbd {
+        display: inline-block;
+        padding: 2px 7px;
+        font-family: "SFMono-Regular", ui-monospace, "Cascadia Code", Consolas, monospace;
+        font-size: 0.85em;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        color: var(--text);
+      }
+
+      .tip {
+        margin: 18px 0 0;
+        padding: 12px 16px;
+        background: rgba(110, 168, 254, 0.07);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        color: #c7d1e0;
+        font-size: 0.93rem;
+        line-height: 1.55;
+      }
+
+      .tip strong {
+        color: var(--accent);
+      }
+
+      .warn {
+        margin: 18px 0 0;
+        padding: 12px 16px;
+        background: rgba(255, 200, 80, 0.06);
+        border-left: 3px solid #f0b429;
+        border-radius: 0 8px 8px 0;
+        color: #c7d1e0;
+        font-size: 0.93rem;
+        line-height: 1.55;
+      }
+
+      .warn strong {
+        color: #f0b429;
+      }
+
+      /* ---- Unified docs search (cross-app) ---- */
+      .doc-searchbar {
+        max-width: 1150px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      .doc-search {
+        position: relative;
+      }
+
+      .ds-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px 14px;
+      }
+
+      .ds-box:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.12);
+      }
+
+      .ds-icon {
+        color: var(--muted);
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+
+      #doc-search-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-size: 0.98rem;
+        outline: none;
+        padding: 2px 0;
+      }
+
+      #doc-search-input::placeholder {
+        color: var(--muted);
+      }
+
+      .ds-results {
+        list-style: none;
+        margin: 6px 0 0;
+        padding: 6px;
+        position: absolute;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 18px 55px rgba(0, 0, 0, 0.55);
+        max-height: 62vh;
+        overflow-y: auto;
+      }
+
+      .ds-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .ds-item.ds-active,
+      .ds-item:hover {
+        background: rgba(110, 168, 254, 0.12);
+      }
+
+      .ds-app {
+        flex: 0 0 auto;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: rgba(110, 168, 254, 0.12);
+        border: 1px solid rgba(110, 168, 254, 0.25);
+        border-radius: 6px;
+        padding: 3px 6px;
+        margin-top: 2px;
+        white-space: nowrap;
+      }
+
+      .ds-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .ds-title {
+        color: var(--text);
+        font-weight: 600;
+        font-size: 0.92rem;
+      }
+
+      .ds-desc {
+        color: var(--muted);
+        font-size: 0.8rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ds-empty {
+        padding: 10px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 820px) {
+        .doc-layout {
+          flex-direction: column;
+        }
+
+        .doc-toc {
+          position: static;
+          flex: none;
+          width: 100%;
+        }
+
+        .doc-toc nav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0 4px;
+          padding: 12px 10px;
+        }
+
+        .doc-toc .toc-label {
+          width: 100%;
+          padding-bottom: .35rem;
+        }
+
+        .doc-toc a {
+          border-left: none;
+          border-bottom: 2px solid transparent;
+          border-radius: 6px;
+          padding: .3rem .55rem;
+          font-size: 0.85rem;
+        }
+
+        .doc-toc a:hover,
+        .doc-toc a.active {
+          border-left-color: transparent;
+          border-bottom-color: var(--accent);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <img class="logo" src="freally-icon.png" alt="Freally Teleprompt icon" width="288" height="288" />
+      <h1>Documentation</h1>
+      <p class="sub">How to use Freally Teleprompt — the standalone teleprompter that writes with you, reads at a real human pace, marks your pauses, and keeps time by characters-per-second or BPM.</p>
+    </header>
+
+    <!-- Unified search across every Freally app (autocomplete). -->
+    <div class="doc-searchbar">
+      <div class="doc-search" id="doc-search"></div>
+    </div>
+
+    <div class="doc-layout">
+
+      <!-- ===== LEFT: Sticky table of contents ===== -->
+      <aside class="doc-toc">
+        <nav aria-label="Page sections">
+          <span class="toc-label">On this page</span>
+          <a href="#getting-started">Getting started</a>
+          <a href="#write-a-script">Write a script</a>
+          <a href="#pause-chips">Pause chips (caesuras)</a>
+          <a href="#pacing">Pacing: chars/sec &amp; BPM</a>
+          <a href="#playback">Playback &amp; transport</a>
+          <a href="#start-countdown">Start countdown</a>
+          <a href="#projector">Talent projector</a>
+          <a href="#read-aloud">Read aloud</a>
+          <a href="#autocomplete">Autocomplete</a>
+          <a href="#ai-writing">AI writing</a>
+          <a href="#settings">Appearance, languages &amp; settings</a>
+          <a href="#privacy">Privacy</a>
+        </nav>
+      </aside>
+
+      <!-- ===== RIGHT: Content ===== -->
+      <main class="doc-body" id="doc-main">
+
+        <!-- Getting started -->
+        <section id="getting-started">
+          <h2>Getting started</h2>
+          <p class="section-intro">Freally Teleprompt is a standalone, cross-platform teleprompter for creators, streamers, podcasters, rappers, singers, presenters, and actors. It runs on <strong>Windows, macOS, and Linux</strong>, opens as a single window — script library, editor, preview, and projector controls — and needs no account. One <strong>character-based scroll engine</strong> drives the preview, the talent projector, and the LAN mirror together, so they never drift, even at different font sizes.</p>
+
+          <div class="warn"><strong>Status:</strong> active development. Freally Teleprompt ships along a phased roadmap — <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site), <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, transport, chars/sec &amp; BPM, appearance, read-aloud), <strong>0.300.0</strong> (dictionary autocomplete), <strong>0.400.0</strong> (bring-your-own-key AI writing), <strong>0.500.0</strong> (the opt-in local AI model), and <strong>1.0.0</strong> (polish, signing, and release). Download builds from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
+
+          <h3>Install &amp; first run</h3>
+          <ol class="steps">
+            <li><span>Download your platform's installer from the Releases page — Windows <strong>NSIS <code>.exe</code> / <code>.msi</code></strong>, macOS <strong>universal <code>.dmg</code></strong>, or Linux <strong>AppImage / <code>.deb</code></strong> — then install and launch it.</span></li>
+            <li><span>On first launch, the <strong>EULA gate</strong> appears: scroll to the end, then click <strong>I Agree</strong> (or <strong>Decline &amp; Quit</strong>). The app is unusable until you accept, and acceptance is remembered — saving Settings never wipes it. If the EULA version changes in a later release you'll be asked once more.</span></li>
+            <li><span>The window opens to the script library and editor. There's no login and nothing to activate — every core feature is available immediately.</span></li>
+            <li><span>Type or paste a script (see <a href="#write-a-script" style="color:var(--accent)">Write a script</a>), set your pace, and press play to watch it scroll.</span></li>
+          </ol>
+        </section>
+
+        <!-- Write a script -->
+        <section id="write-a-script">
+          <h2>Write a script</h2>
+          <p class="section-intro">Your scripts live as real files you can keep, reopen, and back up. Write directly in the editor, or paste from anywhere — the editor cleans up pause markers as they land.</p>
+
+          <h3>The script library</h3>
+          <ol class="steps">
+            <li><span>Scripts are saved as <code>.ftscript</code> files. From the library you can <strong>create</strong>, <strong>open</strong>, <strong>save</strong>, <strong>rename</strong>, and <strong>delete</strong> them.</span></li>
+            <li><span>A <strong>recents</strong> list gets you straight back to what you were last working on, and <strong>autosave</strong> keeps your edits so a script isn't lost if you forget to save.</span></li>
+          </ol>
+
+          <h3>The editor</h3>
+          <ol class="steps">
+            <li><span>Type your script directly in the editor, or <strong>paste</strong> text from a document, an email, or the web.</span></li>
+            <li><span>Insert timed pauses with the inline <code> -- </code> caesura marker — it becomes an atomic <strong>pause chip</strong> (see <a href="#pause-chips" style="color:var(--accent)">Pause chips</a>). Pasted text is normalized so any loose <code>--</code> lands as a clean chip.</span></li>
+            <li><span>Save to a <code>.ftscript</code> file when you're happy; autosave protects work in progress in the meantime. The same script then drives the preview, the projector, and the LAN mirror.</span></li>
+          </ol>
+        </section>
+
+        <!-- Pause chips -->
+        <section id="pause-chips">
+          <h2>Pause chips (caesuras)</h2>
+          <p class="section-intro">A caesura is a timed pause written right into the script as <code> -- </code>. Freally Teleprompt renders each one as an atomic chip and lights them one at a time as the scroll reaches them, so the reader always knows exactly where to breathe.</p>
+
+          <ol class="steps">
+            <li><span>Type <code> -- </code> (space, two dashes, space) anywhere in a line to drop a <strong>caesura</strong> — a short timed pause. For a longer hold, use <code> --N </code>, where <strong>N</strong> is the number of seconds; the char-based engine holds the scroll for that long when it reaches the marker.</span></li>
+            <li><span>The chip is <strong>atomic</strong>: the caret can only sit <em>before</em> or <em>after</em> it, never inside; a single <kbd>Backspace</kbd> or <kbd>Delete</kbd> removes the whole marker; and <kbd>Shift</kbd>+<kbd>&larr;</kbd>/<kbd>&rarr;</kbd> selects the entire chip at once.</span></li>
+            <li><span><strong>Copy and paste</strong> carry the chip intact, and paste-normalization turns any of <code>--</code>, <code> --</code>, or <code>-- </code> into a clean <code> -- </code> so markers stay consistent no matter where the text came from.</span></li>
+            <li><span>During playback each caesura is <strong>lit one at a time</strong> and the scroll pauses for its duration, then resumes — the same on the preview, the projector, and the LAN mirror.</span></li>
+          </ol>
+          <div class="tip"><strong>Tip:</strong> A bare <code>--</code> is treated only as a pause — during <a href="#read-aloud" style="color:var(--accent)">Read aloud</a> it becomes a short spoken pause and is never read out as the word "dash".</div>
+        </section>
+
+        <!-- Pacing -->
+        <section id="pacing">
+          <h2>Pacing: chars/sec &amp; BPM</h2>
+          <p class="section-intro">Speed here is a <em>real</em> reading pace, not an arbitrary 1&ndash;10 dial. Pace the scroll in <strong>characters per second</strong>, or switch to <strong>BPM</strong> to read lyrics and verses in time with music. Both modes drive the same character-based engine.</p>
+
+          <h3>Characters per second</h3>
+          <ol class="steps">
+            <li><span>Set the pace in <strong>characters per second</strong> — a genuine reading rate. Because it's measured in characters, the preview, projector, and LAN mirror all advance at the identical pace even when they use different fonts or window sizes.</span></li>
+          </ol>
+
+          <h3>BPM mode</h3>
+          <ol class="steps">
+            <li><span>Toggle to <strong>BPM mode</strong> to keep time with a beat — ideal for rap, R&amp;B, and sung material. BPM is clamped to a musical range of <strong>20&ndash;250</strong>.</span></li>
+            <li><span>Switch back to chars/sec at any time; the toggle just changes how the same engine is clocked.</span></li>
+          </ol>
+          <div class="tip"><strong>Live re-pacing:</strong> changing either the chars/sec value or the BPM re-paces the running scroll immediately — no need to stop and restart.</div>
+        </section>
+
+        <!-- Playback & transport -->
+        <section id="playback">
+          <h2>Playback &amp; transport</h2>
+          <p class="section-intro">Drive the scroll with real transport buttons, the mouse wheel, or the keyboard. The current word stays in view the whole time.</p>
+
+          <ol class="steps">
+            <li><span>Use the on-screen <strong>SVG transport buttons</strong> — <strong>play</strong>, <strong>pause</strong>, <strong>stop</strong>, <strong>rewind</strong>, and <strong>fast-forward</strong> — with hold-to-repeat on rewind/fast-forward for quick scrubbing.</span></li>
+            <li><span><strong>Seek</strong> anywhere: spin the <strong>mouse wheel</strong> to scrub through the script, or <strong>click a word</strong> to jump the scroll (and start) at that point.</span></li>
+            <li><span>Drive the same transport from the <strong>keyboard shortcuts</strong> when your hands are off the mouse.</span></li>
+            <li><span>A reading-guide line pins the current word near the top of the view, and the <strong>last-lit word never scrolls out of sight</strong>, so the reader always has the next line in front of them.</span></li>
+          </ol>
+        </section>
+
+        <!-- Start countdown -->
+        <section id="start-countdown">
+          <h2>Start countdown</h2>
+          <p class="section-intro">An optional pre-roll so the reader gets a beat before the text starts moving.</p>
+
+          <ol class="steps">
+            <li><span>Turn on <strong>countdown before start</strong> in <a href="#settings" style="color:var(--accent)">Appearance</a>. When it's armed and you press play, a countdown runs first, then the scroll begins — giving the talent a moment to settle before the first word moves.</span></li>
+            <li><span>Leave it off for an instant start; the setting is remembered with the rest of your appearance preferences.</span></li>
+          </ol>
+        </section>
+
+        <!-- Talent projector -->
+        <section id="projector">
+          <h2>Talent projector</h2>
+          <p class="section-intro">Put the script on a second screen for the talent — full-screen, optionally mirror-flipped for beam-splitter glass, and kept in step with a separate device over the LAN. One char-based engine means the projector and your preview always agree.</p>
+
+          <h3>Open the projector</h3>
+          <ol class="steps">
+            <li><span>Open the <strong>projector window</strong> and target the <strong>external display</strong> the talent is reading from. The preview and projector lay the script on the same fixed-width stage and scale to fit, so they <strong>wrap at the identical column</strong> and the projector's layout doesn't reflow when the window resizes.</span></li>
+          </ol>
+
+          <h3>Mirror mode (beam-splitter glass)</h3>
+          <ol class="steps">
+            <li><span>Turn on <strong>mirror-flip</strong> so the text reads correctly through the angled glass of a beam-splitter teleprompter rig, where the reflection would otherwise reverse it.</span></li>
+          </ol>
+
+          <h3>LAN mirror &amp; remote</h3>
+          <ol class="steps">
+            <li><span>Use the <strong>LAN mirror</strong> to show the same scroll on a physically separate device (a phone or tablet on your network). It stays in sync through the shared character offset, so the remote view matches the operator frame-for-frame — no arbitrary "scroll speed" to reconcile.</span></li>
+          </ol>
+          <div class="warn"><strong>Beam-splitter check:</strong> whether mirror-flip reads correctly through real glass, and whether the LAN mirror holds sync on a separate device, can only be confirmed on physical hardware — verify both on your actual rig before a shoot.</div>
+        </section>
+
+        <!-- Read aloud -->
+        <section id="read-aloud">
+          <h2>Read aloud</h2>
+          <p class="section-intro">Preview your script spoken aloud through your operating system's own speech engine, with the highlight following along. Read aloud is a <strong>preview-only mode</strong> — it never appears on the projector and never touches the shared scroll state.</p>
+
+          <ol class="steps">
+            <li><span>Tick <strong>"Read aloud with per-OS speech synthesis"</strong>. The script is spoken through your OS's built-in voices — <strong>Windows</strong> OneCore/SAPI, <strong>macOS</strong> AVSpeechSynthesis, and <strong>Linux</strong> via the system Speech Dispatcher (<code>spd-say</code>) or <code>espeak-ng</code>. No speech engine is bundled; it uses the voices you already have installed.</span></li>
+            <li><span>While reading, the modal's <strong>transport</strong> (play / pause / stop) and <strong>seek / click / drag</strong> drive the speech, and the <strong>highlight follows the spoken word</strong> in the preview. Changing the speed re-rates the voice live.</span></li>
+            <li><span>The checkbox is <strong>disabled while a read is engaged</strong> (playing or paused) and re-enables only after <strong>Stop</strong>, so it can't be flipped on or off mid-speech.</span></li>
+            <li><span>Where the engine reports word boundaries (<strong>Windows / Chromium</strong>) the highlight locks to the exact spoken word; on <strong>macOS / Linux</strong> it falls back to a <strong>pace-matched</strong> highlight at your chars/sec so it still moves in step. Caesuras and line breaks become short spoken pauses, and a bare <code>--</code> is never said as "dash".</span></li>
+          </ol>
+          <div class="warn"><strong>Note:</strong> Read aloud produces real audio through your OS voices, so confirm it actually speaks (and pauses at your caesuras) on the machine you'll present from — especially on Linux, where it shells out to the speech daemon you have installed.</div>
+        </section>
+
+        <!-- Autocomplete -->
+        <section id="autocomplete">
+          <h2>Autocomplete</h2>
+          <p class="section-intro">As you write, Freally Teleprompt offers light-gray <strong>ghost-text</strong> suggestions from a per-language dictionary. It's instant, offline, and always on — the first, zero-config layer of the writing stack, needing no key and no download.</p>
+
+          <ol class="steps">
+            <li><span>Keep typing in the editor; relevant <strong>word and phrase</strong> suggestions appear inline in light gray, usually within a single keystroke.</span></li>
+            <li><span>Press <kbd>Tab</kbd> to <strong>accept</strong> a suggestion — it commits and turns to normal text color. Press <kbd>Esc</kbd> to <strong>dismiss</strong> it and keep typing.</span></li>
+            <li><span>Suggestions are <strong>per-language</strong>: switching the language swaps the dictionary tables. Each of the <strong>18 languages</strong> ships its own word and phrase tables, loaded only for the language you're writing in.</span></li>
+          </ol>
+          <div class="tip"><strong>Why a dictionary:</strong> for autocomplete it's the right tool — instant (well under a millisecond), deterministic, predictable, and entirely offline. It works with no AI download and no network at all.</div>
+        </section>
+
+        <!-- AI writing -->
+        <section id="ai-writing">
+          <h2>AI writing</h2>
+          <p class="section-intro">Freally Teleprompt can help you write — draft a verse, continue from the caret, rewrite a selection, or suggest rhymes that fit your BPM. It's built as <strong>three layers behind one seam</strong>, and you pick your comfort level. Generation is <strong>always</strong> either your own dictionary, your own API key, or your own machine — you never pay for anyone's AI usage, and none of it is forced on you.</p>
+
+          <h3>Three layers, your choice</h3>
+          <ol class="steps">
+            <li><span><strong>Layer 1 — Dictionary (always on).</strong> The ghost-text <a href="#autocomplete" style="color:var(--accent)">autocomplete</a> above. Zero-config, offline, no key, no download.</span></li>
+            <li><span><strong>Layer 2 — Bring your own key or endpoint.</strong> Paste an API key (or a <code>localhost</code> endpoint) in Settings. One OpenAI-compatible client covers OpenAI, OpenRouter, Groq, Together, <strong>LM Studio</strong>, and <strong>Ollama</strong>, plus a native <strong>Anthropic</strong> path. The key is stored in your <strong>OS keychain</strong> and never logged; generation streams and can be cancelled. This calls <em>your</em> account — no cost is ever ours.</span></li>
+            <li><span><strong>Layer 3 — Opt-in local model (the showpiece).</strong> Download a model once and generate entirely on your own machine — private, offline, no subscription. The headline model is <strong>Qwen2.5</strong> (Apache-2.0): a <strong>light 1.5B</strong> build (~1&nbsp;GB) or a <strong>quality 7B</strong> build (~4.7&nbsp;GB), run through a bundled <strong>llama.cpp</strong> sidecar (CPU or GPU, all three OSes).</span></li>
+          </ol>
+          <div class="warn"><strong>Strictly opt-in:</strong> the local model is <strong>never mandatory</strong>. The app is fully functional with <strong>zero AI downloads</strong> — the dictionary is always on and bring-your-own-key covers cloud quality. The model is gated behind first-run consent and a hardware (RAM/VRAM) check, its weights are fetched from Hugging Face only on your explicit consent (never shipped in the installer), and it can be deleted at any time. No feature is locked behind having a local model.</div>
+
+          <h3>What the AI can do</h3>
+          <ol class="steps">
+            <li><span><strong>Write</strong> from a brief — genre, mood, topic, length, BPM, rhyme scheme — straight into a fresh draft.</span></li>
+            <li><span><strong>Continue</strong> from the caret, or transform a selection: <strong>Rewrite</strong>, <strong>Tighten</strong>, <strong>Punch up</strong>, or <strong>Simplify</strong>.</span></li>
+            <li><span><strong>Rhyme &amp; cadence help</strong> for rap and R&amp;B — suggest rhyming lines that fit the current BPM — and optional <strong>Auto-caesura</strong>, where the model marks natural breath pauses as <code> -- </code>.</span></li>
+            <li><span>Choose <strong>insert-at-caret</strong> or <strong>replace-selection</strong>; text streams into the editor and the whole generation is a single undo.</span></li>
+          </ol>
+          <div class="tip"><strong>It's just script text:</strong> whatever a provider returns drops into the editor as ordinary teleprompter text, so it's immediately scrollable, seekable, and BPM-timeable by the same char-based engine — with no special-casing.</div>
+        </section>
+
+        <!-- Appearance, languages & settings -->
+        <section id="settings">
+          <h2>Appearance, languages &amp; settings</h2>
+          <p class="section-intro">Tune how the prompter looks, pick your language, and manage settings safely — nothing changes until you apply it.</p>
+
+          <h3>Appearance</h3>
+          <ol class="steps">
+            <li><span>Set the <strong>font</strong> family, size, weight, and color, plus <strong>margins</strong>, <strong>line height</strong>, and the <strong>reading-guide position</strong> so the current line sits where the talent looks.</span></li>
+            <li><span>Enable the optional <a href="#start-countdown" style="color:var(--accent)">countdown before start</a> here too.</span></li>
+          </ol>
+
+          <h3>Settings &amp; language</h3>
+          <ol class="steps">
+            <li><span><strong>Apply means apply.</strong> Settings edit a private draft — nothing takes effect until you click <strong>Apply</strong>; cancelling restores exactly what you had.</span></li>
+            <li><span><strong>Language:</strong> choose from <strong>18 languages</strong>; the interface updates immediately, and the autocomplete dictionary follows your choice.</span></li>
+            <li><span>Later polish adds an <strong>onboarding tour</strong>, <strong>themes</strong>, and an accessibility pass as the app approaches 1.0.0.</span></li>
+          </ol>
+        </section>
+
+        <!-- Privacy -->
+        <section id="privacy">
+          <h2>Privacy</h2>
+          <p class="section-intro">Freally Teleprompt is local-first and account-free. Here is exactly what it does — and does not — do with your data.</p>
+
+          <ol class="steps">
+            <li><span><strong>No account, no cloud, no telemetry.</strong> The app never requires a login and doesn't phone home. Your scripts stay on your device as <code>.ftscript</code> files where you save them.</span></li>
+            <li><span><strong>Autocomplete is fully offline.</strong> The per-language dictionary runs entirely on your machine — no key, no download, no network.</span></li>
+            <li><span><strong>AI writing only touches the network if you opt in.</strong> The bring-your-own-key path calls <em>your</em> own account; the local model runs entirely on your machine and works with the network switched off. Model weights are downloaded once on explicit consent and can be deleted at any time.</span></li>
+            <li><span><strong>Secrets live in the OS keychain.</strong> Any API key is stored in Windows Credential Manager, macOS Keychain, or the Linux Secret Service — never logged and never included in crash reports.</span></li>
+            <li><span><strong>The projector and LAN mirror stay on your network.</strong> They target your own displays and devices; nothing is served to the internet.</span></li>
+          </ol>
+        </section>
+
+      </main>
+    </div>
+
+    <footer>
+      <p>© 2026 Mike Weaver — All Rights Reserved · local-first · no account · offline &amp; private AI · no subscription required</p>
+      <p>
+        <a href="https://github.com/MikesRuthless12/freally-teleprompt">GitHub</a> ·
+        <a href="https://github.com/MikesRuthless12/freally-teleprompt/releases">All releases</a> ·
+        <a href="https://github.com/MikesRuthless12/freally-teleprompt/blob/main/LICENSE">License</a> ·
+        <a href="documentation.html" aria-current="page">Documentation</a> ·
+        <a href="changelog.html">Changelog</a>
+      </p>
+    </footer>
+
+    <script>
+      (function () {
+        var links = document.querySelectorAll('.doc-toc a');
+        var sections = [];
+        links.forEach(function (a) {
+          var id = a.getAttribute('href').replace('#', '');
+          var el = document.getElementById(id);
+          if (el) sections.push({ id: id, el: el, a: a });
+        });
+
+        function onScroll() {
+          var active = sections[0];
+          for (var i = 0; i < sections.length; i++) {
+            if (sections[i].el.getBoundingClientRect().top <= 120) {
+              active = sections[i];
+            }
+          }
+          links.forEach(function (a) { a.classList.remove('active'); });
+          if (active) active.a.classList.add('active');
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      })();
+    </script>
+    <!-- Unified cross-app documentation search. -->
+    <script src="search-index.js"></script>
+    <script src="search.js"></script>
+  </body>
+</html>

@@ -1,0 +1,52 @@
+# Freally Teleprompt — Cargo workspace
+#
+# A local-first, cross-platform teleprompter. The `src-tauri` app crate hosts the
+# Tauri v2 shell + the React/TypeScript UI; the character-based scroll engine
+# (`teleprompter.rs`) is ported verbatim from Freally Capture and stays
+# byte-for-byte equivalent to its TypeScript twin (`ui/src/lib/caesura.ts`).
+#
+# © 2026 Mike Weaver (Havoc Software) — All Rights Reserved. Proprietary, source-available.
+
+[workspace]
+resolver = "2"
+members = [
+    "src-tauri", # `freally-teleprompt` — Tauri v2 app crate (scroll engine, settings, EULA, i18n bridge)
+]
+
+[workspace.package]
+version = "0.100.0"
+edition = "2021"
+rust-version = "1.80"
+authors = ["Mike Weaver <mythodikalone@gmail.com>"]
+license = "LicenseRef-Proprietary" # see LICENSE — proprietary, source-available, All Rights Reserved
+repository = "https://github.com/MikesRuthless12/freally-teleprompt"
+publish = false
+
+# Shared dependency versions. Crates opt in with `dep = { workspace = true }`.
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+directories = "6"
+
+# --- the problem reporter (FT-06) -------------------------------------------
+# Stamps a crash report with the local wall clock (carrying its UTC offset) AND
+# UTC, so a crash reported days later can still be ordered. Already in the tree
+# via the Tauri plugins; named here so `bugreport.rs` can use it directly.
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+# The post-crash notice is a NATIVE message box: the webview dies with the app,
+# so the helper process cannot use the dialog plugin. Pinned to `gtk3` with no
+# default features to match `tauri-plugin-dialog` — cargo unions features across
+# the graph, and rfd's build script aborts outright if `gtk3` and `xdg-portal`
+# both end up enabled.
+rfd = { version = "0.16", default-features = false, features = ["gtk3"] }
+# "Is the crashed process gone yet?", per OS. Both are already in the tree
+# (windows-sys via rfd, libc via the Unix webview stack), so the crash-notice
+# helper's liveness probe costs no new dependency.
+libc = "0.2"
+windows-sys = { version = "0.60", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+] }
+
+tauri = { version = "2", features = [] }
+tauri-build = "2"

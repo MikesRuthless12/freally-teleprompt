@@ -1,0 +1,67 @@
+{
+  "name": "@freally-teleprompt/ui",
+  "private": true,
+  "version": "0.100.0",
+  "type": "module",
+  "description": "Freally Teleprompt — the React + TypeScript UI (Vite, Havoc dark).",
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "i18n:lint": "node scripts/i18n-lint.mjs",
+    "theme:lint": "node scripts/theme-lint.mjs"
+  },
+  "//browserslist": [
+    "The webviews Tauri actually embeds — WebView2 (Chromium) on Windows,",
+    "WKWebView on macOS 12.3+, WebKitGTK on Linux. Declared explicitly because",
+    "the CSS pipeline downlevels against these targets: left to its defaults it",
+    "collapsed `backdrop-filter` down to `-webkit-backdrop-filter` ALONE, which",
+    "Chromium does not support (CSS.supports reports false) — silently killing",
+    "the SR-1 modal blur in the built app. The Playwright gallery asserts the",
+    "computed value so this cannot regress unnoticed."
+  ],
+  "browserslist": [
+    "chrome >= 110",
+    "edge >= 110",
+    "safari >= 15.4",
+    "firefox >= 115"
+  ],
+  "dependencies": {
+    "@fluent/bundle": "^0.19.1",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/vite": "^4.1",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5",
+    "eslint": "^9",
+    "eslint-plugin-react-hooks": "^6",
+    "eslint-plugin-react-refresh": "^0.4",
+    "globals": "^16",
+    "jsdom": "^26",
+    "prettier": "^3",
+    "tailwindcss": "^4.1",
+    "typescript": "^5.9",
+    "typescript-eslint": "^8",
+    "vite": "^7",
+    "vitest": "^4"
+  }
+}

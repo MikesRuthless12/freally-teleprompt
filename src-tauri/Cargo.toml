@@ -1,0 +1,36 @@
+# freally-teleprompt — the Tauri v2 app crate (shell, scroll engine, settings, EULA, i18n bridge).
+[package]
+name = "freally-teleprompt"
+description = "Freally Teleprompt — a local-first, cross-platform teleprompter (Tauri v2 shell)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+tauri = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# Resolves the per-OS config + data directories (settings.json, crash reports).
+directories = { workspace = true }
+# Timestamps a crash report in local time (with its offset) and in UTC.
+chrono = { workspace = true }
+# The native "stopped unexpectedly" box the `--crash-notice` helper shows.
+rfd = { workspace = true }
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+
+# The crash-notice helper waits for the crashed process to leave the process
+# table before relaunching; the probe is the one thing with no portable std API.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Join a Freally Teleprompt mirror</title>
+    <meta
+      name="description"
+      content="Mirror a Freally Teleprompt script on your phone or tablet over your own network — no install, no account. Coming in a later release."
+    />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      :root {
+        --panel: #0e1626;
+        --panel-2: #111b2e;
+        --border: #283650;
+        --text: #f5f7fa;
+        --muted: #93a0b5;
+        --accent: #6ea8fe;
+      }
+      .hero.compact {
+        padding-bottom: 0.5rem;
+      }
+      .hero.compact .logo {
+        width: 64px;
+        height: 64px;
+      }
+      .hero.compact h1 {
+        font-size: clamp(1.6rem, 5vw, 2.2rem);
+      }
+      .join-wrap {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      .join-card {
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .join-card h2 {
+        margin: 0;
+        color: var(--text);
+        font-size: 1.1rem;
+      }
+      .join-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+      .join-card a {
+        color: var(--accent);
+      }
+      .badge {
+        align-self: flex-start;
+        border: 1px solid rgba(110, 168, 254, 0.45);
+        background: rgba(110, 168, 254, 0.12);
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+      }
+      .join-list {
+        margin: 0;
+        padding-left: 1.15rem;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      .join-list strong {
+        color: var(--text);
+      }
+      .privacy {
+        border-left: 3px solid var(--accent);
+        background: rgba(110, 168, 254, 0.08);
+        border-radius: 0 8px 8px 0;
+        padding: 12px 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero compact">
+      <img
+        class="logo"
+        src="freally-icon.png"
+        alt="Freally Teleprompt icon"
+        width="288"
+        height="288"
+      />
+      <h1>Join a prompter mirror</h1>
+    </header>
+
+    <main class="join-wrap">
+      <div class="join-card">
+        <span class="badge">Not available yet</span>
+        <h2>The LAN mirror is still being built</h2>
+        <p>
+          This page is where a phone, tablet, or second laptop will join a running
+          <a href="index.html">Freally Teleprompt</a> session and mirror the script as it scrolls —
+          in your browser, with nothing to install.
+        </p>
+        <p>
+          It is not wired up yet. When it ships, the desktop app will show you a link and a QR code
+          for this page; opening it on any device on the same network is the whole setup.
+        </p>
+
+        <h2>What it will do</h2>
+        <ul class="join-list">
+          <li>
+            <strong>Mirror the scroll in step.</strong> The same character-based engine drives the
+            operator preview, the talent projector, and this page, so they stay on the same word
+            even at completely different font sizes.
+          </li>
+          <li>
+            <strong>Read comfortably on a small screen.</strong> Set your own font size here without
+            changing what anyone else sees.
+          </li>
+          <li><strong>No install and no account</strong> — it is a web page on your own network.</li>
+        </ul>
+
+        <p class="privacy">
+          <strong>Your script never leaves your network.</strong> The mirror is served by the
+          desktop app directly to devices you point at it. Nothing is uploaded, nothing is relayed
+          through a server, and there is no AI anywhere in Freally Teleprompt.
+        </p>
+
+        <p>
+          Meanwhile, the <a href="documentation.html">documentation</a> covers what the app does
+          today, and the <a href="changelog.html">changelog</a> tracks each release.
+        </p>
+      </div>
+    </main>
+
+    <footer>
+      <p>
+        © 2026 Mike Weaver — Freally Teleprompt · local-first · no account · your scripts stay on
+        your device
+      </p>
+      <p>
+        <a href="https://github.com/MikesRuthless12/freally-teleprompt">GitHub</a> ·
+        <a href="index.html">Home</a> ·
+        <a href="documentation.html">Documentation</a> ·
+        <a href="changelog.html">Changelog</a>
+      </p>
+    </footer>
+  </body>
+</html>

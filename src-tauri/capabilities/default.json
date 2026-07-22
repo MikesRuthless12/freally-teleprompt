@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Core capability for the main window: the default Tauri core permissions (events, window state, app metadata), the updater, and the process plugin — `process:allow-exit` is what lets the EULA gate's Decline button actually quit. Broader permissions are added per feature, never wholesale.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "updater:default",
+    "process:allow-restart",
+    "process:allow-exit"
+  ]
+}

@@ -1,0 +1,11 @@
+# Pin the EXACT Rust toolchain so every machine + CI builds Freally Teleprompt
+# identically — and so a new stable's clippy lints can never turn CI red with
+# zero code changes (the rust-1.96 drift bit the sibling repos). Bump this
+# deliberately, as its own validated change.
+#
+# profile "minimal" + no targets keeps CI installs small; the release workflow
+# adds each job's cross-compile target explicitly (rustup target add).
+[toolchain]
+channel = "1.96.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

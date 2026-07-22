@@ -1,0 +1,76 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Freally Teleprompt",
+  "identifier": "com.freally.teleprompt",
+  "mainBinaryName": "freally-teleprompt",
+  "version": "0.100.0",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Freally Teleprompt",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "center": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/MikesRuthless12/freally-teleprompt/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "basicUi"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": ["msi", "nsis", "app", "dmg", "appimage", "deb"],
+    "category": "Productivity",
+    "shortDescription": "Local-first teleprompter — chars/sec or BPM, with pause chips.",
+    "longDescription": "Freally Teleprompt is a local-first, cross-platform teleprompter: one character-based scroll engine keeps the operator preview, the talent projector, and LAN mirrors in step, paced in characters per second or BPM, with inline caesura pause chips. No AI, no account, no telemetry, no cloud.",
+    "homepage": "https://mikesruthless12.github.io/freally-teleprompt/",
+    "publisher": "Havoc Software",
+    "copyright": "© 2026 Mike Weaver — All Rights Reserved",
+    "licenseFile": "../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.3",
+      "signingIdentity": "-",
+      "hardenedRuntime": true
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+      }
+    }
+  }
+}

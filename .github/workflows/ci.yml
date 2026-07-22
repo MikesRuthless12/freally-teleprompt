@@ -1,0 +1,161 @@
+# Phase 0 CI — the gate every phase must keep green on all three OSes.
+#
+# Mirrors `npm run ci:local` exactly (scripts/ci-local.mjs): rustfmt, cargo-deny,
+# cargo-audit, clippy -D warnings, cargo test, the UI's
+# prettier/eslint/i18n/theme/vitest/build, the Playwright panel gallery, and a
+# Tauri debug compile per OS.
+#
+# The Rust toolchain comes from rust-toolchain.toml (pinned) — `rustup
+# toolchain install` reads it, so the pin lives in exactly one place.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A superseded push doesn't need its full matrix — cancel it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned toolchain
+        run: rustup toolchain install
+      - run: cargo fmt --all -- --check
+
+  cargo-deny:
+    name: cargo-deny (licenses + advisories)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          log-level: warn
+          command: check
+
+  cargo-audit:
+    name: cargo-audit (RustSec advisories)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+      - name: Run cargo audit
+        # Unmaintained-class advisories are warnings here (they don't fail
+        # audit); the deny.toml [advisories] ignore list documents each one.
+        run: cargo audit
+
+  ui:
+    name: UI (prettier + eslint + i18n + theme + vitest + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      # Catalog parity across all 18 locales, no duplicate keys, and every
+      # literal `t("…")` resolving to a key in en.ftl. A missing key would
+      # otherwise ship as silent English, or as a raw id on screen.
+      - run: npm run i18n:lint
+      # Every white-alpha utility a component uses has a light-theme override.
+      # Dark mode looks perfect without one, so this is invisible in review and
+      # renders white-on-white for anyone running the light theme.
+      - run: npm run theme:lint
+      # `npm run build` runs `tsc --noEmit` first, so no separate typecheck.
+      - run: npm run test:ui
+      - run: npm run build
+
+  ui-gallery:
+    name: UI visual gallery (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: ui
+      - name: Build the UI
+        run: npm run build
+      - name: Screenshot every panel (mocked IPC)
+        run: npm run test:e2e
+      # Every feature panel, screenshotted — download from this run's artifacts.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-panel-gallery
+          path: ui/e2e/screenshots/*.png
+          if-no-files-found: error
+
+  clippy-test:
+    name: clippy + test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux prerequisites
+        if: matrix.os == 'ubuntu-latest'
+        uses: ./.github/actions/linux-deps
+      - name: Install the pinned toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+
+  tauri-build:
+    name: Tauri debug build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux prerequisites
+        if: matrix.os == 'ubuntu-latest'
+        uses: ./.github/actions/linux-deps
+      - name: Install the pinned toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tauri build (debug, compile-only)
+        # --no-bundle keeps this a compile smoke — full bundling + installers
+        # are exercised by release.yml on tags (FT-52).
+        run: npm run tauri -- build --debug --no-bundle

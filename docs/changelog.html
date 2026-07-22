@@ -49,6 +49,56 @@
       .empty-state a {
         color: var(--accent);
       }
+      .release {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        padding: 26px 30px;
+        margin: 0 0 20px;
+      }
+      .release h2 {
+        margin: 0;
+        color: var(--text);
+        font-size: 1.35rem;
+      }
+      .release .date {
+        margin: 4px 0 16px;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      .release h3 {
+        margin: 18px 0 8px;
+        color: var(--accent);
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+      }
+      .release ul {
+        margin: 0;
+        padding-left: 1.15rem;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+      .release li {
+        margin-bottom: 8px;
+      }
+      .release strong {
+        color: var(--text);
+      }
+      .release code {
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 0.88em;
+      }
+      .note {
+        margin: 18px 0 0;
+        padding: 12px 14px;
+        border-left: 3px solid var(--accent);
+        background: rgba(110, 168, 254, 0.08);
+        border-radius: 0 8px 8px 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
     </style>
   </head>
   <body>
@@ -59,15 +109,61 @@
     </header>
 
     <main class="changelog-body">
+      <article class="release">
+        <h2>0.100.0</h2>
+        <p class="date">21 July 2026 — the scaffold phase</p>
+
+        <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
+          The app now builds, runs, and gates on the agreement, with the character-based scroll
+          engine ported over from
+          <a href="https://mikesruthless12.github.io/freally-capture/" style="color: var(--accent)"
+            >Freally Capture</a
+          >.
+        </p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>The character-based teleprompter engine.</strong> Scroll position is a real
+            reading pace measured in characters per second, with inline <code>--</code> pauses
+            (<code>--2</code> holds for two seconds), seek and step controls, and an optional
+            countdown before the scroll begins. The preview and the projector lay text on one
+            fixed-width stage, so they wrap at the identical column whatever the window size.
+          </li>
+          <li>
+            <strong>Single-window app shell</strong> with a script box and the live prompter
+            surface, plus <strong>Settings</strong> that only take effect when you press Apply —
+            cancelling restores exactly what you had.
+          </li>
+          <li><strong>18 languages</strong>, following your system language by default.</li>
+          <li>
+            <strong>First-run agreement.</strong> The app asks once, remembers your acceptance, and
+            never loses it when you save settings.
+          </li>
+          <li>
+            <strong>Problem reporter and update check.</strong> If the app ever stops unexpectedly
+            it writes a report locally and offers to send it — by GitHub issue, Gmail, or your own
+            mail app. Nothing is ever sent without your click, and you read the exact text first.
+          </li>
+          <li>
+            <strong>App icons</strong> for Windows, macOS and Linux. Small sizes use a glyph-only
+            "F", because the full wordmark is unreadable below 64px.
+          </li>
+        </ul>
+
+        <p class="note">
+          <strong>No AI, no accounts, no telemetry.</strong> The only request Freally Teleprompt
+          makes is the update check, and it sends nothing about you, your machine, or your scripts.
+        </p>
+      </article>
+
       <div class="empty-state">
-        <h2>In development — no releases yet</h2>
+        <h2>Installers are not published yet</h2>
         <p>
-          Freally Teleprompt is being built as the standalone grow-out of the teleprompter inside
-          <a href="https://mikesruthless12.github.io/freally-capture/">Freally Capture</a>
-          (shipped there in 0.910.0's Teleprompter Rework). When the first release is cut it will
-          appear here with installers for Windows, macOS, and Linux — free, local-first, no
-          account. Meanwhile, the <a href="documentation.html">documentation</a> describes what
-          the app does.
+          0.100.0 is a development milestone — the release pipeline lands in a later phase. When
+          the first installers are cut they will appear here for Windows, macOS, and Linux — free,
+          local-first, no account. Meanwhile, the
+          <a href="documentation.html">documentation</a> describes what the app does.
         </p>
       </div>
     </main>

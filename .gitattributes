@@ -1,0 +1,42 @@
+# Normalize line endings: let Git decide text vs binary, LF in the repo.
+#
+# Not cosmetic. `rustfmt.toml` pins `newline_style = "Unix"` and Prettier
+# formats with LF, so a Windows checkout that converted these to CRLF would fail
+# `cargo fmt --check` and `format:check` in CI against files nobody had touched.
+* text=auto eol=lf
+
+# Explicit text types
+*.rs        text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
+*.json      text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.ftl       text eol=lf
+*.py        text eol=lf
+LICENSE     text eol=lf
+NOTICE      text eol=lf
+
+# Windows-specific scripts keep CRLF
+*.ps1       text eol=crlf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# Binary assets (never diff or normalize)
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.icns      binary
+*.ttf       binary
+*.otf       binary
+
+# Treat the docs site as web content
+docs/**     linguist-documentation

@@ -6,7 +6,7 @@
     <title>Freally Teleprompt — Documentation</title>
     <meta
       name="description"
-      content="Documentation for Freally Teleprompt — the standalone teleprompter that writes with you offline: chars/sec or BPM pacing, caesura pause chips, a mirror-able talent projector, read-aloud, per-language autocomplete, and an opt-in local or bring-your-own-key AI writer."
+      content="Documentation for Freally Teleprompt — the standalone local-first teleprompter: chars/sec or BPM pacing, caesura pause chips, a mirror-able talent projector, read-aloud, and per-language offline autocomplete. No AI, no account, no cloud."
     />
     <link rel="icon" href="favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
@@ -409,8 +409,8 @@
           <a href="#projector">Talent projector</a>
           <a href="#read-aloud">Read aloud</a>
           <a href="#autocomplete">Autocomplete</a>
-          <a href="#ai-writing">AI writing</a>
           <a href="#settings">Appearance, languages &amp; settings</a>
+          <a href="#problems">Problems &amp; updates</a>
           <a href="#privacy">Privacy</a>
         </nav>
       </aside>
@@ -423,7 +423,7 @@
           <h2>Getting started</h2>
           <p class="section-intro">Freally Teleprompt is a standalone, cross-platform teleprompter for creators, streamers, podcasters, rappers, singers, presenters, and actors. It runs on <strong>Windows, macOS, and Linux</strong>, opens as a single window — script library, editor, preview, and projector controls — and needs no account. One <strong>character-based scroll engine</strong> drives the preview, the talent projector, and the LAN mirror together, so they never drift, even at different font sizes.</p>
 
-          <div class="warn"><strong>Status:</strong> active development. Freally Teleprompt ships along a phased roadmap — <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site), <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, transport, chars/sec &amp; BPM, appearance, read-aloud), <strong>0.300.0</strong> (dictionary autocomplete), <strong>0.400.0</strong> (bring-your-own-key AI writing), <strong>0.500.0</strong> (the opt-in local AI model), and <strong>1.0.0</strong> (polish, signing, and release). Download builds from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
+          <div class="warn"><strong>Status:</strong> active development. Freally Teleprompt ships along a phased roadmap — <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site), <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, transport, chars/sec &amp; BPM, appearance, read-aloud), <strong>0.300.0</strong> (dictionary autocomplete), and <strong>1.0.0</strong> (polish, signing, and release). Download builds from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
 
           <h3>Install &amp; first run</h3>
           <ol class="steps">
@@ -548,37 +548,14 @@
         <!-- Autocomplete -->
         <section id="autocomplete">
           <h2>Autocomplete</h2>
-          <p class="section-intro">As you write, Freally Teleprompt offers light-gray <strong>ghost-text</strong> suggestions from a per-language dictionary. It's instant, offline, and always on — the first, zero-config layer of the writing stack, needing no key and no download.</p>
+          <p class="section-intro">As you write, Freally Teleprompt offers light-gray <strong>ghost-text</strong> suggestions from a per-language dictionary. It's instant, offline, and always on — zero-config, needing no key and no download.</p>
 
           <ol class="steps">
             <li><span>Keep typing in the editor; relevant <strong>word and phrase</strong> suggestions appear inline in light gray, usually within a single keystroke.</span></li>
             <li><span>Press <kbd>Tab</kbd> to <strong>accept</strong> a suggestion — it commits and turns to normal text color. Press <kbd>Esc</kbd> to <strong>dismiss</strong> it and keep typing.</span></li>
             <li><span>Suggestions are <strong>per-language</strong>: switching the language swaps the dictionary tables. Each of the <strong>18 languages</strong> ships its own word and phrase tables, loaded only for the language you're writing in.</span></li>
           </ol>
-          <div class="tip"><strong>Why a dictionary:</strong> for autocomplete it's the right tool — instant (well under a millisecond), deterministic, predictable, and entirely offline. It works with no AI download and no network at all.</div>
-        </section>
-
-        <!-- AI writing -->
-        <section id="ai-writing">
-          <h2>AI writing</h2>
-          <p class="section-intro">Freally Teleprompt can help you write — draft a verse, continue from the caret, rewrite a selection, or suggest rhymes that fit your BPM. It's built as <strong>three layers behind one seam</strong>, and you pick your comfort level. Generation is <strong>always</strong> either your own dictionary, your own API key, or your own machine — you never pay for anyone's AI usage, and none of it is forced on you.</p>
-
-          <h3>Three layers, your choice</h3>
-          <ol class="steps">
-            <li><span><strong>Layer 1 — Dictionary (always on).</strong> The ghost-text <a href="#autocomplete" style="color:var(--accent)">autocomplete</a> above. Zero-config, offline, no key, no download.</span></li>
-            <li><span><strong>Layer 2 — Bring your own key or endpoint.</strong> Paste an API key (or a <code>localhost</code> endpoint) in Settings. One OpenAI-compatible client covers OpenAI, OpenRouter, Groq, Together, <strong>LM Studio</strong>, and <strong>Ollama</strong>, plus a native <strong>Anthropic</strong> path. The key is stored in your <strong>OS keychain</strong> and never logged; generation streams and can be cancelled. This calls <em>your</em> account — no cost is ever ours.</span></li>
-            <li><span><strong>Layer 3 — Opt-in local model (the showpiece).</strong> Download a model once and generate entirely on your own machine — private, offline, no subscription. The headline model is <strong>Qwen2.5</strong> (Apache-2.0): a <strong>light 1.5B</strong> build (~1&nbsp;GB) or a <strong>quality 7B</strong> build (~4.7&nbsp;GB), run through a bundled <strong>llama.cpp</strong> sidecar (CPU or GPU, all three OSes).</span></li>
-          </ol>
-          <div class="warn"><strong>Strictly opt-in:</strong> the local model is <strong>never mandatory</strong>. The app is fully functional with <strong>zero AI downloads</strong> — the dictionary is always on and bring-your-own-key covers cloud quality. The model is gated behind first-run consent and a hardware (RAM/VRAM) check, its weights are fetched from Hugging Face only on your explicit consent (never shipped in the installer), and it can be deleted at any time. No feature is locked behind having a local model.</div>
-
-          <h3>What the AI can do</h3>
-          <ol class="steps">
-            <li><span><strong>Write</strong> from a brief — genre, mood, topic, length, BPM, rhyme scheme — straight into a fresh draft.</span></li>
-            <li><span><strong>Continue</strong> from the caret, or transform a selection: <strong>Rewrite</strong>, <strong>Tighten</strong>, <strong>Punch up</strong>, or <strong>Simplify</strong>.</span></li>
-            <li><span><strong>Rhyme &amp; cadence help</strong> for rap and R&amp;B — suggest rhyming lines that fit the current BPM — and optional <strong>Auto-caesura</strong>, where the model marks natural breath pauses as <code> -- </code>.</span></li>
-            <li><span>Choose <strong>insert-at-caret</strong> or <strong>replace-selection</strong>; text streams into the editor and the whole generation is a single undo.</span></li>
-          </ol>
-          <div class="tip"><strong>It's just script text:</strong> whatever a provider returns drops into the editor as ordinary teleprompter text, so it's immediately scrollable, seekable, and BPM-timeable by the same char-based engine — with no special-casing.</div>
+          <div class="tip"><strong>Why a dictionary, not AI:</strong> for autocomplete a dictionary is the right tool — instant (well under a millisecond), deterministic, predictable, and entirely offline. It can't invent something you didn't ask for, and it needs no model, no download, and no network at all.</div>
         </section>
 
         <!-- Appearance, languages & settings -->
@@ -595,9 +572,25 @@
           <h3>Settings &amp; language</h3>
           <ol class="steps">
             <li><span><strong>Apply means apply.</strong> Settings edit a private draft — nothing takes effect until you click <strong>Apply</strong>; cancelling restores exactly what you had.</span></li>
-            <li><span><strong>Language:</strong> choose from <strong>18 languages</strong>; the interface updates immediately, and the autocomplete dictionary follows your choice.</span></li>
-            <li><span>Later polish adds an <strong>onboarding tour</strong>, <strong>themes</strong>, and an accessibility pass as the app approaches 1.0.0.</span></li>
+            <li><span><strong>Language:</strong> choose from <strong>18 languages</strong>, or leave it on <em>Same as my system</em>; the interface updates immediately, and the autocomplete dictionary follows your choice.</span></li>
+            <li><span><strong>Theme:</strong> <strong>dark</strong> or <strong>light</strong>, applied instantly across the whole interface. (The reading surface itself stays high-contrast for the talent whichever theme you pick.)</span></li>
+            <li><span>Later polish adds an <strong>onboarding tour</strong> and an accessibility pass as the app approaches 1.0.0.</span></li>
           </ol>
+        </section>
+
+        <!-- Problems & updates -->
+        <section id="problems">
+          <h2>Problems &amp; updates</h2>
+          <p class="section-intro">If something goes wrong, Freally Teleprompt helps you report it — but never behind your back. Nothing is transmitted without your click, and you read the exact text first.</p>
+
+          <ol class="steps">
+            <li><span>If the app ever <strong>stops unexpectedly</strong>, it writes a report to a local file and offers to restart. When it comes back, the report opens automatically with the crash details attached.</span></li>
+            <li><span>The dialog shows <strong>exactly what will be sent</strong> in a read-only field. Your home folder path and username are <strong>redacted</strong> from it automatically.</span></li>
+            <li><span>Send it however you prefer: <strong>open a GitHub issue</strong>, <strong>compose in Gmail</strong>, or <strong>use your own mail app</strong> — each opens pre-filled. You press send, not us. There is no server and no account.</span></li>
+            <li><span>You can also open the reporter any time from the toolbar to describe a problem that didn't crash anything.</span></li>
+            <li><span><strong>Updates:</strong> once per launch the app asks GitHub whether a newer release exists. If one does, you get a single prompt showing the <strong>version number</strong> and the <strong>real release notes</strong>, with an explicit yes or no. Offline, or already current, it stays silent — it never nags.</span></li>
+          </ol>
+          <div class="tip"><strong>What the update check sends:</strong> nothing about you. It fetches one small file from the public releases page; nothing downloads or installs until you answer the prompt.</div>
         </section>
 
         <!-- Privacy -->
@@ -607,10 +600,10 @@
 
           <ol class="steps">
             <li><span><strong>No account, no cloud, no telemetry.</strong> The app never requires a login and doesn't phone home. Your scripts stay on your device as <code>.ftscript</code> files where you save them.</span></li>
-            <li><span><strong>Autocomplete is fully offline.</strong> The per-language dictionary runs entirely on your machine — no key, no download, no network.</span></li>
-            <li><span><strong>AI writing only touches the network if you opt in.</strong> The bring-your-own-key path calls <em>your</em> own account; the local model runs entirely on your machine and works with the network switched off. Model weights are downloaded once on explicit consent and can be deleted at any time.</span></li>
-            <li><span><strong>Secrets live in the OS keychain.</strong> Any API key is stored in Windows Credential Manager, macOS Keychain, or the Linux Secret Service — never logged and never included in crash reports.</span></li>
+            <li><span><strong>No AI, anywhere.</strong> There is no model in the app, none to download, and no API key to paste. Nothing you type is sent to a provider, because there is no provider.</span></li>
+            <li><span><strong>Autocomplete is fully offline.</strong> The per-language dictionary tables ship inside the installer and run entirely on your machine — no key, no download, no network.</span></li>
             <li><span><strong>The projector and LAN mirror stay on your network.</strong> They target your own displays and devices; nothing is served to the internet.</span></li>
+            <li><span><strong>The only outbound request is the update check</strong>, which asks GitHub whether a newer release exists. It sends no script content.</span></li>
           </ol>
         </section>
 
@@ -618,7 +611,7 @@
     </div>
 
     <footer>
-      <p>© 2026 Mike Weaver — All Rights Reserved · local-first · no account · offline &amp; private AI · no subscription required</p>
+      <p>© 2026 Mike Weaver — All Rights Reserved · local-first · no account · no AI · no subscription required</p>
       <p>
         <a href="https://github.com/MikesRuthless12/freally-teleprompt">GitHub</a> ·
         <a href="https://github.com/MikesRuthless12/freally-teleprompt/releases">All releases</a> ·

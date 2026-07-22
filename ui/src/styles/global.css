@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/**
+ * Freally Teleprompt — the Havoc palette and the two theme-wide concerns the
+ * utility classes cannot express on their own: the SR-1 modal backdrop, and the
+ * light-theme re-tints at the bottom of this file.
+ */
+
+@theme {
+  --color-havoc-bg: #0a0a0b;
+  --color-havoc-panel: #131317;
+  --color-havoc-text: #f5f7fa;
+  --color-havoc-muted: #93a0b5;
+  --color-havoc-accent: #6ea8fe;
+  --color-havoc-accent-2: #4d8bf0;
+}
+
+:root {
+  color-scheme: dark;
+  --modal-dim: rgba(0, 0, 0, 0.5);
+  /* The plain-dim fallback is heavier: with no blur, dimming is the only thing
+     separating the dialog from the page behind it. */
+  --modal-dim-flat: rgba(0, 0, 0, 0.72);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-havoc-bg: #f7f8fa;
+  --color-havoc-panel: #ffffff;
+  --color-havoc-text: #10131a;
+  --color-havoc-muted: #55617a;
+  --modal-dim: rgba(15, 20, 30, 0.35);
+  --modal-dim-flat: rgba(15, 20, 30, 0.55);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-havoc-bg);
+  color: var(--color-havoc-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   SR-1 — the shared modal background blur.
+   Implemented ONCE here; every dialog inherits it via `components/ModalShell`.
+   --------------------------------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--modal-dim);
+  /* The prefixed form, for the WebKit engines that still require it (Safari
+     before 18, and the WebKitGTK build Tauri embeds on Linux). */
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* The STANDARD property, declared inside a feature query that names it.
+   That is not decoration — it is load-bearing. Written as a plain sibling
+   declaration, the CSS pipeline collapses the pair down to
+   `-webkit-backdrop-filter` alone, on the assumption that the prefix covers
+   every target. It does not: Chromium (i.e. WebView2, the Windows webview)
+   dropped `-webkit-backdrop-filter` and reports `CSS.supports(...) === false`,
+   so the blur silently vanished from the built app while the source looked
+   correct. Guarding it this way keeps both forms in the output.
+   The Playwright gallery asserts the computed value so this cannot regress. */
+@supports (backdrop-filter: blur(1px)) {
+  .modal-backdrop {
+    backdrop-filter: blur(6px);
+  }
+}
+
+/* A companion dialog ABOVE another modal dims but does not blur again — a second
+   blur pass would smear the modal underneath, which is supposed to stay crisp. */
+.modal-backdrop-stacked {
+  -webkit-backdrop-filter: none;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .modal-backdrop-stacked {
+    backdrop-filter: none;
+  }
+}
+
+/* The dialog itself is never blurred — only what is behind it. */
+.modal-panel {
+  max-height: 100%;
+  max-width: 100%;
+  overflow: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--modal-panel-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-havoc-panel);
+  color: var(--color-havoc-text);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] .modal-panel {
+  --modal-panel-border: rgba(0, 0, 0, 0.12);
+}
+
+/* No blur support, or a user who has asked for less transparency: fall back to
+   the heavier plain dim. Separation still reads; nothing is smeared. */
+@supports not (backdrop-filter: blur(1px)) {
+  .modal-backdrop {
+    background: var(--modal-dim-flat);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .modal-backdrop {
+    background: var(--modal-dim-flat);
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Same feature-query guard as above, and for the same reason — without it the
+   standard property is dropped here too, and a user who asked for less
+   transparency would still get the blur. Must come AFTER the rule that sets
+   it: same specificity, so source order decides. */
+@supports (backdrop-filter: blur(1px)) {
+  @media (prefers-reduced-transparency: reduce) {
+    .modal-backdrop {
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* The blur is a static property, never animated — but say so explicitly, so a
+   later transition on this element cannot reintroduce animated blur. */
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-panel {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Light-theme re-tints.
+
+   The app is drawn with translucent WHITE over near-black. In the light theme
+   the page is near-white and every one of those surfaces vanishes — and a CSS
+   variable cannot reach inside a utility class, so the exact class names are
+   re-tinted here with translucent BLACK.
+
+   `scripts/theme-lint.mjs` fails the build if a component uses a white-alpha
+   utility with no override here (and if an override here has no user left).
+   Keep the two in step.
+   --------------------------------------------------------------------------- */
+
+:root[data-theme="light"] .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.09);
+}
+
+:root[data-theme="light"] .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+:root[data-theme="light"] .border-white\/15 {
+  border-color: rgba(0, 0, 0, 0.18);
+}

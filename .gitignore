@@ -1,13 +1,60 @@
 # Product-planning documents — maintained privately, never published.
+# (Unreleased features and competitor analysis stay off the public repo.)
 ROADMAP.md
 BUILD-PROMPTS.md
 Live-To-Do-List.md
+Freally-Teleprompt-Feature-Roadmap.md
+# Belt and braces: any future planning/competition doc following the family's
+# naming conventions is ignored by default rather than by memory.
+*Feature-Roadmap.md
+*Competition*.md
+*[Pp]rompt*.md
+!README.md
 
-# Icon source assets (the docs site carries its own copies).
+# Icon source assets (the docs site carries its own copy as docs/freally-icon.png,
+# which is what scripts/make-icons.py falls back to on a clean clone).
 images/
 
-# Build artifacts (for when the app source lands).
+# ---- Rust ----
 /target
 **/target
+# Cargo.lock IS committed (app workspace — reproducible builds + cargo-audit)
+*.pdb
+
+# ---- Tauri ----
+/src-tauri/target
+/src-tauri/gen
+/src-tauri/WixTools
+
+# ---- Node / Vite UI ----
+/ui/node_modules
+/ui/dist
+/ui/.vite
 node_modules/
 dist/
+.vite
+*.tsbuildinfo
+
+# ---- Editors / OS / agents ----
+.claude/
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Secrets / local config ----
+.env
+.env.*
+*.key
+*.pem
+secrets.json
+
+# Tauri updater signing key (private — never commit; public key lives in tauri.conf.json)
+.tauri/
+
+# Playwright UI visual-smoke: keep the harness (config/spec/mock), ignore outputs
+ui/e2e/screenshots/
+ui/e2e/.output/
+ui/test-results/

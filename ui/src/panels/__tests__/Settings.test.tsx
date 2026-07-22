@@ -39,6 +39,8 @@ const BASE: Settings = {
   lanEnabled: false,
   lanAllInterfaces: false,
   lanPort: 7346,
+  autocomplete: true,
+  autocompleteLanguage: "auto",
   recentScripts: [],
   acceptedEulaVersion: "2026-07-21",
 };

@@ -46,6 +46,13 @@ export type Settings = {
   /** Bind the mirror to every interface instead of loopback only. */
   lanAllInterfaces: boolean;
   lanPort: number;
+  /** Offer ghost-text autocomplete while editing (FT-20/FT-21). On by default —
+   * it is a lookup against bundled tables, never a network call. */
+  autocomplete: boolean;
+  /** Which language's table the editor completes against: a BCP-47 tag, or
+   * `"auto"` to follow the UI language. Deliberately separate from `language`;
+   * operators often run the app in one language and write in another. */
+  autocompleteLanguage: string;
   /**
    * Recently-opened scripts (FT-10), most recent first; `[0]` is the script
    * currently open. Read-only from the UI's point of view for the same reason

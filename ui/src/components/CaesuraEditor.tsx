@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { chipLabel, isChip, normalizePaste, tokenize } from "../lib/caesuraChips";
+import { complete, loadDict } from "../lib/suggest";
 
 // The caesura CHIP editor (FT-11): a contenteditable script editor where every
 // inline ` -- ` / ` --N ` caesura is rendered as an atomic, non-editable CHIP.
@@ -45,6 +46,35 @@ function buildChip(token: string, defaultSecs: number): HTMLSpanElement {
   return span;
 }
 
+/** Build the ghost-text span (FT-21): the completion the operator would get by
+ * pressing Tab, drawn inline after the caret.
+ *
+ * `contentEditable="false"` keeps the caret out of it and `user-select:none`
+ * keeps it out of selections and the clipboard, so the only ways it can become
+ * real text are Tab and nothing else. It is drawn with `opacity` rather than a
+ * colour, which is why it needs no light/dark override — see `theme:lint`.
+ * `aria-hidden` keeps a screen reader from reading a word the user never typed. */
+function buildGhost(text: string): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.dataset.ghost = "";
+  span.contentEditable = "false";
+  span.setAttribute("aria-hidden", "true");
+  span.textContent = text;
+  span.style.cssText = "opacity:0.4;user-select:none;pointer-events:none";
+  return span;
+}
+
+/** The pending suggestion currently on screen, or null. */
+function ghostOf(root: HTMLElement): string | null {
+  const el = root.querySelector<HTMLElement>("[data-ghost]");
+  return el ? (el.textContent ?? null) : null;
+}
+
+/** Drop any ghost span. Safe to call when there is none. */
+function removeGhost(root: HTMLElement) {
+  root.querySelectorAll("[data-ghost]").forEach((el) => el.remove());
+}
+
 /** Serialize the editor DOM back to the plain script string: text nodes verbatim,
  * chips as their token, and any stray browser markup (a `<br>` or block wrapper
  * from a paste) as a newline — so we never lose the user's line breaks. */
@@ -56,7 +86,12 @@ function serialize(root: HTMLElement): string {
         out += child.textContent ?? "";
       } else if (child.nodeType === Node.ELEMENT_NODE) {
         const el = child as HTMLElement;
-        if (el.dataset.caesura !== undefined) {
+        // Ghost text (FT-21) is a SUGGESTION painted into the DOM, not content.
+        // Every one of serialize/nodeLen/offsetOf has to skip it: miss this one
+        // and an unaccepted suggestion is saved into the operator's script.
+        if (el.dataset.ghost !== undefined) {
+          return;
+        } else if (el.dataset.caesura !== undefined) {
           out += el.dataset.caesura;
         } else if (el.tagName === "BR") {
           out += "\n";
@@ -76,6 +111,7 @@ function serialize(root: HTMLElement): string {
 function nodeLen(node: Node): number {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent?.length ?? 0;
   const el = node as HTMLElement;
+  if (el.dataset && el.dataset.ghost !== undefined) return 0; // suggestion, not content
   if (el.dataset && el.dataset.caesura !== undefined) return el.dataset.caesura.length;
   if (el.tagName === "BR") return 1;
   let sum = 0;
@@ -91,6 +127,13 @@ function offsetOf(root: HTMLElement, container: Node, offsetInNode: number): num
   let stop = false;
   const rec = (node: Node) => {
     if (stop) return;
+    // Checked BEFORE the container test: ghost text contributes nothing to the
+    // offset, and the caret can never legitimately sit inside one (the span is
+    // `contentEditable="false"`). Without this every offset after a visible
+    // suggestion is wrong by its length — which silently misplaces the caret,
+    // the chip boundaries and every edit that reads `start`/`end`.
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).dataset.ghost !== undefined)
+      return;
     if (node === container) {
       if (node.nodeType === Node.TEXT_NODE) {
         total += offsetInNode;
@@ -188,6 +231,8 @@ export function CaesuraEditor({
   value,
   onChange,
   caesuraSecs,
+  autocomplete = false,
+  autocompleteLang,
   placeholder,
   className,
   ariaLabelledBy,
@@ -198,6 +243,10 @@ export function CaesuraEditor({
   onChange: (next: string) => void;
   /** Operator default-pause (seconds) — labels bare ` -- ` chips. */
   caesuraSecs: number;
+  /** Offer ghost-text completions while typing (FT-20/FT-21). */
+  autocomplete?: boolean;
+  /** The resolved locale whose table to complete against (FT-20). */
+  autocompleteLang?: string;
   placeholder?: string;
   className?: string;
   /** id of the visible label element (a contenteditable can't use <label for>). */
@@ -207,6 +256,10 @@ export function CaesuraEditor({
   const placeholderRef = useRef<HTMLDivElement>(null);
   const composing = useRef(false);
   const caesuraSecsRef = useRef(caesuraSecs);
+  // Read inside DOM handlers that deliberately do not re-subscribe. Kept in step
+  // by the effect below, not assigned during render — same as `caesuraSecsRef`.
+  const autocompleteRef = useRef(autocomplete);
+  const langRef = useRef(autocompleteLang);
 
   const updateEmpty = (str: string) => {
     if (placeholderRef.current)
@@ -255,6 +308,45 @@ export function CaesuraEditor({
     emit(root);
   };
 
+  // --- ghost text (FT-21) --------------------------------------------------
+
+  // Redraw the suggestion for wherever the caret now is. Cheap enough to run on
+  // every keystroke: `complete()` scans one small pre-indexed bucket.
+  const refreshGhost = (root: HTMLDivElement) => {
+    removeGhost(root);
+    const lang = langRef.current;
+    if (!autocompleteRef.current || !lang || composing.current) return;
+    if (document.activeElement !== root) return;
+    const sel = selectionOffsets(root);
+    if (!sel || sel.start !== sel.end) return; // never over a selection
+    const raw = serialize(root);
+    // Only at the end of a word: completing "hel|lo" would paint the suggestion
+    // into the middle of a word the operator has already finished typing.
+    const next = raw.slice(sel.start, sel.start + 1);
+    if (next && !/\s/.test(next)) return;
+    const [suffix] = complete(raw.slice(0, sel.start), lang);
+    if (!suffix) return;
+    const live = window.getSelection();
+    if (!live || live.rangeCount === 0) return;
+    live.getRangeAt(0).insertNode(buildGhost(suffix));
+    setCaret(root, sel.start); // insertNode split the text node; caret goes back
+  };
+
+  // Tab accepts the suggestion as real text — it stops being dimmed because it
+  // stops being a ghost span. Returns false when nothing was pending, so the
+  // caller can let Tab do its usual job of moving focus.
+  const acceptGhost = (root: HTMLDivElement): boolean => {
+    const suffix = ghostOf(root);
+    if (!suffix) return false;
+    const at = selectionOffsets(root)?.start;
+    removeGhost(root);
+    const raw = serialize(root);
+    const caret = at ?? raw.length;
+    snapshot(true);
+    apply(root, raw.slice(0, caret) + suffix + raw.slice(caret), caret + suffix.length);
+    return true;
+  };
+
   // External value change (initial mount, a script opened from the library):
   // rebuild only when it differs from what's already shown, preserving the caret
   // if the editor is focused (so our own echoed edits don't disturb typing).
@@ -286,6 +378,33 @@ export function CaesuraEditor({
     });
   }, [caesuraSecs]);
 
+  // Warm the table for the active language, and clear any suggestion still on
+  // screen when autocomplete is switched off.
+  //
+  // The redraw when the load resolves is the point, not a nicety. `complete()`
+  // is synchronous and yields nothing until the chunk has landed, and the ghost
+  // is otherwise only ever drawn from onInput — so an operator who types faster
+  // than a ~600 kB chunk downloads gets NO suggestion at all until they happen
+  // to press another key. Redrawing here closes that window; the caret has not
+  // moved, so the suggestion simply appears where it should have been.
+  useEffect(() => {
+    autocompleteRef.current = autocomplete;
+    langRef.current = autocompleteLang;
+    const root = ref.current;
+    if (!autocomplete) {
+      if (root) removeGhost(root);
+      return;
+    }
+    if (!autocompleteLang) return;
+    let cancelled = false;
+    void loadDict(autocompleteLang).then(() => {
+      if (!cancelled && ref.current) refreshGhost(ref.current);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [autocomplete, autocompleteLang]);
+
   const onInput = () => {
     if (composing.current) return;
     const root = ref.current;
@@ -303,11 +422,32 @@ export function CaesuraEditor({
       setCaret(root, caret);
     }
     emit(root);
+    refreshGhost(root);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const root = ref.current;
     if (!root || composing.current) return;
+
+    // Tab commits a pending suggestion, Esc dismisses it. Both fall through to
+    // their normal jobs — moving focus, closing the dialog — when nothing is
+    // pending, so neither key is stolen from the rest of the app.
+    if (e.key === "Tab" && !e.shiftKey) {
+      if (acceptGhost(root)) e.preventDefault();
+      return;
+    }
+    if (e.key === "Escape") {
+      if (ghostOf(root)) {
+        e.preventDefault();
+        removeGhost(root);
+      }
+      return;
+    }
+    // Any other key invalidates whatever is on screen; onInput redraws it after
+    // the character lands. Navigation keys never reach onInput, which is exactly
+    // right: moving the caret away should clear the suggestion, not move it.
+    removeGhost(root);
+
     const mod = e.ctrlKey || e.metaKey;
     // Undo / redo (our own stack — the DOM rebuilds wipe the native one).
     if (mod && (e.key === "z" || e.key === "Z")) {
@@ -428,6 +568,10 @@ export function CaesuraEditor({
         onPaste={onPaste}
         onCopy={onCopy}
         onCut={onCut}
+        // A click moves the caret without ever reaching onKeyDown, and a blur
+        // would otherwise leave a dimmed word sitting in an unfocused editor.
+        onMouseDown={() => ref.current && removeGhost(ref.current)}
+        onBlur={() => ref.current && removeGhost(ref.current)}
         onCompositionStart={() => {
           composing.current = true;
         }}

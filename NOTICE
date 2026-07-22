@@ -1,0 +1,67 @@
+Freally Teleprompt — third-party data notices
+=============================================
+
+This file covers third-party DATA bundled in Freally Teleprompt. Source-code
+dependencies are covered separately by THIRD-PARTY.md (fonts) and the Rust/npm
+dependency manifests.
+
+This notice ships inside the installer, not only in the repository. The licence
+below is an attribution licence: crediting the source is not a courtesy, it is
+the condition under which the data may be redistributed at all — and every copy
+of the app is a redistribution.
+
+
+Autocomplete word and phrase tables (FT-20 / FT-21 / FT-22)
+-----------------------------------------------------------
+
+The script editor's ghost-text autocomplete completes against tables bundled in
+the installer, one per app language, at `ui/src/dict/<locale>.json`. They are a
+plain prefix lookup: no model, no inference, no network. Nothing about them is
+ever downloaded at runtime, and nothing the operator types is ever transmitted.
+
+SOURCE — the Tatoeba Project, https://tatoeba.org
+LICENCE — Creative Commons Attribution 2.0 France (CC BY 2.0 FR)
+          https://creativecommons.org/licenses/by/2.0/fr/deed.en
+
+    Contains data from the Tatoeba Project (https://tatoeba.org), licensed
+    under CC BY 2.0 FR.
+
+All eighteen tables — Arabic, Chinese (Simplified), Dutch, English, French,
+German, Hindi, Indonesian, Italian, Japanese, Korean, Polish, Portuguese
+(Brazil), Russian, Spanish, Turkish, Ukrainian and Vietnamese — are derived from
+that one corpus and no other. The word and phrase lists are frequency counts
+computed over its sentences by `scripts/build-dicts.mjs`, which is committed
+alongside the tables so the derivation can be re-run and re-audited.
+
+CC BY 2.0 FR permits commercial use and redistribution, and imposes no
+share-alike or non-commercial term. It is deliberately the ONLY data licence
+here: each additional source would be another obligation to honour in every
+release and to re-verify whenever the tables are rebuilt.
+
+
+Sources deliberately NOT used
+-----------------------------
+
+Recorded because their absence is a decision, not an oversight, and because the
+next person to extend these tables will be tempted by exactly these:
+
+  * Leipzig Corpora Collection / Wortschatz Leipzig — the corpus downloads are
+    offered for "non-commercial personal and scientific purposes" under CC BY-NC.
+    A non-commercial licence cannot ship inside a paid installer. (Their separate
+    *Frequency Dictionaries* CD-ROM word lists are CC BY 3.0 and would be usable;
+    the free corpus downloads that people generally reach for are not.)
+
+  * Wikipedia, Wiktionary and derived frequency lists — CC BY-SA. The share-alike
+    term reaches the work they are distributed in.
+
+  * SCOWL / the English Speller Database — permissive and commercially usable,
+    but at size 80 and above it incorporates the UK Advanced Cryptics Dictionary,
+    whose licence requires its notice be "prominently displayed and the text of
+    this document ... included verbatim". Usable with care; not needed, because
+    Tatoeba already covers English.
+
+  * OpenSubtitles-derived frequency lists — the wrapper repositories are often
+    MIT-licensed while the underlying subtitle text is not theirs to relicense.
+
+If you add a source, add it to this file in the same commit, and read its licence
+at the source rather than trusting a summary of it — including this one.

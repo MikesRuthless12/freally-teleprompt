@@ -27,7 +27,7 @@ members = [
 panic = "abort"
 
 [workspace.package]
-version = "0.200.0"
+version = "0.300.0"
 edition = "2021"
 rust-version = "1.80"
 authors = ["Mike Weaver <mythodikalone@gmail.com>"]

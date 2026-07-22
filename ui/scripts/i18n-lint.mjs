@@ -51,6 +51,9 @@ const SAME_AS_ENGLISH_OK = {
   "toolbar-library": ["fr", "nl"],
   "library-delete-no": ["es", "it"], // "No" really is the Spanish/Italian for no
   "settings-cat-general": ["es"], // "General" is the Spanish word
+  // "Editor" is the ordinary word for a text editor in all six, not a fallback.
+  // (The autocomplete strings under it ARE translated in every locale.)
+  "settings-cat-editor": ["de", "es", "id", "it", "nl", "pt-BR"],
   "settings-cat-projector": ["nl"], // "Projector" is the Dutch word
   "settings-section-projector": ["nl"],
   "settings-lan-port": ["de", "fr", "id", "pl"], // "Port" is borrowed as-is

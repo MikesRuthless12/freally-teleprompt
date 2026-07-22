@@ -5,16 +5,17 @@ import type { Look, MirrorStatus, Settings } from "../api/types";
 import { ModalShell } from "../components/ModalShell";
 import { QrSvg } from "../components/QrSvg";
 import { BUTTON, DIALOG_TITLE, ERROR_LINE, FIELD, PRIMARY } from "../components/styles";
-import { AUTO_LOCALE, LOCALES } from "../i18n/locales";
+import { AUTO_LOCALE, PICKER_LOCALES } from "../i18n/locales";
 import { useT } from "../i18n/t";
 import { FONT_FAMILY_IDS } from "../lib/fonts";
 
 /** The sidebar, top to bottom. Every entry is a pane of REAL settings. */
-const CATEGORIES = ["general", "reading", "appearance", "projector", "network"] as const;
+const CATEGORIES = ["general", "editor", "reading", "appearance", "projector", "network"] as const;
 type CategoryId = (typeof CATEGORIES)[number];
 
 const CATEGORY_LABELS: Record<CategoryId, string> = {
   general: "settings-cat-general",
+  editor: "settings-cat-editor",
   reading: "settings-cat-reading",
   appearance: "settings-cat-appearance",
   projector: "settings-cat-projector",
@@ -25,6 +26,7 @@ const CATEGORY_LABELS: Record<CategoryId, string> = {
  * applied) and for deciding whether a search term should reveal a pane. */
 const CATEGORY_FIELDS: Record<CategoryId, Array<keyof Settings>> = {
   general: ["language", "theme", "minimizeToTray"],
+  editor: ["autocomplete", "autocompleteLanguage"],
   reading: ["speed", "fontSize", "caesuraSecs", "countdownSecs"],
   appearance: ["look"],
   projector: ["mirror"],
@@ -35,6 +37,7 @@ const CATEGORY_FIELDS: Record<CategoryId, Array<keyof Settings>> = {
  * box matches against, so typing "guide" finds Appearance. */
 const CATEGORY_KEYS: Record<CategoryId, string[]> = {
   general: ["settings-language", "settings-theme", "settings-minimize-to-tray"],
+  editor: ["settings-autocomplete", "settings-autocomplete-language"],
   reading: ["settings-speed", "settings-font-size", "settings-caesura", "settings-countdown"],
   appearance: [
     "settings-font-family",
@@ -329,7 +332,7 @@ export function SettingsDialog({
                       onChange={(e) => patch({ language: e.target.value })}
                     >
                       <option value={AUTO_LOCALE}>{t("settings-language-auto")}</option>
-                      {LOCALES.map((locale) => (
+                      {PICKER_LOCALES.map((locale) => (
                         <option key={locale.code} value={locale.code}>
                           {locale.native}
                         </option>
@@ -366,6 +369,43 @@ export function SettingsDialog({
                   </p>
                 </Section>
               </>
+            )}
+
+            {shown === "editor" && (
+              <Section title={t("settings-autocomplete-section")}>
+                <label className="flex items-center gap-2 text-[11px]">
+                  <input
+                    type="checkbox"
+                    data-testid="settings-autocomplete"
+                    checked={draft.autocomplete}
+                    onChange={(e) => patch({ autocomplete: e.target.checked })}
+                  />
+                  {t("settings-autocomplete")}
+                </label>
+                <p className="text-havoc-muted m-0 text-[10px] leading-snug">
+                  {t("settings-autocomplete-note")}
+                </p>
+
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-havoc-muted shrink-0 text-[11px]">
+                    {t("settings-autocomplete-language")}
+                  </span>
+                  <select
+                    data-testid="settings-autocomplete-language"
+                    className={FIELD}
+                    disabled={!draft.autocomplete}
+                    value={draft.autocompleteLanguage}
+                    onChange={(e) => patch({ autocompleteLanguage: e.target.value })}
+                  >
+                    <option value={AUTO_LOCALE}>{t("settings-autocomplete-language-auto")}</option>
+                    {PICKER_LOCALES.map((locale) => (
+                      <option key={locale.code} value={locale.code}>
+                        {locale.native}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </Section>
             )}
 
             {shown === "reading" && (

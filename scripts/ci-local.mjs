@@ -82,6 +82,7 @@ if (!rustOnly && hasUi) {
   step("ui: lint", "npm run lint", repoRoot);
   step("ui: i18n:lint", "npm run i18n:lint", repoRoot);
   step("ui: theme:lint", "npm run theme:lint", repoRoot);
+  step("ui: dict:lint", "npm run dict:lint", repoRoot);
   // build runs `tsc --noEmit` first, so there's no separate typecheck (as in CI).
   step("ui: test:ui", "npm run test:ui", repoRoot);
   step("ui: build", "npm run build", repoRoot);

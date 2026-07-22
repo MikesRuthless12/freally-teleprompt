@@ -97,6 +97,7 @@ export function TitleBar({
       {onSettings && (
         <button
           type="button"
+          data-testid="titlebar-settings"
           className={BTN}
           onClick={onSettings}
           aria-label={t("toolbar-settings")}

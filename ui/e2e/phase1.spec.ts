@@ -574,7 +574,7 @@ test.describe("Settings modal", () => {
 
     const dialog = page.getByTestId("settings-dialog");
     await expect(dialog).toBeVisible();
-    for (const name of ["General", "Reading", "Appearance", "Projector", "Network"]) {
+    for (const name of ["General", "Editor", "Reading", "Appearance", "Projector", "Network"]) {
       await expect(dialog.getByRole("tab", { name })).toBeVisible();
     }
     for (const name of ["OK", "Cancel", "Apply"]) {

@@ -11,7 +11,8 @@ import {
   traySync,
 } from "./api/commands";
 import type { EulaStatus, Settings } from "./api/types";
-import { applySettingsToDocument, initLocale, useT } from "./i18n/t";
+import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
+import { applySettingsToDocument, getLocale, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor } from "./components/CaesuraEditor";
 import { BUTTON, ERROR_LINE } from "./components/styles";
 import { ResizeEdges, TitleBar } from "./components/TitleBar";
@@ -367,6 +368,11 @@ export default function App() {
             value={state.script}
             onChange={onScriptChange}
             caesuraSecs={state.caesuraSecs}
+            autocomplete={settings?.autocomplete ?? false}
+            autocompleteLang={resolveAutocompleteLocale(
+              settings?.autocompleteLanguage ?? AUTO_LOCALE,
+              getLocale(),
+            )}
             placeholder={t("editor-placeholder")}
             ariaLabelledBy="script-label"
             className="text-havoc-text h-full w-full overflow-y-auto rounded-md border border-white/10 bg-white/5 p-2 font-mono text-xs"

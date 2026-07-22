@@ -858,7 +858,7 @@ dependencies = [
 
 [[package]]
 name = "freally-teleprompt"
-version = "0.200.0"
+version = "0.300.0"
 dependencies = [
  "chrono",
  "directories",

@@ -1,32 +1,51 @@
 # Freally Teleprompt — Handoff
 
-**Written 2026-07-22, after Phase 1 (`0.200.0`) merged.** Read this before starting the next
-session. It says where things actually stand, what is genuinely outstanding, and the traps waiting
-in Phase 2.
+**Written 2026-07-22, after Phase 1 (`0.200.0`) and the i18n/font pass merged.** Read this before
+starting the next session. It says where things actually stand, what is genuinely outstanding, and
+the traps waiting in Phase 2.
 
 ---
 
 ## Where things stand
 
-`main` is at the Phase 1 merge and **green on all 11 CI checks**, including the per-OS launch
-screenshots. Two PRs landed: #3 (the phase) and #4 (the Definition-of-Done review pass, which fixed
-seven real defects — see `CHANGELOG.md` → *Fixed*).
+`main` is green on **all 13 CI checks**. Four PRs have landed: #3 (the phase), #4 (the
+Definition-of-Done review pass), and #5 (bundled fonts, the language gate, and containerised Linux
+rendering).
 
 | | |
 |---|---|
 | Version | `0.200.0` (Cargo.toml, package.json, ui/package.json, tauri.conf.json — all four) |
 | Phase 0 | ✅ scaffold, ported engine, docs site, EULA gate, problem reporter |
 | Phase 1 | ✅ FT-10 … FT-16 — script library, chip editor, projector, LAN mirror, transport, BPM, appearance, read-aloud |
-| Tests | 56 Rust · 57 vitest · 45 Playwright · per-OS app-launch screenshots |
+| i18n | ✅ 18 languages fully translated, Noto bundled, switch-tested on all 3 OSes |
+| Tests | 56 Rust · 57 vitest · **82 Playwright** · per-OS app-launch + per-language screenshots |
 | Next | **Phase 2 — dictionary autocomplete → `0.300.0`** (FT-20, FT-21, FT-22) |
 
 ### Get going
 
 ```bash
 npm ci
-npm run ci:local          # the full gate — 14 checks, ~2 min
+npm run ci:local          # the full gate — 14 checks, ~3 min
 npm run tauri -- build --debug --no-bundle && node scripts/app-screenshot.mjs
 ```
+
+> **Run Playwright from `ui/`, not from the repo root.** The specs write screenshots to the
+> relative path `e2e/screenshots`, so `npx playwright test --config=ui/playwright.config.ts` from
+> the root silently drops a second copy at `<repo>/e2e/` — a dozen of those got committed once.
+> `npm run test:e2e` sets the right cwd; use it.
+
+### What #5 added, in one paragraph
+
+The app bundles Noto for every script its 18 languages need, because switching to Japanese on a
+machine with no Japanese font used to render the whole interface as tofu. Three checks now guard
+that, each aimed at a blind spot the others cannot see: `i18n:lint` fails on a value left
+byte-identical to English (bulk translation falls back silently and still parses);
+`i18n-fonts.spec.ts` proves every character is covered by a **bundled** face, not a system font
+that happens to exist here; and `language-switch.spec.ts` drives the real Settings dialog and
+asserts it repaints into that locale's own catalog. The Playwright job runs on all three OSes —
+font rasterisation, RTL layout and the native `<select>` are exactly what differs between them.
+`THIRD-PARTY.md` carries the OFL notice and **ships inside the installer**, because OFL condition 2
+binds each *copy*, not the repository.
 
 ---
 
@@ -41,6 +60,13 @@ npm run tauri -- build --debug --no-bundle && node scripts/app-screenshot.mjs
 3. **Look at the three `app-running-<os>` CI artifacts after every phase.** (SR-3.)
 4. **Do a code review every time.** `/code-review` is user-triggered and billed and cannot be
    launched from an agent session — so do it directly against the diff instead of skipping it.
+   Mike has given standing permission; it is not optional and does not need re-asking.
+5. **All 18 languages stay translated, legible and switchable.** (SR-4 — see `ROADMAP.md`.) Also
+   look at the `ui-panel-gallery-<os>` artifacts: `settings-<code>.png` is where a per-OS font or
+   RTL problem is visible and nowhere else.
+6. **Every new check must be proven to fail.** Break the thing it watches, watch it go red, put it
+   back. This is not ceremony — see the two entries under *Traps* below, where a check that could
+   not fail sat green for a whole phase while proving nothing.
 
 ---
 
@@ -190,6 +216,22 @@ audit is redone independently.**
 - **Fluent number-formats numeric arguments** (`2560` → `2,560`). Pass technical values as strings.
 - **PowerShell 5.1 mangles UTF-8** on `Get-Content | Set-Content` of repo text — use the Edit tool.
 - **`jq` is not installed** in Git Bash here; use `gh --jq`.
+- **`document.fonts.check()` does not mean "has a glyph for this".** It means "is the face covering
+  this character already loaded", so when *nothing* covers the character — or the family does not
+  exist at all — it returns `true`. A font-coverage test written the obvious way passed with all
+  six font packages uninstalled. Read the faces' declared `unicode-range` instead.
+- **A flex item is blockified**, so `el.getClientRects().length` is 1 no matter how many lines its
+  text wraps onto. To detect wrapping, use a `Range` over the contents — it returns one rect per
+  line box. The obvious version of that assertion also passed against the real bug.
+- **The GitHub Linux runner has no working GL** (`libEGL: DRI3 error`); WebKitGTK never maps a
+  toplevel, so screenshots are black regardless of app health. Run it in the container
+  (`scripts/docker/`) with llvmpipe. Do not "fix" this by making the step non-blocking.
+- **macOS CI reports `prefers-reduced-transparency: reduce`**, so anything asserting a
+  `backdrop-filter` must pin the media feature via CDP or it fails on macOS only — correctly.
+- **Bundled Noto covers writing systems, not emoji.** A decorative emoji in the UI renders as a
+  tofu box on Linux. Don't add them; the roadmap's specified labels don't have any.
+- **Tauri maps a `../` resource path to a `_up_/` folder.** Use the object form
+  (`{"../FILE.md": "FILE.md"}`) to place it properly, and confirm by unpacking the built installer.
 
 ---
 
@@ -213,4 +255,17 @@ ui/src/
   panels/{Projector,ProjectorSetup,ScriptLibrary,About,Settings}.tsx
 
 scripts/app-screenshot.mjs   launches the built app on any OS and photographs it
+scripts/docker/              Linux render container (Xvfb + openbox + llvmpipe); CI uses it
+
+ui/e2e/
+  mock-ipc.ts                the mocked bridge; RECORDS every IPC call. `settings_set` mirrors
+                             Rust and returns what it stored — the UI adopts that return value
+  phase1.spec.ts             every FT-1x feature Playwright can reach
+  gallery.spec.ts            panel screenshots + both SR-1 blur branches
+  i18n-fonts.spec.ts         per-locale glyph coverage, from the faces' own unicode-range
+  language-switch.spec.ts    the real Settings language switch, all 17 + persistence
 ```
+
+Note `ui/tsconfig.json` now type-checks `e2e/` as well as `src/`. It did not, which is how a spec
+came to pass an option `MockState` never declared — the tests compiled and ran in English while
+claiming to test 18 locales.

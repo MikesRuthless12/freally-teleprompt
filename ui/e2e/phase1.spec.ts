@@ -362,12 +362,18 @@ test.describe("FT-13 playback", () => {
       .map((c) => c.args.action);
     expect(actions).toEqual(["stop"]);
     // And it really did both: stopped, and back at the top.
+    //
+    // `toHaveAttribute`, not a bare `getAttribute`. The one-shot read does not
+    // retry, so it raced the engine event that carries the rewind and failed
+    // intermittently on the slower CI runners — this spec boots with
+    // `playing: true`, so the offset is moving right up until the stop lands.
+    // Retrying tolerates the timing without tolerating the wrong value: if stop
+    // genuinely stopped rewinding, this still fails, just later.
     await expect(page.getByTestId("transport").getByRole("button", { name: "Play" })).toBeVisible();
-    expect(
-      await page
-        .getByRole("slider", { name: "Seek through the script" })
-        .getAttribute("aria-valuenow"),
-    ).toBe("0");
+    await expect(page.getByRole("slider", { name: "Seek through the script" })).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
   });
 
   test("the seek bar is a real slider and is keyboard-operable", async ({ page }) => {

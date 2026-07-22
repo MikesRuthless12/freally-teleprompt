@@ -57,6 +57,16 @@ a real transport, and the prompter reading itself aloud.
   (Windows OneCore/SAPI, macOS AVSpeechSynthesis, Linux Speech Dispatcher /
   espeak-ng) — no speech engine is bundled.
 
+- **Every language now renders, on every machine.** The app bundles the Noto
+  fonts for all 18 languages it ships in — Latin, Greek, Cyrillic, Vietnamese,
+  Arabic, Devanagari, Japanese, Korean and Simplified Chinese. Switching to
+  Japanese on a machine with no Japanese font installed used to show boxes
+  instead of the interface; now the app carries what it needs. Only the character
+  subsets a chosen language actually uses are ever loaded, and the fonts back
+  every reading typeface too, so picking "Serif" can never make a language
+  unreadable. The fonts are under the SIL Open Font License; the notice ships
+  with the app as `THIRD-PARTY.md`.
+
 ### Changed
 
 - **The app draws its own window.** No OS title bar: a centred title, with
@@ -111,6 +121,20 @@ Found by the review pass over this phase, before release:
   CI run** (`scripts/app-screenshot.mjs`), failing if it dies on start or paints
   nothing. A compile that succeeds and a webview that renders are different
   things.
+- **Every language is checked for legibility, not just for strings.** A test
+  switches the app into each of the 18 locales and proves every character of its
+  own interface is covered by a bundled font. A missing script renders as boxes,
+  which looks like working text to a screenshot and to every other check — so
+  Arabic, Hindi, Japanese, Korean and Chinese could each have broken silently,
+  and only for the people who read them.
+- **A translation that quietly fell back to English now fails the build.** Bulk
+  translation passes leave English behind for anything they cannot translate, and
+  the result parses and ships looking finished. Genuine exceptions — "OK",
+  "Port", proper nouns — are listed with a reason.
+- **Linux rendering is now proven, not assumed.** The CI screenshot runs in a
+  container with a software renderer, because GitHub's bare Linux runner has no
+  working GL and produced an empty window whether or not the app was healthy — a
+  check that could not fail was telling us nothing.
 - Everything that genuinely cannot be automated — a second monitor, prompter
   glass, audible speech, a phone on your Wi-Fi — now has **step-by-step drills**
   in `Live-To-Do-List.md`.

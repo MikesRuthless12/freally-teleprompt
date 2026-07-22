@@ -165,10 +165,22 @@ describe("typefaces (FT-15)", () => {
   it("the LAN mirror page carries the same font stacks", () => {
     // Vitest runs with `ui/` as its root, so the app crate is one level up.
     const page = readFileSync(resolve(process.cwd(), "../src-tauri/assets/mirror.html"), "utf8");
-    for (const [id, stack] of Object.entries(FONT_STACKS)) {
-      // The page writes them as JS string literals with single quotes.
-      expect(page.includes(stack), `${id} is missing or different in mirror.html`).toBe(true);
-    }
+
+    // The page composes each stack at runtime (`"Georgia, …, " + noto`), so a
+    // substring search would never find one. Evaluate the page's own two
+    // declarations instead — the same thing the browser does. That also catches
+    // a stack that forgot its `+ noto`, which a per-id search would not.
+    const start = page.indexOf("var noto =");
+    const end = page.indexOf("};", page.indexOf("var families =")) + 2;
+    expect(start, "mirror.html no longer declares its font table").toBeGreaterThan(0);
+    expect(end, "mirror.html's `families` table is no longer a plain object").toBeGreaterThan(
+      start,
+    );
+    const families = new Function(`${page.slice(start, end)}; return families;`)();
+
+    // Whole-object equality, not a per-id loop: this fails on an id the mirror
+    // has and the app doesn't, too.
+    expect(families).toEqual(FONT_STACKS);
   });
 });
 

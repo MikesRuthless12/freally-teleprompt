@@ -87,10 +87,19 @@ jobs:
       - run: npm run test:ui
       - run: npm run build
 
+  # Runs on all three OSes, not just Linux. The suite screenshots the Settings
+  # dialog in each of the 18 languages, and the three things most likely to
+  # differ per-OS are exactly what those shots show: font rasterisation and
+  # which family the system picks, RTL layout, and the native `<select>`. A
+  # Linux-only gallery cannot answer "does Japanese render on Windows?".
   ui-gallery:
-    name: UI visual gallery (Playwright)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    name: UI visual gallery (Playwright, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -103,13 +112,14 @@ jobs:
         working-directory: ui
       - name: Build the UI
         run: npm run build
-      - name: Screenshot every panel (mocked IPC)
+      - name: Screenshot every panel and every language (mocked IPC)
         run: npm run test:e2e
-      # Every feature panel, screenshotted — download from this run's artifacts.
+      # Every feature panel and all 18 languages, screenshotted — download from
+      # this run's artifacts.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ui-panel-gallery
+          name: ui-panel-gallery-${{ matrix.os }}
           path: ui/e2e/screenshots/*.png
           if-no-files-found: error
 
@@ -167,53 +177,34 @@ jobs:
       # webview paints (WebView2 / WKWebView / WebKitGTK), or that Rust answered
       # the first IPC call — and those break on exactly one platform at a time.
       # The three artifacts below are meant to be LOOKED AT after each phase.
-      - name: Give Linux a display to paint on
+      # Linux runs the SAME screenshot script, but inside a container.
+      #
+      # A bare runner cannot answer "does it render?": there is no GPU and no
+      # DRI3, so WebKitGTK's web process never starts, no window is created, and
+      # the capture is a black frame — indistinguishable from a broken app.
+      # Disabling the sandbox and the DMA-BUF renderer, adding a window manager
+      # and pinning GDK_BACKEND all changed nothing, because none of them was
+      # the problem.
+      #
+      # The container supplies what the runner lacks: Mesa's llvmpipe gives a
+      # real GL context, WebKitWebProcess starts, and the app paints its window
+      # (verified locally — see scripts/docker/). Its base is ubuntu:24.04 to
+      # match the runner's glibc, so SKIP_BUILD=1 reuses the binary built
+      # natively in the step above instead of compiling everything twice.
+      - name: Launch the app and screenshot it running (Linux, in a container)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get update
-          # x11-utils supplies xwininfo, which the script's failure diagnostics
-          # use to say WHY there is no window rather than only that there isn't.
-          sudo apt-get install -y xvfb imagemagick xdotool x11-utils openbox
-          # `setsid` detaches Xvfb from this step's process group. Without it the
-          # runner tears the group down when the step ends, and the display would
-          # be gone by the time the next step tries to paint on it.
-          setsid Xvfb :99 -screen 0 1600x1000x24 >/dev/null 2>&1 &
-          echo "DISPLAY=:99" >> "$GITHUB_ENV"
-          # Give the X server a moment to accept connections.
-          sleep 3
-          # A window manager. On a bare X server the app's GTK toplevel never
-          # got mapped — the only window X ever knew about was GTK's 10x10
-          # LEADER window (the one that carries WM_CLASS), which is why the
-          # screenshot was a uniformly black frame while the process sat there
-          # perfectly healthy. Nothing about the app requires a WM in normal use;
-          # a headless X server with no window manager at all is the unusual
-          # environment here, not the app.
-          setsid openbox >/dev/null 2>&1 &
-          sleep 2
-      # Blocking on Windows and macOS, where it has caught real problems and
-      # passes reliably. NON-blocking on Linux, and the reason is written down
-      # rather than hidden behind a flag:
-      #
-      # On a GitHub Linux runner the app starts, stays healthy, and produces no
-      # errors — but the only window X ever sees is GTK's 10x10 leader window.
-      # The real toplevel never maps. Disabling the WebKit sandbox and the
-      # DMA-BUF renderer, adding a window manager, and pinning GDK_BACKEND each
-      # changed nothing. That is a headless-X environment problem, not evidence
-      # the app is broken: `clippy + test (ubuntu-latest)` passes and the Linux
-      # build succeeds.
-      #
-      # What it is NOT is proof that the Linux app renders. Nothing here can
-      # give us that any more, so `Live-To-Do-List.md` carries a drill to check
-      # it on a real Linux desktop, and this step keeps running so its artifact
-      # and diagnostics stay available for whoever picks the problem up.
+          docker build -t ft-linux-render -f scripts/docker/Dockerfile scripts/docker
+          docker run --rm -v "$PWD:/work" -e SKIP_BUILD=1 ft-linux-render bash /work/scripts/docker/run.sh
+
       - name: Launch the app and screenshot it running
+        if: matrix.os != 'ubuntu-latest'
         run: node scripts/app-screenshot.mjs
-        continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: app-running-${{ matrix.os }}
           path: artifacts/*.png
-          # A missing image is itself the finding worth failing on — except on
-          # Linux, where the step above is already known not to produce one.
-          if-no-files-found: ${{ matrix.os == 'ubuntu-latest' && 'warn' || 'error' }}
+          # A missing image is itself the finding worth failing on.
+          if-no-files-found: error

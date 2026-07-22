@@ -618,8 +618,11 @@ test.describe("FT-16 read aloud", () => {
     await mockTauri(page);
     await page.goto("/");
 
-    // The label is specified verbatim in the roadmap, so assert it verbatim.
-    const box = page.getByRole("checkbox", { name: "🔊 Read aloud with per-OS speech synthesis" });
+    // The label is specified verbatim in the roadmap, so assert it verbatim —
+    // and with no leading emoji, which is what the roadmap actually says. The
+    // decorative speaker glyph that used to be here rendered as a tofu box on
+    // Linux, which the CI launch screenshot showed.
+    const box = page.getByRole("checkbox", { name: "Read aloud with per-OS speech synthesis" });
     await expect(box).toBeVisible();
     await expect(box).toBeEnabled();
   });

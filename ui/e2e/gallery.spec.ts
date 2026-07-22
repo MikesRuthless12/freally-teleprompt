@@ -1,6 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { mockTauri } from "./mock-ipc";
+
+/**
+ * Pin `prefers-reduced-transparency`, which decides whether SR-1 blurs or falls
+ * back to a flat dim. Playwright's `emulateMedia()` does not cover this feature,
+ * so it goes through CDP — Chromium-only, which is the only browser this suite
+ * runs. Without pinning it, the assertion depends on the accessibility settings
+ * of whichever machine happens to run the test.
+ */
+async function emulateReducedTransparency(page: Page, value: "reduce" | "no-preference") {
+  const client = await page.context().newCDPSession(page);
+  await client.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-transparency", value }],
+  });
+}
 
 /**
  * The standing visual smoke (SR-2).
@@ -103,6 +117,11 @@ test.describe("panel gallery", () => {
 
   test("settings dialog opens with the shared modal blur", async ({ page }) => {
     await mockTauri(page);
+    // Pinned, because the machine's own accessibility preference otherwise
+    // decides the result: macOS CI runners report `reduce`, where global.css
+    // deliberately drops the blur — so this asserted the app was broken when it
+    // was behaving correctly. The reduce branch has its own test below.
+    await emulateReducedTransparency(page, "no-preference");
     await page.goto("/");
 
     await page.getByRole("button", { name: "Settings" }).click();
@@ -124,6 +143,34 @@ test.describe("panel gallery", () => {
     expect(filter).toContain("blur");
 
     await page.screenshot({ path: `${SHOTS}/settings-dialog.png` });
+  });
+
+  test("a reader who asked for less transparency gets the flat dim, not the blur", async ({
+    page,
+  }) => {
+    // The other half of SR-1, and not a hypothetical branch: macOS CI runners
+    // report `reduce`, which is how this surfaced at all. Untested until now,
+    // so the fallback could have been dropped without anything noticing — on
+    // exactly the machines whose users asked for it.
+    await mockTauri(page);
+    await emulateReducedTransparency(page, "reduce");
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "Settings" }).click();
+    await expect(page.getByTestId("settings-dialog")).toBeVisible();
+
+    const backdrop = page.locator(".modal-backdrop");
+    const style = await backdrop.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { filter: cs.backdropFilter, background: cs.backgroundColor };
+    });
+    expect(style.filter, "the blur must be off when reduced transparency is asked for").toBe(
+      "none",
+    );
+    // Dimming is now the ONLY thing separating the dialog from the page behind
+    // it, so it has to be the heavier flat value rather than the blur-companion.
+    // `--modal-dim-flat` for the dark theme, which is what the mock boots into.
+    expect(style.background, "the flat fallback dim must take over").toBe("rgba(0, 0, 0, 0.72)");
   });
 
   test("light theme paints a light surface", async ({ page }) => {

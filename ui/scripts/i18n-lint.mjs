@@ -25,6 +25,46 @@ const SRC = join(UI, "src");
 const SOURCE = "en";
 
 /**
+ * Values that may legitimately read the same in a locale as they do in English:
+ * proper nouns, borrowed words, and typographic terms that genuinely are not
+ * translated. Everything NOT listed here must differ from `en`.
+ *
+ * This is a ratchet, not a style rule. Every bulk-translation pass falls back to
+ * English for anything it has no translation for, and the result parses, passes
+ * key-parity, and ships — an English string sitting in `ja.ftl` looks exactly
+ * like a translated one to every other check. This list was generated from the
+ * catalogs as they stood when all 18 were fully translated, so any NEW match is
+ * a phase that left a fallback behind.
+ *
+ * To add an entry, justify it in the comment. "I could not find a translation"
+ * is not a justification; it is the thing this check exists to catch.
+ */
+const SAME_AS_ENGLISH_OK = {
+  "app-name": "*", // a product name, identical everywhere on purpose
+  "projector-window-title": ["nl"], // the product name plus a Dutch cognate
+  "about-copyright": ["ja", "ko"], // the legal phrase is left in English
+  "about-version": ["de", "fr"], // "Version" is the word in both
+  "eula-version": ["de", "fr"],
+  "about-website": ["de", "nl"], // "Website" is the word in both
+  "editor-label": ["fr", "nl"], // "Script" is the word in both
+  "library-title": ["fr", "nl"],
+  "toolbar-library": ["fr", "nl"],
+  "library-delete-no": ["es", "it"], // "No" really is the Spanish/Italian for no
+  "settings-cat-general": ["es"], // "General" is the Spanish word
+  "settings-cat-projector": ["nl"], // "Projector" is the Dutch word
+  "settings-section-projector": ["nl"],
+  "settings-lan-port": ["de", "fr", "id", "pl"], // "Port" is borrowed as-is
+  "settings-ok": ["de", "fr", "id", "it", "ja", "nl", "pl", "pt-BR", "vi"], // "OK" is borrowed
+  "transport-pause": ["de", "fr"], // "Pause" is the word in both
+  // Typographic terms, borrowed rather than translated in these languages.
+  "settings-font-system": ["de"],
+  "settings-font-sans": ["es"],
+  "settings-font-serif": ["de", "es"],
+  "settings-font-mono": ["de"],
+  "settings-font-slab": ["de", "es", "id", "it", "nl", "pt-BR", "tr"],
+};
+
+/**
  * Keys whose ids the lint cannot follow because they're built at runtime.
  * Empty for now — add a prefix here only with a note on who supplies the id.
  *
@@ -89,13 +129,25 @@ for (const [code, keys] of catalogs) {
     fail.push(`${code}.ftl: missing ${missing.length} key(s): ${missing.join(", ")}`);
   if (extra.length)
     fail.push(`${code}.ftl: ${extra.length} key(s) not in ${SOURCE}: ${extra.join(", ")}`);
-  // An untranslated value is not an error — English is layered underneath — but
-  // an *empty* one renders as nothing at all, which no fallback can rescue.
+  // An *empty* value renders as nothing at all, which no fallback can rescue.
   for (const [key, value] of keys) {
     if (!value)
       fail.push(
         `${code}.ftl: "${key}" is empty (renders as nothing; delete it to fall back to ${SOURCE})`,
       );
+  }
+
+  // 1b. UNTRANSLATED — a value byte-identical to English that has no business
+  // being. Key parity cannot see this: an English string in `ja.ftl` is a
+  // perfectly valid entry. See `SAME_AS_ENGLISH_OK` for why this is a ratchet.
+  for (const [key, value] of keys) {
+    if (!value || source.get(key) !== value) continue;
+    const allowed = SAME_AS_ENGLISH_OK[key];
+    if (allowed === "*" || (Array.isArray(allowed) && allowed.includes(code))) continue;
+    fail.push(
+      `${code}.ftl: "${key}" is still the English text (${JSON.stringify(value)}) — ` +
+        `translate it, or add it to SAME_AS_ENGLISH_OK with a reason if that IS the translation`,
+    );
   }
 }
 

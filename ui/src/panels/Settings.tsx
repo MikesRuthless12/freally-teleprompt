@@ -319,8 +319,11 @@ export function SettingsDialog({
               <>
                 <Section title={t("settings-cat-general")}>
                   <label className="flex items-center justify-between gap-3">
-                    <span className="text-havoc-muted text-[11px]">{t("settings-language")}</span>
+                    <span className="text-havoc-muted shrink-0 text-[11px]">
+                      {t("settings-language")}
+                    </span>
                     <select
+                      data-testid="settings-language"
                       className={FIELD}
                       value={draft.language}
                       onChange={(e) => patch({ language: e.target.value })}
@@ -335,7 +338,9 @@ export function SettingsDialog({
                   </label>
 
                   <label className="flex items-center justify-between gap-3">
-                    <span className="text-havoc-muted text-[11px]">{t("settings-theme")}</span>
+                    <span className="text-havoc-muted shrink-0 text-[11px]">
+                      {t("settings-theme")}
+                    </span>
                     <select
                       className={FIELD}
                       value={draft.theme}
@@ -403,7 +408,9 @@ export function SettingsDialog({
             {shown === "appearance" && (
               <Section title={t("settings-cat-appearance")}>
                 <label className="flex items-center justify-between gap-3">
-                  <span className="text-havoc-muted text-[11px]">{t("settings-font-family")}</span>
+                  <span className="text-havoc-muted shrink-0 text-[11px]">
+                    {t("settings-font-family")}
+                  </span>
                   <select
                     className={FIELD}
                     value={draft.look.fontFamily}
@@ -420,7 +427,9 @@ export function SettingsDialog({
                 </label>
 
                 <label className="flex items-center justify-between gap-3">
-                  <span className="text-havoc-muted text-[11px]">{t("settings-font-weight")}</span>
+                  <span className="text-havoc-muted shrink-0 text-[11px]">
+                    {t("settings-font-weight")}
+                  </span>
                   <select
                     className={FIELD}
                     value={draft.look.fontWeight}
@@ -435,7 +444,9 @@ export function SettingsDialog({
                 </label>
 
                 <label className="flex items-center justify-between gap-3">
-                  <span className="text-havoc-muted text-[11px]">{t("settings-text-color")}</span>
+                  <span className="text-havoc-muted shrink-0 text-[11px]">
+                    {t("settings-text-color")}
+                  </span>
                   <input
                     type="color"
                     className="h-6 w-12 cursor-pointer rounded border border-white/10 bg-transparent p-0"
@@ -513,7 +524,9 @@ export function SettingsDialog({
                       {t("settings-lan-warning")}
                     </p>
                     <label className="flex items-center justify-between gap-3">
-                      <span className="text-havoc-muted text-[11px]">{t("settings-lan-port")}</span>
+                      <span className="text-havoc-muted shrink-0 text-[11px]">
+                        {t("settings-lan-port")}
+                      </span>
                       <input
                         type="number"
                         min={1024}
@@ -571,15 +584,29 @@ export function SettingsDialog({
               {error}
             </p>
           )}
+          {/* These three carry testids because their own labels are translated:
+              a test that switches the language cannot then find "Apply". */}
           <div className="ml-auto flex shrink-0 gap-2">
-            <button type="button" onClick={confirm} disabled={busy} className={PRIMARY}>
+            <button
+              type="button"
+              data-testid="settings-ok"
+              onClick={confirm}
+              disabled={busy}
+              className={PRIMARY}
+            >
               {t("settings-ok")}
             </button>
-            <button type="button" onClick={onClose} className={BUTTON}>
+            <button
+              type="button"
+              data-testid="settings-cancel"
+              onClick={onClose}
+              className={BUTTON}
+            >
               {t("settings-cancel")}
             </button>
             <button
               type="button"
+              data-testid="settings-apply"
               onClick={() => void apply()}
               disabled={!dirty || busy}
               className={`${BUTTON} disabled:cursor-not-allowed disabled:opacity-40`}

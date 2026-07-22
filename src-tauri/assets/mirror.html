@@ -194,13 +194,25 @@
 
         function applyLook(look) {
           if (!look) return;
+          /* Mirrors ui/src/lib/fonts.ts — a unit test asserts every stack here
+             matches, because this page is served to a browser that never loads
+             the app bundle and so cannot import that table.
+
+             The Noto families are named but NOT served: shipping ~14 MB of font
+             files to a phone over the LAN, on every poll-driven page load, would
+             be a poor trade for a read-only mirror. Android already has Noto and
+             will use it; everything else falls through to the device's own
+             fonts, which cover its own languages. */
+          var noto =
+            "'Noto Sans Variable', 'Noto Sans Arabic Variable', 'Noto Sans Devanagari Variable', " +
+            "'Noto Sans JP Variable', 'Noto Sans KR Variable', 'Noto Sans SC Variable'";
           var families = {
-            system: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-            sans: 'Inter, "Helvetica Neue", Arial, sans-serif',
-            serif: 'Georgia, "Times New Roman", serif',
-            mono: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
-            rounded: '"Nunito", "Trebuchet MS", system-ui, sans-serif',
-            slab: '"Rockwell", "Courier New", Georgia, serif',
+            system: "'Noto Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif, " + noto,
+            sans: "'Noto Sans Variable', Inter, 'Helvetica Neue', Arial, sans-serif, " + noto,
+            serif: "Georgia, 'Times New Roman', serif, " + noto,
+            mono: "ui-monospace, 'Cascadia Mono', Consolas, monospace, " + noto,
+            rounded: "Nunito, 'Trebuchet MS', system-ui, sans-serif, " + noto,
+            slab: "Rockwell, 'Courier New', Georgia, serif, " + noto,
           };
           track.style.fontFamily = families[look.fontFamily] || families.system;
           track.style.fontWeight = String(look.fontWeight || 500);

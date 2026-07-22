@@ -43,7 +43,18 @@ body {
   margin: 0;
   background: var(--color-havoc-bg);
   color: var(--color-havoc-text);
+  /* Bundled Noto first, for every script the app's 18 languages need. The app
+     is switchable between them at runtime, so relying on whatever the machine
+     happens to have installed means some users see tofu boxes for chrome they
+     cannot read. Each family declares `unicode-range`, so only the subsets a
+     given language actually needs are ever loaded. */
   font-family:
+    "Noto Sans Variable",
+    "Noto Sans Arabic Variable",
+    "Noto Sans Devanagari Variable",
+    "Noto Sans JP Variable",
+    "Noto Sans KR Variable",
+    "Noto Sans SC Variable",
     system-ui,
     -apple-system,
     "Segoe UI",

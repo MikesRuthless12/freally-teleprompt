@@ -32,6 +32,8 @@ export type MockState = {
   playing?: boolean;
   offset?: number;
   theme?: "dark" | "light";
+  /** The locale the app boots in (`settings.language`); defaults to English. */
+  language?: string;
   /** The reading appearance the engine reports (FT-15). */
   look?: Partial<Look>;
   /** The library listing `scripts_list` returns (FT-10). */
@@ -119,7 +121,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
   const look = { ...DEFAULT_LOOK, ...(state.look ?? {}) };
   const payload = {
     settings: {
-      language: "en",
+      language: state.language ?? "en",
       theme: state.theme ?? "dark",
       speed: 12,
       fontSize: 48,
@@ -175,7 +177,6 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
 
     const responses: Record<string, unknown> = {
       settings_get: data.settings,
-      settings_set: null,
       eula_status: data.eula,
       eula_accept: null,
       scripts_list: data.scripts,
@@ -240,6 +241,15 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             if (args.action === "seek") engine.offset = Number(args.value ?? 0);
             emit();
             return Promise.resolve(null);
+          // Mirror of `settings::settings_set`: it STORES the settings and
+          // returns what it stored, and the UI adopts that return value — it is
+          // what re-localises the app and re-themes the document. Returning
+          // `null` (as this mock used to) made `apply()` throw into its own
+          // catch, so every "apply" in a test recorded the right IPC call and
+          // then changed nothing on screen.
+          case "settings_set":
+            Object.assign(data.settings, args.next ?? {});
+            return Promise.resolve({ ...data.settings });
           default:
             break;
         }

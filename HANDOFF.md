@@ -46,22 +46,27 @@ npm run tauri -- build --debug --no-bundle && node scripts/app-screenshot.mjs
 
 ## ⚠️ Outstanding — read before Phase 2
 
-### 1. Does the app render on Linux? Nobody knows.
+### ~~1. Does the app render on Linux?~~ — ANSWERED 2026-07-22. It does.
 
-**This is the highest-value open question in the repo.** The Linux `app-running-ubuntu-latest` step
-is deliberately **non-blocking** (`ci.yml`, with the reasoning written in-file). On a GitHub runner
-the app starts, stays healthy, logs nothing, and the only window X ever sees is GTK's 10×10 *leader*
-window — the real toplevel never maps, so the screenshot is a black frame. Disabling the WebKit
-sandbox, disabling the DMA-BUF renderer, adding `openbox`, and pinning `GDK_BACKEND` each changed
-nothing.
+Kept here because it was the repo's highest-value open question for a phase, and because how it
+went wrong is worth more than the answer.
 
-Linux `clippy + test` passes and the build succeeds, so there is **no evidence the app is broken** —
-and equally **no evidence it renders**. `Live-To-Do-List.md` has the drill (build + launch on a real
-Linux desktop or VM). Run it early:
+The cause was **the runner, not the app**: the GitHub Linux runner has no working GL. A spike
+printed `libEGL warning: DRI3 error` with no WebKit processes at all — WebKitGTK could not start a
+compositor, so it never mapped a toplevel and X only ever saw GTK's 10×10 leader window. Disabling
+the WebKit sandbox, disabling DMA-BUF, adding `openbox` and pinning `GDK_BACKEND` had all failed
+because none of them addressed that.
 
-- If it renders → the CI failure is a headless-X artifact. Record that in `Live-To-Do-List.md`.
-- If it does not → that is a real Linux bug, the job was right, and **re-block the step in
-  `ci.yml`**.
+The screenshot step now runs in a container (`scripts/docker/`) with Mesa's llvmpipe software
+renderer, where the app renders its full shell correctly. The step is **blocking again**, with
+`if-no-files-found: error`.
+
+**The lesson worth keeping:** that job spent an entire phase passing while proving nothing. A
+screenshot check whose environment cannot render is not a lenient check, it is a broken one — it
+cannot fail, so a green run and a red one carry the same information. The same trap turned up
+again in `i18n-fonts.spec.ts` (see `git log`), where `document.fonts.check()` returns `true` for a
+character no font covers, so the whole suite passed with every font uninstalled. When you add a
+check, **break the thing it watches and confirm it goes red.**
 
 ### 2. Human drills never run
 

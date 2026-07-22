@@ -4,6 +4,23 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import App from "./App";
 import { Projector } from "./panels/Projector";
+
+// Noto, bundled — every script the app's 18 languages need, so no language ever
+// renders as tofu regardless of what the machine has installed. These are the
+// VARIABLE builds: one file per subset covering weights 100–900, which is what
+// makes the appearance picker's 300–900 range real rather than synthesised.
+//
+// Each package's CSS carries `unicode-range` per subset, so a reader working in
+// English only ever loads the ~430 KB Latin/Cyrillic files; the CJK megabytes
+// sit in the installer and are never touched. Licensed under the SIL Open Font
+// License 1.1 — see THIRD-PARTY.md, which ships with the app.
+import "@fontsource-variable/noto-sans";
+import "@fontsource-variable/noto-sans-arabic";
+import "@fontsource-variable/noto-sans-devanagari";
+import "@fontsource-variable/noto-sans-jp";
+import "@fontsource-variable/noto-sans-kr";
+import "@fontsource-variable/noto-sans-sc";
+
 import "./styles/global.css";
 
 const root = document.getElementById("root");

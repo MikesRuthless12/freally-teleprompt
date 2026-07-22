@@ -10,6 +10,13 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   reporter: [["list"]],
+  // Above Playwright's 30s default. The language and font specs fetch Noto
+  // subsets over the preview server, and the first read of a subset on a cold
+  // machine is slow — a locally-observed run took minutes when the font files
+  // were newly written. Every CI runner is cold by definition, and the suite
+  // now runs on Windows and macOS too. A genuinely hung test still fails here;
+  // it just gets long enough not to fail for being on a slow disk.
+  timeout: 60_000,
   use: {
     baseURL: "http://localhost:4173",
     viewport: { width: 1440, height: 900 },

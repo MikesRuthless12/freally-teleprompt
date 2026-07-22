@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { chipLabel, isChip, normalizePaste, tokenize } from "../caesuraChips";
-import { parseCaesuras } from "../caesura";
+import { parseCaesuras, scanCaesuraAt } from "../caesura";
 import { FONT_FAMILY_IDS, FONT_STACKS, fontStack } from "../fonts";
 import { BPM_MAX, BPM_MIN, bpmFromSpeed, clampBpm, speedFromBpm } from "../speed";
 import { fmtTime } from "../time";
@@ -49,9 +52,40 @@ describe("caesura chips (FT-11)", () => {
       "- a bullet line",
       "-- first\nlast --",
       "go --0.5 stop",
+      // MALFORMED NUMERIC FIELDS — the cases that actually caught a bug. The
+      // chip tokenizer used to carry its own scanner without the one-dot and
+      // max-length bounds, so it chipped all of these while the engine skipped
+      // them: the operator saw a pause the prompter would never take. The
+      // well-formed cases above all agreed, which is why this went unnoticed.
+      "a --2.5.3 b",
+      "a --1..2 b",
+      "a --0.5. b",
+      `a --${"9".repeat(41)} b`,
+      "a --12345678 b", // exactly at the cap: still a caesura on both sides
+      "a --123456789 b", // one over: neither
     ]) {
       const chips = tokenize(script).filter(isChip).length;
       expect(chips, script).toBe(parseCaesuras(script, 0.75).length);
+    }
+  });
+
+  /** Read-aloud's dash detector is the third consumer of the same grammar. It
+   * decides what is spoken aloud versus held as a silence, so a disagreement
+   * means `--` gets pronounced "dash dash" — or a real pause is swallowed. */
+  it("read-aloud splits on exactly the caesuras the engine parses", () => {
+    for (const script of ["a -- b", "a --2.5.3 b", "a --2 b", `a --${"9".repeat(41)} b`]) {
+      // `buildChunks` is internal, so assert through the shared scanner the
+      // module now uses: the same token boundaries the engine found.
+      const chars = Array.from(script);
+      let found = 0;
+      for (let i = 0; i < chars.length; i++) {
+        const token = scanCaesuraAt(chars, i);
+        if (token) {
+          found += 1;
+          i = token.end - 1;
+        }
+      }
+      expect(found, script).toBe(parseCaesuras(script, 0.75).length);
     }
   });
 
@@ -118,6 +152,23 @@ describe("typefaces (FT-15)", () => {
   it("an unknown id falls back instead of blanking the text", () => {
     expect(fontStack("not-a-font")).toBe(FONT_STACKS.system);
     expect(fontStack("")).toBe(FONT_STACKS.system);
+  });
+
+  /**
+   * The LAN mirror page carries its own copy of this table — it is served to a
+   * browser that never loads this bundle, so it cannot import it. That copy is
+   * unavoidable; going UNCHECKED is not. Without this, changing a stack here
+   * would silently leave the mirror rendering a different typeface from the
+   * preview and the projector, with no type error and no failing test — the
+   * exact drift the shared `Look` in `teleprompter.rs` exists to prevent.
+   */
+  it("the LAN mirror page carries the same font stacks", () => {
+    // Vitest runs with `ui/` as its root, so the app crate is one level up.
+    const page = readFileSync(resolve(process.cwd(), "../src-tauri/assets/mirror.html"), "utf8");
+    for (const [id, stack] of Object.entries(FONT_STACKS)) {
+      // The page writes them as JS string literals with single quotes.
+      expect(page.includes(stack), `${id} is missing or different in mirror.html`).toBe(true);
+    }
   });
 });
 

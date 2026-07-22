@@ -20,7 +20,15 @@
  * Linux needs a display: CI starts Xvfb and exports DISPLAY before calling this.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,9 +87,22 @@ function binaryPath() {
  * than the first-run gate, which would look identical every phase and prove
  * nothing about the phase's own work.
  *
- * `acceptedEulaVersion` must match `EULA_VERSION` in `src-tauri/src/eula.rs`.
+ * The EULA version is READ from `eula.rs` rather than restated here. An earlier
+ * version hard-coded it with a "must match" comment and argued that drift would
+ * be loud because the screenshot would show the gate — but nothing checked that,
+ * and the gate renders happily above the blank-screen threshold with a window
+ * and everything. From the next version bump onward, every screenshot on all
+ * three OSes would have photographed the first-run gate, green, forever, and the
+ * harness would have silently stopped testing the thing it exists to test.
  */
-const EULA_VERSION = "2026-07-21";
+function eulaVersion() {
+  const source = readFileSync(join(repoRoot, "src-tauri", "src", "eula.rs"), "utf8");
+  const found = /EULA_VERSION:\s*&str\s*=\s*"([^"]+)"/.exec(source);
+  if (!found) {
+    throw new Error("could not read EULA_VERSION from src-tauri/src/eula.rs");
+  }
+  return found[1];
+}
 const SAMPLE_NAME = "CI smoke";
 const SAMPLE_SCRIPT = [
   "Freally Teleprompt is running.",
@@ -128,7 +149,7 @@ function seed() {
         countdownSecs: 0,
         mirror: false,
         recentScripts: [SAMPLE_NAME],
-        acceptedEulaVersion: EULA_VERSION,
+        acceptedEulaVersion: eulaVersion(),
       },
       null,
       2,

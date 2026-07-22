@@ -108,6 +108,9 @@ export type BugReportTarget = "github" | "gmail" | "email";
 export type TeleprompterAction =
   | "play"
   | "pause"
+  /** Halt AND rewind to the top — what a Stop button means. Distinct from
+   * `pause`, which freezes in place. */
+  | "stop"
   | "toggle"
   | "faster"
   | "slower"

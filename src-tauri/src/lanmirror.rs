@@ -97,7 +97,13 @@ impl Default for LanMirrorState {
     }
 }
 
-fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+/// Take a lock, ignoring poisoning.
+///
+/// A panic elsewhere must not turn every later lock into a second panic — the
+/// data behind these mutexes is a listener handle and a couple of strings, and
+/// carrying on with it is strictly better than taking the app down. Shared so
+/// the policy is stated once; `tray.rs` uses it too.
+pub(crate) fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     mutex
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)

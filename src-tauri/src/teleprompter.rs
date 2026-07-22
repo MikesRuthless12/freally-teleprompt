@@ -526,7 +526,21 @@ impl TeleprompterState {
         let mut inner = self.lock();
         match action {
             "play" | "start" => inner.resume(),
-            "pause" | "stop" => inner.pause(),
+            "pause" => inner.pause(),
+            // Stop halts AND rewinds. It used to be an alias for `pause`, while
+            // every Stop button in the UI composed `pause` + `top` at the call
+            // site — so the engine's own `"stop"` quietly meant something else
+            // than the button labelled Stop, and the next caller to reach for it
+            // (a hotkey, the tray, the LAN mirror) would have got pause-without-
+            // rewind. One action, one meaning, one broadcast.
+            //
+            // Pause alone also leaves a short script scrolled off the top, which
+            // reads as a blank screen — the reason the buttons rewound in the
+            // first place.
+            "stop" => {
+                inner.pause();
+                inner.rewind();
+            }
             "toggle" => {
                 if inner.play_started.is_some() {
                     inner.pause();
@@ -845,6 +859,31 @@ mod tests {
     fn unknown_action_is_refused() {
         let s = TeleprompterState::new();
         assert!(s.apply("explode", None).is_err());
+    }
+
+    /// `stop` and `pause` are different actions, and the difference is the whole
+    /// reason `stop` exists. It used to be an alias for `pause` while every Stop
+    /// button composed pause + top at the call site — so the engine's own
+    /// `"stop"` meant something other than the button labelled Stop, waiting for
+    /// the next caller (a hotkey, the tray, the LAN mirror) to find out.
+    #[test]
+    fn stop_rewinds_but_pause_holds_position() {
+        let s = TeleprompterState::new();
+        s.set_script("a".repeat(400));
+        s.set_speed(40.0);
+
+        s.apply("play", None).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        s.apply("pause", None).unwrap();
+        let held = s.dto().offset;
+        assert!(held > 0.0, "pause freezes where it was");
+        assert!(!s.dto().playing);
+
+        s.apply("play", None).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        s.apply("stop", None).unwrap();
+        assert_eq!(s.dto().offset, 0.0, "stop rewinds to the top");
+        assert!(!s.dto().playing, "and stops");
     }
 
     #[test]

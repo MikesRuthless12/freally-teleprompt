@@ -10,8 +10,7 @@
 // `parseCaesuras` (in ./caesura) exactly, so the chips a user sees are precisely
 // what the scroll treats as pauses. Ported from Freally Capture.
 
-const NL = 10;
-const isNl = (c: string) => c.charCodeAt(0) === NL;
+import { scanCaesuraAt } from "./caesura";
 
 /** A chip token as it appears in the script string: dashes plus optional digits
  * (`--`, `--2`, `--0.5`) — the surrounding fence spaces are NOT part of it. */
@@ -20,7 +19,12 @@ export const isChip = (t: Token): t is { chip: string } => "chip" in t;
 
 /** Split a script into ordered text runs and caesura chips. Chip tokens are the
  * dashes(+digits) core only, so re-joining the tokens reproduces the input
- * byte-for-byte. */
+ * byte-for-byte.
+ *
+ * Token recognition is `scanCaesuraAt`'s, not a copy of it. This function used
+ * to carry its own scanner without the one-dot and max-length bounds, so
+ * `a --2.5.3 b` was chipped here and skipped by the scroll engine — the operator
+ * was shown a pause the prompter would not take. */
 export function tokenize(script: string): Token[] {
   const chars = Array.from(script);
   const n = chars.length;
@@ -31,21 +35,13 @@ export function tokenize(script: string): Token[] {
   };
   let i = 0;
   while (i < n) {
-    const fencedBefore = i === 0 || chars[i - 1] === " " || isNl(chars[i - 1]);
-    if (fencedBefore && chars[i] === "-" && i + 1 < n && chars[i + 1] === "-") {
-      let j = i;
-      while (j < n && chars[j] === "-") j += 1;
-      if (j - i === 2) {
-        while (j < n && (/[0-9]/.test(chars[j]) || chars[j] === ".")) j += 1;
-        const fencedAfter = j >= n || chars[j] === " " || isNl(chars[j]);
-        if (fencedAfter) {
-          flush(i);
-          out.push({ chip: chars.slice(i, j).join("") });
-          textStart = j;
-          i = j;
-          continue;
-        }
-      }
+    const token = scanCaesuraAt(chars, i);
+    if (token) {
+      flush(i);
+      out.push({ chip: chars.slice(i, token.end).join("") });
+      textStart = token.end;
+      i = token.end;
+      continue;
     }
     i += 1;
   }

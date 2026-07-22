@@ -347,18 +347,27 @@ test.describe("FT-13 playback", () => {
     ).toBeVisible();
   });
 
-  test("stop halts AND rewinds, so a short script is not left scrolled off the top", async ({
-    page,
-  }) => {
-    await mockTauri(page, { playing: true });
+  test("stop is ONE engine action that halts and rewinds", async ({ page }) => {
+    await mockTauri(page, { playing: true, script: "a script long enough to scroll" });
     await page.goto("/");
 
     await page.getByTestId("transport").getByRole("button", { name: "Stop" }).click();
+
+    // One action, not a pause+top composed at the call site. The engine owns the
+    // meaning of Stop, so a hotkey or the tray gets the same behaviour as the
+    // button — and there is no window where the projector shows paused-but-not-
+    // rewound between two broadcasts.
     const actions = (await ipcCalls(page))
       .filter((c) => c.cmd === "teleprompter_control")
       .map((c) => c.args.action);
-    expect(actions).toContain("toggle");
-    expect(actions).toContain("top");
+    expect(actions).toEqual(["stop"]);
+    // And it really did both: stopped, and back at the top.
+    await expect(page.getByTestId("transport").getByRole("button", { name: "Play" })).toBeVisible();
+    expect(
+      await page
+        .getByRole("slider", { name: "Seek through the script" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("0");
   });
 
   test("the seek bar is a real slider and is keyboard-operable", async ({ page }) => {

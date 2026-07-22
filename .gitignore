@@ -58,6 +58,11 @@ secrets.json
 ui/e2e/screenshots/
 ui/e2e/.output/
 ui/test-results/
+# The specs write to the RELATIVE path `e2e/screenshots`, so running Playwright
+# from the repo root instead of `ui/` drops a second copy here. Ignored without
+# a leading `ui/` so it is caught wherever it lands — a dozen of these were
+# committed once already.
+/e2e/
 
 # The per-OS "app actually running" screenshots (scripts/app-screenshot.mjs).
 # CI uploads them as build artifacts; locally they are just a look-and-see.

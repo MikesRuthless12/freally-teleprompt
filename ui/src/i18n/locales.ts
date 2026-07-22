@@ -117,10 +117,15 @@ export function detectLocale(preferred: readonly string[]): LocaleCode {
 }
 
 /**
- * Resolve what `Settings.language` means. `"auto"` (or anything unshipped)
- * defers to the OS; an explicit tag wins.
+ * Resolve what `Settings.language` means. `"auto"` — or a tag we do not ship —
+ * defers to the OS; an explicit, shipped tag wins.
+ *
+ * Falling back to the OS rather than straight to English matters for the
+ * unshipped case: a hand-edited `settings.json` naming a locale we don't have
+ * should still land on the user's own language, not on English. (Rust keeps any
+ * non-blank tag, so that value really can reach here.)
  */
 export function resolveLocale(setting: string, preferred: readonly string[]): LocaleCode {
   if (!setting || setting === AUTO_LOCALE) return detectLocale(preferred);
-  return normalizeLocale(setting);
+  return matchShipped(setting) ?? detectLocale(preferred);
 }

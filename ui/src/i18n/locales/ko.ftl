@@ -71,3 +71,7 @@ updates-no = 아니요, 나중에
 updates-installing = 내려받아 설치하는 중…
 updates-none = 최신 버전입니다.
 updates-error = 업데이트를 확인할 수 없습니다.
+updates-checking = 업데이트를 확인하는 중…
+
+## Startup
+startup-failed = Freally Teleprompt를 시작할 수 없습니다.

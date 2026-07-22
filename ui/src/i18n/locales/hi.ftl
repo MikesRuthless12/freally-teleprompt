@@ -71,3 +71,7 @@ updates-no = नहीं, अभी नहीं
 updates-installing = डाउनलोड और इंस्टॉल हो रहा है…
 updates-none = आप नवीनतम संस्करण पर हैं।
 updates-error = अपडेट की जाँच नहीं हो सकी।
+updates-checking = अपडेट जाँचे जा रहे हैं…
+
+## Startup
+startup-failed = Freally Teleprompt शुरू नहीं हो सका।

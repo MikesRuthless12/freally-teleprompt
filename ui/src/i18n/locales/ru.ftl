@@ -71,3 +71,7 @@ updates-no = Нет, не сейчас
 updates-installing = Загрузка и установка…
 updates-none = У вас последняя версия.
 updates-error = Не удалось проверить обновления.
+updates-checking = Проверка обновлений…
+
+## Startup
+startup-failed = Не удалось запустить Freally Teleprompt.

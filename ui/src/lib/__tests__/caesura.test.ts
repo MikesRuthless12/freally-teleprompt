@@ -57,6 +57,34 @@ describe("parseCaesuras — ported case-for-case from the Rust suite", () => {
   it("clamps an absurd duration the way the Rust CAESURA_MAX_SECS does", () => {
     expect(parseCaesuras("a --999 b", d)[0].dur).toBe(30);
   });
+
+  /**
+   * These inputs USED to diverge between the twins, silently — the two surfaces
+   * dwelled for different lengths on the same token and drifted apart, which is
+   * exactly what the twin invariant exists to prevent.
+   *
+   *   `--2.5.3` → JS `parseFloat` prefix-parsed 2.5; Rust rejected it (0.75).
+   *   41 digits → f64 stayed finite and clamped to 30; f32 saturated to inf
+   *               and fell back to 0.75.
+   *
+   * Both are now excluded by the scanner on BOTH sides, so neither language
+   * ever parses them. The matching Rust cases live in
+   * `teleprompter.rs::parses_inline_caesuras`.
+   */
+  it("rejects a multi-dot number instead of prefix-parsing it", () => {
+    expect(parseCaesuras("a --2.5.3 b", d)).toHaveLength(0);
+    expect(parseCaesuras("a --1..2 b", d)).toHaveLength(0);
+    expect(parseCaesuras("a --0.5. b", d)).toHaveLength(0);
+  });
+
+  it("rejects a numeric field longer than the shared cap", () => {
+    expect(parseCaesuras(`a --${"9".repeat(41)} b`, d)).toHaveLength(0);
+    // Exactly at the cap is still a caesura, and still clamps to the max.
+    expect(parseCaesuras("a --12345678 b", d)).toHaveLength(1);
+    expect(parseCaesuras("a --12345678 b", d)[0].dur).toBe(30);
+    // One over the cap is not.
+    expect(parseCaesuras("a --123456789 b", d)).toHaveLength(0);
+  });
 });
 
 describe("visibleChars", () => {

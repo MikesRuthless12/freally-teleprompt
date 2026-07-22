@@ -255,12 +255,17 @@ impl SettingsStore {
         }
         let temp = self.path.with_extension("json.tmp");
         fs::write(&temp, text)?;
-        // Windows `rename` fails if the destination exists, unlike POSIX.
-        // Remove it first; the temp file still holds the new content, so a
-        // crash between the two leaves the temp file to be overwritten next time.
-        if self.path.exists() {
-            fs::remove_file(&self.path)?;
-        }
+        // `fs::rename` replaces an existing destination on Windows too — std
+        // uses MoveFileEx with replace semantics, so this really is atomic.
+        //
+        // An earlier version deleted the destination first, on the false premise
+        // that Windows refuses to rename onto an existing file. That delete was
+        // the ONLY thing making this write non-atomic: it opened a window with
+        // no settings file at all, so a crash — or a rename that failed because
+        // a virus scanner had the temp file open — left the user with nothing.
+        // `load()` would then take the silent first-run branch and reset every
+        // preference AND re-show the EULA gate, with a perfectly good document
+        // sitting next to it in `settings.json.tmp`. Do not reintroduce it.
         fs::rename(&temp, &self.path)
     }
 }

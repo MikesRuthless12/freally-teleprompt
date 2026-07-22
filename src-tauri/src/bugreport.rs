@@ -100,20 +100,54 @@ pub fn scrub(text: &str) -> String {
     let mut out = text.to_string();
     if let Some(dirs) = directories::UserDirs::new() {
         let home = dirs.home_dir().to_string_lossy().to_string();
-        if !home.is_empty() {
+        // `/` is a real home for some service accounts and containers.
+        // Replacing it would rewrite every slash in the report
+        // ("Panic at src<home>bugreport.rs"), so skip anything that short.
+        if home.len() > 1 {
             out = out.replace(&home, "<home>");
-            // Also the bare username, unless it is a trivially-short substring
-            // that would shred unrelated words.
             if let Some(name) = std::path::Path::new(&home)
                 .file_name()
                 .and_then(|n| n.to_str())
             {
                 if name.len() >= 3 {
-                    out = out.replace(name, "<user>");
+                    out = replace_whole_word(&out, name, "<user>");
                 }
             }
         }
     }
+    out
+}
+
+/// `str::replace`, but only where `needle` is not glued to an alphanumeric
+/// neighbour on either side.
+///
+/// A plain `replace` shreds the payload the report exists to carry: a user
+/// called `max` turned `core::cmp::max` into `core::cmp::<user>`,
+/// `max_offset` into `<user>_offset`, and the panic message "maximum speed
+/// exceeded" into "<user>imum speed exceeded" — invisibly, in exactly the text
+/// a developer needs to read. Short usernames are common, so this is the
+/// normal case, not an edge one.
+fn replace_whole_word(haystack: &str, needle: &str, with: &str) -> String {
+    // Spelled as a match rather than `is_none_or`, which is newer than the
+    // workspace MSRV (1.80). A string edge counts as a boundary.
+    let bounded = |c: Option<char>| match c {
+        None => true,
+        Some(c) => !c.is_alphanumeric() && c != '_',
+    };
+    let mut out = String::with_capacity(haystack.len());
+    let mut rest = haystack;
+    while let Some(hit) = rest.find(needle) {
+        let before = rest[..hit].chars().next_back();
+        let after = rest[hit + needle.len()..].chars().next();
+        out.push_str(&rest[..hit]);
+        if bounded(before) && bounded(after) {
+            out.push_str(with);
+        } else {
+            out.push_str(needle);
+        }
+        rest = &rest[hit + needle.len()..];
+    }
+    out.push_str(rest);
     out
 }
 
@@ -324,16 +358,39 @@ fn write_crash(scrubbed: &str) {
         .map(|d| d.as_millis())
         .unwrap_or(0);
     let stamped = format!("{}\n{scrubbed}", crash_time_line());
-    let _ = std::fs::write(dir.join(format!("crash-{ts}.txt")), stamped);
+    // The thread id disambiguates two panics landing in the same millisecond.
+    // `write_crash` runs BEFORE the `SPAWNED` guard — both threads must get
+    // their report written, only one may show a dialog — so the collision is
+    // genuinely reachable. `fs::write` truncates, and two interleaved writes
+    // could leave a partial UTF-8 sequence that `read_to_string` then refuses,
+    // losing BOTH reports while the file sits there looking fine.
+    let tid: String = format!("{:?}", std::thread::current().id())
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .collect();
+    let _ = std::fs::write(dir.join(format!("crash-{ts}-{tid}.txt")), stamped);
 }
 
 /// The newest pending crash report (already scrubbed), if any.
 pub fn pending_crash() -> Option<String> {
     let dir = crash_dir()?;
-    let mut newest: Option<(u128, PathBuf)> = None;
+    // Collect every candidate and try them newest-first, rather than betting
+    // everything on the single newest entry: one unreadable file — a
+    // subdirectory named `notes.txt`, a file an AV scanner has briefly locked,
+    // or a report corrupted by a same-millisecond collision — used to make
+    // `pending_crash` return `None` and silently bury a perfectly good older
+    // report. The `crash-` prefix and the is-file check keep a stray text file
+    // dropped in this folder from being presented to the user AS a crash.
+    let mut candidates: Vec<(u128, PathBuf)> = Vec::new();
     for entry in std::fs::read_dir(&dir).ok()?.flatten() {
+        if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
+            continue;
+        }
         let path = entry.path();
         if path.extension().and_then(|e| e.to_str()) != Some("txt") {
+            continue;
+        }
+        if !entry.file_name().to_string_lossy().starts_with("crash-") {
             continue;
         }
         let mtime = entry
@@ -343,12 +400,12 @@ pub fn pending_crash() -> Option<String> {
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_millis())
             .unwrap_or(0);
-        if newest.as_ref().map(|(t, _)| mtime > *t).unwrap_or(true) {
-            newest = Some((mtime, path));
-        }
+        candidates.push((mtime, path));
     }
-    let (_, path) = newest?;
-    std::fs::read_to_string(path).ok()
+    candidates.sort_by_key(|(mtime, _)| std::cmp::Reverse(*mtime));
+    candidates
+        .into_iter()
+        .find_map(|(_, path)| std::fs::read_to_string(path).ok())
 }
 
 /// Delete the pending crash reports (the user dismissed or sent them).
@@ -612,6 +669,16 @@ pub fn bug_report_pending() -> Option<String> {
 pub fn bug_report_build(target: String, description: String) -> Result<BugReport, String> {
     let crash = pending_crash();
     let crash = crash.as_deref();
+    // Scrub the user's note ONCE, up front, before anything derives from it.
+    //
+    // The subject is built from this text when there is no crash message to
+    // summarise, and it rides into `title=` / `subject=` / `su=` on the URL —
+    // so without this a note like "crashes when I open
+    // C:\Users\mike\Documents\show.ftscript" put the home path and username in
+    // the URL unredacted, even though the body shown in the preview was clean.
+    // Scrubbing here rather than after capping also matters: capping first can
+    // cut a home path in half, and a half path no longer matches.
+    let description = scrub(&description);
     // Subject: [Freally Teleprompt] <what went wrong> — the app + the error.
     let subject = subject(crash, &description);
     let text = compose_body(&description, crash, BodyStyle::Plain);
@@ -690,6 +757,23 @@ mod tests {
     /// The bare username leaks through text the home path never covers — a
     /// Windows short path, a library's log line — so it is replaced on its own
     /// too. (Inside a home path it is already gone: that replacement runs first.)
+    /// A short username must not shred the payload the report exists to carry.
+    /// `str::replace` turned `core::cmp::max` into `core::cmp::<user>` and
+    /// "maximum speed exceeded" into "<user>imum speed exceeded" — invisibly.
+    #[test]
+    fn replace_whole_word_leaves_glued_matches_alone() {
+        let f = |s: &str| replace_whole_word(s, "max", "<user>");
+        // Genuinely the username: bounded by separators or the string edges.
+        assert_eq!(f(r"C:\Users\max\Documents"), r"C:\Users\<user>\Documents");
+        assert_eq!(f("max"), "<user>");
+        assert_eq!(f("user max here"), "user <user> here");
+        // NOT the username — these are the ones that used to be shredded.
+        assert_eq!(f("core::cmp::max_offset"), "core::cmp::max_offset");
+        assert_eq!(f("maximum speed exceeded"), "maximum speed exceeded");
+        assert_eq!(f("climax"), "climax");
+        assert_eq!(f("max_offset"), "max_offset");
+    }
+
     #[test]
     fn scrub_redacts_the_bare_username() {
         let Some(dirs) = directories::UserDirs::new() else {

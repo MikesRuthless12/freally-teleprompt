@@ -71,3 +71,7 @@ updates-no = Không, để sau
 updates-installing = Đang tải xuống và cài đặt…
 updates-none = Bạn đang dùng phiên bản mới nhất.
 updates-error = Không thể kiểm tra bản cập nhật.
+updates-checking = Đang kiểm tra bản cập nhật…
+
+## Startup
+startup-failed = Không thể khởi động Freally Teleprompt.

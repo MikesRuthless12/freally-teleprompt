@@ -155,6 +155,13 @@ describe("locale resolution", () => {
     expect(resolveLocale(AUTO_LOCALE, ["fr"])).toBe("fr");
     expect(resolveLocale("", ["fr"])).toBe("fr");
   });
+
+  it("defers to the OS when the saved tag is one we do not ship", () => {
+    // A hand-edited settings.json can hold anything; Rust keeps any non-blank
+    // tag. Landing on the user's own language beats landing on English.
+    expect(resolveLocale("kl-GL", ["ja"])).toBe("ja");
+    expect(resolveLocale("kl-GL", [])).toBe("en");
+  });
 });
 
 describe("t()", () => {

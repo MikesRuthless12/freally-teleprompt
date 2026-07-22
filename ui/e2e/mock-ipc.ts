@@ -13,6 +13,14 @@ import type { Page } from "@playwright/test";
 export type MockState = {
   /** Set false to render the first-run EULA gate instead of the app shell. */
   eulaAccepted?: boolean;
+  /**
+   * Serve an agreement long enough to actually overflow its scroll box.
+   * The short sample lets the gate enable **I Agree** immediately (it measures
+   * "nothing to scroll"), which is a real behaviour — but it also meant the
+   * scroll-to-accept requirement had no coverage at all: deleting the
+   * `disabled` prop entirely kept every test green.
+   */
+  longEula?: boolean;
   /** The script the prompter shows. */
   script?: string;
   playing?: boolean;
@@ -43,6 +51,18 @@ const SAMPLE_EULA = [
   "components, downloads no models, and sends no text to any external service.",
 ].join("\n");
 
+/** A agreement that genuinely overflows the gate's scroll box. */
+const LONG_EULA = [
+  "# Freally Teleprompt — End User License Agreement (EULA)",
+  "",
+  ...Array.from(
+    { length: 120 },
+    (_, i) =>
+      `${i + 1}. This clause exists to make the agreement long enough that the ` +
+      "gate's scroll box actually overflows, so the scroll-to-accept rule is tested.",
+  ),
+].join("\n");
+
 /**
  * Install the stub. Must be called BEFORE `page.goto` — it runs as an init
  * script so it is in place before the bundle boots.
@@ -65,7 +85,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     },
     eula: {
       version: "2026-07-21",
-      text: SAMPLE_EULA,
+      text: state.longEula ? LONG_EULA : SAMPLE_EULA,
       accepted: state.eulaAccepted !== false,
     },
     teleprompter: {

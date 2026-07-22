@@ -18,5 +18,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "vite.config.ts"]
+  // `e2e` is here deliberately. Playwright transpiles without type-checking and
+  // ESLint is not type-aware, so while this listed only `src` the entire e2e
+  // suite went unchecked — a spec could pass an option the mock bridge does not
+  // define and simply receive `undefined` at runtime, with nothing to say so.
+  // That is not hypothetical: it is how the locale option went missing from
+  // `MockState` while every "per-locale" test quietly ran in English.
+  "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
 }

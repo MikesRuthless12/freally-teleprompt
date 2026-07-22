@@ -64,22 +64,44 @@ for (const locale of LOCALES) {
     // The toolbar is translated chrome that exists in every locale.
     await expect(page.getByTestId("transport")).toBeVisible();
 
-    const result = await page.evaluate(async (families: string[]) => {
+    const result = await page.evaluate((families: string[]) => {
       const header = document.querySelector("header");
       const text = (header?.textContent ?? "").replace(/\s+/g, "");
-      // Ask the browser to load only the subsets these characters need — with
-      // `unicode-range` splitting, an unloaded subset reports as "cannot
-      // render" and the check would fail for the wrong reason.
-      await Promise.all(
-        families.map((f) => document.fonts.load(`16px "${f}"`, text).catch(() => undefined)),
+
+      // Read the ranges the bundled faces THEMSELVES declare.
+      //
+      // Not `document.fonts.check()`, which is the obvious way to write this and
+      // is worse than useless here: it answers "is the face covering this
+      // character already loaded", so when NO face covers the character — or the
+      // family does not exist at all — it returns `true`. Written that way, this
+      // whole spec passed with all six font packages uninstalled.
+      const faces = [...document.fonts].filter((f) => families.includes(f.family));
+      const ranges = faces.flatMap((face) =>
+        // A face with no `unicode-range` claims everything, per CSS.
+        (face.unicodeRange || "U+0-10FFFF").split(",").map((part) => {
+          const span = part.trim().slice(2); // drop "U+"
+          // Wildcard form, e.g. `U+30??` — the ? digits span 0..F.
+          if (span.includes("?")) {
+            return [
+              parseInt(span.replaceAll("?", "0"), 16),
+              parseInt(span.replaceAll("?", "F"), 16),
+            ];
+          }
+          const [lo, hi = lo] = span.split("-");
+          return [parseInt(lo, 16), parseInt(hi, 16)];
+        }),
       );
-      const uncovered = [...new Set(text)].filter(
-        (ch) => !families.some((f) => document.fonts.check(`16px "${f}"`, ch)),
-      );
-      return { text, uncovered };
+      const uncovered = [...new Set(text)].filter((ch) => {
+        const cp = ch.codePointAt(0)!;
+        return !ranges.some(([lo, hi]) => cp >= lo && cp <= hi);
+      });
+      return { text, uncovered, faceCount: faces.length };
     }, NOTO);
 
-    // A locale whose chrome came back empty would make the check vacuous.
+    // Both guards matter: with zero faces registered there are zero ranges, and
+    // an empty toolbar has zero characters to check. Either would make the
+    // assertion below pass by having nothing to say.
+    expect(result.faceCount, "no bundled Noto face is registered at all").toBeGreaterThan(0);
     expect(result.text.length, "the toolbar rendered no text at all").toBeGreaterThan(10);
     expect(
       result.uncovered,

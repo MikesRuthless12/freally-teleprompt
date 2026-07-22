@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -48,18 +48,27 @@ const LOCALES = [
 ];
 
 /**
- * Keys the dialog is guaranteed to be rendering: the title, two sidebar tabs,
- * the language field's own label, and a footer button. Between them they cover
- * the header, the sidebar, the pane and the footer — a partial repaint (a stale
- * memo holding one region in the old language) shows up as a single failure
- * rather than passing because the title happened to update.
+ * Keys the dialog is guaranteed to be rendering, each paired with the element
+ * that renders it. Between them they cover the header, the sidebar, the pane
+ * and the footer — a partial repaint (a stale memo holding one region in the
+ * old language) shows up as a failure rather than passing because the title
+ * happened to update.
+ *
+ * Each is checked against ITS OWN element, never against the whole dialog. The
+ * whole-dialog form passes for the wrong reason: Indonesian's `settings-language`
+ * is "Bahasa", which is a substring of the `<option>` "Bahasa Indonesia" that is
+ * present in every UI language — so that assertion held while the dialog was
+ * still entirely in English.
  */
-const VISIBLE_KEYS = [
-  "settings-title",
-  "settings-cat-general",
-  "settings-cat-reading",
-  "settings-language",
-  "settings-cancel",
+const VISIBLE_KEYS: { key: string; at: (dialog: Locator) => Locator }[] = [
+  { key: "settings-title", at: (d) => d.locator("#settings-title") },
+  { key: "settings-cat-general", at: (d) => d.getByRole("tab").nth(0) },
+  { key: "settings-cat-reading", at: (d) => d.getByRole("tab").nth(1) },
+  {
+    key: "settings-language",
+    at: (d) => d.locator('label:has(> [data-testid="settings-language"]) > span'),
+  },
+  { key: "settings-cancel", at: (d) => d.getByTestId("settings-cancel") },
 ];
 
 /** RTL locales, per `locales.ts` — the switch must flip the document too. */
@@ -104,10 +113,10 @@ test.describe("switching language from Settings", () => {
       await expect(dialog, "Apply closed the dialog").toBeVisible();
 
       const expected = catalog(code);
-      for (const key of VISIBLE_KEYS) {
+      for (const { key, at } of VISIBLE_KEYS) {
         const value = expected.get(key);
         expect(value, `${code}.ftl is missing ${key}`).toBeTruthy();
-        await expect(dialog, `${key} did not switch to ${code}`).toContainText(value!);
+        await expect(at(dialog), `${key} did not switch to ${code}`).toHaveText(value!);
       }
 
       // The document follows too — `dir` is what mirrors the whole layout, and
@@ -155,8 +164,12 @@ test.describe("switching language from Settings", () => {
     await dialog.getByTestId("settings-ok").click();
     await expect(dialog).toBeHidden();
 
+    // `toolbar-settings`, not `settings-title` — the gear button's own key. They
+    // happen to share the value 設定 in `ja.ftl`, so the wrong key worked; it
+    // would break the moment a translator wrote the dialog title as 環境設定,
+    // and the failure would point at nothing that was actually broken.
     const japanese = catalog("ja");
-    await page.getByRole("button", { name: japanese.get("settings-title")! }).click();
+    await page.getByRole("button", { name: japanese.get("toolbar-settings")! }).click();
     await expect(dialog).toContainText(japanese.get("settings-cat-general")!);
     await expect(dialog.getByTestId("settings-language")).toHaveValue("ja");
   });

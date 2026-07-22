@@ -32,6 +32,8 @@ export type MockState = {
   playing?: boolean;
   offset?: number;
   theme?: "dark" | "light";
+  /** The locale the app boots in (`settings.language`); defaults to English. */
+  language?: string;
   /** The reading appearance the engine reports (FT-15). */
   look?: Partial<Look>;
   /** The library listing `scripts_list` returns (FT-10). */

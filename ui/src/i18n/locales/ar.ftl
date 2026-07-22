@@ -6,6 +6,8 @@
 
 ## App shell
 app-name = Freally Teleprompt
+toolbar-library = النصوص
+toolbar-projector = فتح جهاز العرض
 toolbar-settings = الإعدادات
 toolbar-bug-report = الإبلاغ عن مشكلة
 toolbar-updates = التحقق من التحديثات
@@ -13,15 +15,58 @@ toolbar-updates = التحقق من التحديثات
 ## Transport
 transport-play = تشغيل
 transport-pause = إيقاف مؤقت
+transport-stop = إيقاف
 transport-restart = العودة إلى البداية
+transport-rewind = خطوة للخلف
+transport-forward = خطوة للأمام
+transport-slower = أبطأ
+transport-faster = أسرع
+transport-seek = التنقل داخل النص
 
 ## Editor
 editor-label = النص
 editor-placeholder = اكتب نصك أو الصقه هنا. استخدم " -- " لإضافة وقفة، أو " --2 " للتوقف مدة ثانيتين.
-editor-load = تحميل إلى الملقّن
+editor-unsaved = نص غير محفوظ
+editor-caesura-hint = اكتب -- لإضافة وقفة
+editor-est-time = زمن القراءة { $time }
+editor-preview = معاينة
+editor-speed = السرعة (حرف في الثانية)
+editor-speed-bpm = السرعة (BPM)
+editor-bpm-mode = وضع BPM (غناء)
+editor-read-aloud = القراءة بصوت عالٍ باستخدام تركيب الكلام الخاص بنظام التشغيل
+editor-save-failed = تعذّر الحفظ: { $error }
+
+## Script library
+library-title = النصوص
+library-new = جديد
+library-new-placeholder = سمِّ نصًا جديدًا
+library-empty = لا توجد نصوص بعد. سمِّ واحدًا في الأعلى للبدء.
+library-open = فتح
+library-current = مفتوح
+library-rename = إعادة تسمية
+library-save-name = حفظ
+library-delete = حذف
+library-delete-confirm = هل تريد حذفه؟
+library-delete-yes = نعم
+library-delete-no = لا
+library-close = إغلاق
+
+## Projector
+projector-title = فتح جهاز العرض
+projector-display = الشاشة
+projector-windowed = نافذة عائمة (هذه الشاشة)
+projector-display-option = الشاشة { $n } — { $w }×{ $h }
+projector-primary = (رئيسية)
+projector-fill = ملء الشاشة بالكامل
+projector-mirror = عكس أفقيًا (لزجاج مقسّم الأشعة)
+projector-mirror-hint = فعِّل هذا فقط إذا كانت القراءة عبر زجاج التلقين، فهو يعكس الصورة.
+projector-open = فتح
+projector-cancel = إلغاء
+projector-exit-hint = اضغط Esc للخروج
+projector-window-title = Freally Teleprompt — جهاز العرض
 
 ## Prompter surface
-teleprompter-empty = لم يتم تحميل أي نص بعد. اكتب نصًا على اليمين، ثم اختر "تحميل إلى الملقّن".
+teleprompter-empty = لم يُحمَّل أي نص بعد. افتح واحدًا من «النصوص» أو ابدأ الكتابة على اليسار.
 
 ## Settings
 settings-title = الإعدادات
@@ -30,11 +75,35 @@ settings-language-auto = مثل نظامي
 settings-theme = السمة
 settings-theme-dark = داكن
 settings-theme-light = فاتح
+settings-section-reading = القراءة
 settings-speed = سرعة القراءة — { $value } حرفًا في الثانية
 settings-font-size = حجم الخط — { $value } بكسل
 settings-caesura = الوقفة الافتراضية لـ " -- " — { $value } ثانية
 settings-countdown = العد التنازلي قبل البدء — { $value } ثانية
+settings-section-appearance = المظهر
+settings-font-family = الخط
+settings-font-system = خط النظام
+settings-font-sans = بدون زخارف
+settings-font-serif = بزخارف
+settings-font-mono = ثابت العرض
+settings-font-rounded = مستدير
+settings-font-slab = عريض الزخارف
+settings-font-weight = سماكة الخط
+settings-text-color = لون النص
+settings-line-height = تباعد الأسطر — { $value }
+settings-margins = الهوامش الجانبية — { $value } ٪
+settings-guide = خط القراءة — { $value } ٪ من الأعلى
+settings-section-projector = جهاز العرض
 settings-mirror = عكس صورة العارض (لزجاج مقسّم الأشعة)
+settings-section-mirror = المزامنة عبر شبكتي
+settings-lan-enabled = مزامنة النص مع الأجهزة على شبكتي
+settings-lan-all-interfaces = السماح لأجهزة أخرى، وليس هذا الحاسوب فقط
+settings-lan-warning = يحمل الرابط مفتاحًا لمرة واحدة وهو غير مشفَّر، لذا استخدمه فقط على شبكة تثق بها. المزامنة للقراءة فقط، ولا يُرفع نصك إلى أي مكان.
+settings-lan-port = المنفذ
+settings-lan-open = فتح في المتصفح
+settings-lan-open-hint = امسح الرمز، أو افتح هذا الرابط على أي جهاز في الشبكة نفسها.
+settings-lan-failed = تعذّر بدء المزامنة: { $error }
+mirror-qr-aria = رمز QR لرابط المزامنة
 settings-cancel = إلغاء
 settings-apply = تطبيق
 

@@ -6,6 +6,8 @@
 
 ## App shell
 app-name = Freally Teleprompt
+toolbar-library = 台本
+toolbar-projector = プロジェクターを開く
 toolbar-settings = 設定
 toolbar-bug-report = 問題を報告
 toolbar-updates = アップデートを確認
@@ -13,15 +15,58 @@ toolbar-updates = アップデートを確認
 ## Transport
 transport-play = 再生
 transport-pause = 一時停止
+transport-stop = 停止
 transport-restart = 先頭に戻る
+transport-rewind = 少し戻る
+transport-forward = 少し進む
+transport-slower = 遅く
+transport-faster = 速く
+transport-seek = 台本内を移動
 
 ## Editor
 editor-label = 台本
 editor-placeholder = 台本を入力するか貼り付けてください。" -- " で間が入り、" --2 " で 2 秒止まります。
-editor-load = プロンプターに読み込む
+editor-unsaved = 未保存の台本
+editor-caesura-hint = 一時停止するには -- と入力
+editor-est-time = 読了時間 { $time }
+editor-preview = プレビュー
+editor-speed = 速度（1 秒あたりの文字数）
+editor-speed-bpm = 速度（BPM）
+editor-bpm-mode = BPM モード（歌唱）
+editor-read-aloud = OS 標準の音声合成で読み上げ
+editor-save-failed = 保存できませんでした: { $error }
+
+## Script library
+library-title = 台本
+library-new = 新規
+library-new-placeholder = 新しい台本の名前
+library-empty = 台本はまだありません。上で名前を付けて始めてください。
+library-open = 開く
+library-current = 使用中
+library-rename = 名前を変更
+library-save-name = 保存
+library-delete = 削除
+library-delete-confirm = 削除しますか？
+library-delete-yes = はい
+library-delete-no = いいえ
+library-close = 閉じる
+
+## Projector
+projector-title = プロジェクターを開く
+projector-display = ディスプレイ
+projector-windowed = フローティングウィンドウ（この画面）
+projector-display-option = ディスプレイ { $n } — { $w }×{ $h }
+projector-primary = （メイン）
+projector-fill = 画面全体に表示
+projector-mirror = 左右反転（ハーフミラー用）
+projector-mirror-hint = プロンプターのガラス越しに読む場合のみオンにしてください。ガラスは映像を反転させます。
+projector-open = 開く
+projector-cancel = キャンセル
+projector-exit-hint = Esc キーで終了
+projector-window-title = Freally Teleprompt — プロジェクター
 
 ## Prompter surface
-teleprompter-empty = まだ台本が読み込まれていません。左側に入力してから「プロンプターに読み込む」を選んでください。
+teleprompter-empty = 台本がまだ読み込まれていません。「台本」から開くか、左側に入力してください。
 
 ## Settings
 settings-title = 設定
@@ -30,11 +75,35 @@ settings-language-auto = システムに合わせる
 settings-theme = テーマ
 settings-theme-dark = ダーク
 settings-theme-light = ライト
+settings-section-reading = 読み上げ設定
 settings-speed = 読み上げ速度：毎秒 { $value } 文字
 settings-font-size = 文字サイズ：{ $value } px
 settings-caesura = " -- " の既定の間：{ $value } 秒
 settings-countdown = 開始前のカウントダウン：{ $value } 秒
+settings-section-appearance = 外観
+settings-font-family = 書体
+settings-font-system = システム
+settings-font-sans = サンセリフ
+settings-font-serif = セリフ
+settings-font-mono = 等幅
+settings-font-rounded = 丸ゴシック
+settings-font-slab = スラブセリフ
+settings-font-weight = 太さ
+settings-text-color = 文字色
+settings-line-height = 行間 — { $value }
+settings-margins = 左右の余白 — { $value } %
+settings-guide = リーディングガイド — 上から { $value } %
+settings-section-projector = プロジェクター
 settings-mirror = 投影を左右反転する（ビームスプリッターガラス用）
+settings-section-mirror = ネットワークにミラー
+settings-lan-enabled = 同じネットワークの端末に台本をミラーする
+settings-lan-all-interfaces = このパソコン以外の端末も許可する
+settings-lan-warning = リンクには使い捨てのキーが含まれ、暗号化されていません。信頼できるネットワークでのみ使用してください。ミラーは読み取り専用で、台本がどこかへアップロードされることはありません。
+settings-lan-port = ポート
+settings-lan-open = ブラウザーで開く
+settings-lan-open-hint = コードを読み取るか、同じネットワーク上の端末でこのリンクを開いてください。
+settings-lan-failed = ミラーを開始できませんでした: { $error }
+mirror-qr-aria = ミラーのリンクの QR コード
 settings-cancel = キャンセル
 settings-apply = 適用
 

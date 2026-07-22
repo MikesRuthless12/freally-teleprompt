@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "projector",
+  "description": "The talent projector window (FT-12). It reads the shared scroll state and closes itself on Esc, so it needs the core defaults (events + app metadata) and permission to close — and deliberately nothing else: no dialogs, no updater, no process control. Broadened only if the projector itself gains a feature that needs it.",
+  "windows": ["projector"],
+  "permissions": ["core:default", "core:window:allow-close"]
+}

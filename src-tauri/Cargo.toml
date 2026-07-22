@@ -23,6 +23,8 @@ directories = { workspace = true }
 chrono = { workspace = true }
 # The native "stopped unexpectedly" box the `--crash-notice` helper shows.
 rfd = { workspace = true }
+# The LAN mirror's per-session key (FT-12).
+getrandom = { workspace = true }
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"

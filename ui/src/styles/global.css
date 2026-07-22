@@ -150,6 +150,55 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   Projector chrome (FT-12/FT-13).
+
+   The projector's reading surface is black in BOTH themes — that is the point
+   of a teleprompter. So its controls must not be drawn with the white-alpha
+   utilities below, which the light theme re-tints to translucent black: they
+   would turn black-on-black and vanish exactly where the talent needs them.
+   Their own classes, defined once, deliberately outside the theme system.
+   --------------------------------------------------------------------------- */
+
+.proj-btn {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  border: 0;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.125rem;
+  transition: background-color 150ms;
+}
+
+.proj-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.proj-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 1px;
+}
+
+/* The play button while the scroll is running. */
+.proj-btn[data-active="true"] {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+/* The seek bar's unfilled track, on the same permanently-black chrome. */
+.proj-track {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proj-btn {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Light-theme re-tints.
 
    The app is drawn with translucent WHITE over near-black. In the light theme

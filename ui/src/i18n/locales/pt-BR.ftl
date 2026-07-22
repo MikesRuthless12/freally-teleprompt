@@ -6,6 +6,8 @@
 
 ## App shell
 app-name = Freally Teleprompt
+toolbar-library = Roteiros
+toolbar-projector = Abrir projetor
 toolbar-settings = Configurações
 toolbar-bug-report = Relatar um problema
 toolbar-updates = Buscar atualizações
@@ -13,15 +15,58 @@ toolbar-updates = Buscar atualizações
 ## Transport
 transport-play = Reproduzir
 transport-pause = Pausar
+transport-stop = Parar
 transport-restart = Voltar ao início
+transport-rewind = Retroceder
+transport-forward = Avançar
+transport-slower = Mais lento
+transport-faster = Mais rápido
+transport-seek = Navegar pelo roteiro
 
 ## Editor
 editor-label = Roteiro
 editor-placeholder = Digite ou cole seu roteiro. Use " -- " para uma pausa, ou " --2 " para segurar por 2 segundos.
-editor-load = Carregar no teleprompter
+editor-unsaved = Roteiro não salvo
+editor-caesura-hint = Digite -- para uma pausa
+editor-est-time = Tempo de leitura { $time }
+editor-preview = Prévia
+editor-speed = Velocidade (caracteres por segundo)
+editor-speed-bpm = Velocidade (BPM)
+editor-bpm-mode = Modo BPM (canto)
+editor-read-aloud = Ler em voz alta com a síntese de fala do sistema operacional
+editor-save-failed = Não foi possível salvar: { $error }
+
+## Script library
+library-title = Roteiros
+library-new = Novo
+library-new-placeholder = Dê um nome a um novo roteiro
+library-empty = Ainda não há roteiros. Dê um nome acima para começar.
+library-open = Abrir
+library-current = aberto
+library-rename = Renomear
+library-save-name = Salvar
+library-delete = Excluir
+library-delete-confirm = Excluir?
+library-delete-yes = Sim
+library-delete-no = Não
+library-close = Fechar
+
+## Projector
+projector-title = Abrir o projetor
+projector-display = Tela
+projector-windowed = Janela flutuante (esta tela)
+projector-display-option = Tela { $n } — { $w }×{ $h }
+projector-primary = (principal)
+projector-fill = Preencher a tela inteira
+projector-mirror = Espelhar horizontalmente (para vidro divisor)
+projector-mirror-hint = Ative apenas se a leitura for pelo vidro do teleprompter, que inverte a imagem.
+projector-open = Abrir
+projector-cancel = Cancelar
+projector-exit-hint = Pressione Esc para sair
+projector-window-title = Freally Teleprompt — projetor
 
 ## Prompter surface
-teleprompter-empty = Nenhum roteiro carregado ainda. Digite um à esquerda e escolha "Carregar no teleprompter".
+teleprompter-empty = Nenhum roteiro carregado ainda. Abra um em Roteiros, ou comece a digitar à esquerda.
 
 ## Settings
 settings-title = Configurações
@@ -30,11 +75,35 @@ settings-language-auto = Igual ao meu sistema
 settings-theme = Tema
 settings-theme-dark = Escuro
 settings-theme-light = Claro
+settings-section-reading = Leitura
 settings-speed = Velocidade de leitura — { $value } caracteres por segundo
 settings-font-size = Tamanho da fonte — { $value } px
 settings-caesura = Pausa padrão para " -- " — { $value } segundos
 settings-countdown = Contagem regressiva antes de começar — { $value } segundos
+settings-section-appearance = Aparência
+settings-font-family = Tipografia
+settings-font-system = Do sistema
+settings-font-sans = Sem serifa
+settings-font-serif = Com serifa
+settings-font-mono = Monoespaçada
+settings-font-rounded = Arredondada
+settings-font-slab = Slab
+settings-font-weight = Espessura
+settings-text-color = Cor do texto
+settings-line-height = Entrelinha — { $value }
+settings-margins = Margens laterais — { $value } %
+settings-guide = Guia de leitura — { $value } % a partir do topo
+settings-section-projector = Projetor
 settings-mirror = Espelhar a projeção (para vidro beam splitter)
+settings-section-mirror = Espelhar na minha rede
+settings-lan-enabled = Espelhar o roteiro para dispositivos na minha rede
+settings-lan-all-interfaces = Permitir outros dispositivos, não só este computador
+settings-lan-warning = O link carrega uma chave de uso único e não é criptografado, então use apenas numa rede confiável. O espelho é somente leitura e seu roteiro nunca é enviado para lugar nenhum.
+settings-lan-port = Porta
+settings-lan-open = Abrir no meu navegador
+settings-lan-open-hint = Escaneie o código, ou abra este link em qualquer dispositivo da mesma rede.
+settings-lan-failed = Não foi possível iniciar o espelho: { $error }
+mirror-qr-aria = Código QR do link do espelho
 settings-cancel = Cancelar
 settings-apply = Aplicar
 

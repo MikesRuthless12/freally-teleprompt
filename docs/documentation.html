@@ -423,7 +423,7 @@
           <h2>Getting started</h2>
           <p class="section-intro">Freally Teleprompt is a standalone, cross-platform teleprompter for creators, streamers, podcasters, rappers, singers, presenters, and actors. It runs on <strong>Windows, macOS, and Linux</strong>, opens as a single window — script library, editor, preview, and projector controls — and needs no account. One <strong>character-based scroll engine</strong> drives the preview, the talent projector, and the LAN mirror together, so they never drift, even at different font sizes.</p>
 
-          <div class="warn"><strong>Status:</strong> active development. Freally Teleprompt ships along a phased roadmap — <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site), <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, transport, chars/sec &amp; BPM, appearance, read-aloud), <strong>0.300.0</strong> (dictionary autocomplete), and <strong>1.0.0</strong> (polish, signing, and release). Download builds from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
+          <div class="warn"><strong>Status:</strong> active development. Freally Teleprompt ships along a phased roadmap — <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site) and <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, LAN mirror, transport, chars/sec &amp; BPM, appearance, read-aloud) are <strong>done</strong>; <strong>0.300.0</strong> (dictionary autocomplete) and <strong>1.0.0</strong> (polish, signing, and release) are next. <strong>Autocomplete is not in the app yet</strong> — the section below describes what 0.300.0 will do. Download builds from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
 
           <h3>Install &amp; first run</h3>
           <ol class="steps">
@@ -524,10 +524,14 @@
             <li><span>Turn on <strong>mirror-flip</strong> so the text reads correctly through the angled glass of a beam-splitter teleprompter rig, where the reflection would otherwise reverse it.</span></li>
           </ol>
 
-          <h3>LAN mirror &amp; remote</h3>
+          <h3>LAN mirror</h3>
           <ol class="steps">
-            <li><span>Use the <strong>LAN mirror</strong> to show the same scroll on a physically separate device (a phone or tablet on your network). It stays in sync through the shared character offset, so the remote view matches the operator frame-for-frame — no arbitrary "scroll speed" to reconcile.</span></li>
+            <li><span>Use the <strong>LAN mirror</strong> to show the same scroll on a physically separate device (a phone or tablet on your network). It follows the shared character offset, so the remote view is on the same <em>word</em> as the operator — there's no arbitrary "scroll speed" to reconcile.</span></li>
+            <li><span>Turn it on in <strong>Settings &rarr; Mirror to my network</strong>. It is <strong>off by default</strong>, and "allow other devices" is a <em>second</em>, separate switch — with it off, the mirror answers only on this computer. Apply, and a <strong>link and QR code</strong> appear; scan or open the link on any device on the same network. The <a href="join.html" style="color:var(--accent)">join page</a> walks through it.</span></li>
+            <li><span>Each device sets <strong>its own text size</strong> on the mirror page without changing what anyone else sees.</span></li>
+            <li><span>The mirror page is served <strong>by the app itself</strong>, not by this website — a browser will not let an HTTPS page talk to a plain-HTTP device on your own network, and this way your script never travels through anyone's server.</span></li>
           </ol>
+          <div class="tip"><strong>The mirror is read-only, and keyed.</strong> Nothing a browser sends can start, stop, seek, or edit anything — there is no write path at all. The link carries a key that is regenerated every time the app launches. Because it is plain HTTP on your own network, the key is not encrypted in transit: use the mirror on a network you trust, not on public Wi-Fi.</div>
           <div class="warn"><strong>Beam-splitter check:</strong> whether mirror-flip reads correctly through real glass, and whether the LAN mirror holds sync on a separate device, can only be confirmed on physical hardware — verify both on your actual rig before a shoot.</div>
         </section>
 
@@ -548,7 +552,8 @@
         <!-- Autocomplete -->
         <section id="autocomplete">
           <h2>Autocomplete</h2>
-          <p class="section-intro">As you write, Freally Teleprompt offers light-gray <strong>ghost-text</strong> suggestions from a per-language dictionary. It's instant, offline, and always on — zero-config, needing no key and no download.</p>
+          <div class="warn"><strong>Not shipped yet — this is what 0.300.0 will do.</strong> Nothing in this section works in 0.200.0.</div>
+          <p class="section-intro">As you write, Freally Teleprompt will offer light-gray <strong>ghost-text</strong> suggestions from a per-language dictionary. It's instant, offline, and always on — zero-config, needing no key and no download.</p>
 
           <ol class="steps">
             <li><span>Keep typing in the editor; relevant <strong>word and phrase</strong> suggestions appear inline in light gray, usually within a single keystroke.</span></li>

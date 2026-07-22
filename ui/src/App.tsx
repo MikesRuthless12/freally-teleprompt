@@ -1,29 +1,43 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   bugReportPending,
   eulaStatus as fetchEulaStatus,
+  scriptsSave,
   settingsGet,
   teleprompterControl,
   teleprompterSetScript,
+  teleprompterSetSpeed,
 } from "./api/commands";
 import type { EulaStatus, Settings } from "./api/types";
 import { applySettingsToDocument, initLocale, useT } from "./i18n/t";
+import { CaesuraEditor } from "./components/CaesuraEditor";
 import { BUTTON } from "./components/styles";
+import { Transport } from "./components/Transport";
+import { parseCaesuras, timeAtOffset, visibleChars } from "./lib/caesura";
+import { BPM_MAX, BPM_MIN, bpmFromSpeed, clampBpm, speedFromBpm } from "./lib/speed";
+import { fmtTime } from "./lib/time";
+import { readAloud, stopReading } from "./lib/tts";
 import { useTeleprompter } from "./lib/useTeleprompter";
 import { BugReportDialog } from "./panels/BugReport";
 import { EulaGate } from "./panels/EulaGate";
+import { ProjectorSetup } from "./panels/ProjectorSetup";
+import { ScriptLibrary } from "./panels/ScriptLibrary";
 import { SettingsDialog } from "./panels/Settings";
-import { TeleprompterScroller } from "./panels/Teleprompter";
+import { TeleprompterScroller, TeleprompterSeekBar } from "./panels/Teleprompter";
 import { UpdatesDialog } from "./panels/Updates";
 
+/** How long the editor waits after the last keystroke before autosaving (FT-10). */
+const AUTOSAVE_MS = 800;
+
 /**
- * The single-window app shell (FT-03): a toolbar over the ported preview.
+ * The single-window app shell (FT-03, grown into the Phase 1 operator surface).
  *
- * Phase 0 deliberately stops here. The script library (FT-10), the caesura-chip
- * editor (FT-11), the projector (FT-12), and the real transport (FT-13) are
- * Phase 1 — this shell exists to prove the ported engine, i18n, settings, the
- * EULA gate, and the problem reporter + update check (FT-06) all work end to end.
+ * The chip editor on the left, the reading preview on the right, the transport
+ * and the seek bar under it. Every control drives the **shared** engine state,
+ * so the projector (FT-12) and the LAN mirror follow from one broadcast — with
+ * exactly one deliberate exception: read-aloud (FT-16) is a preview-local mode
+ * that drives a local `raOffset` and never touches the shared scroll.
  *
  * The shell owns the dialog slot on launch, because the order matters: a crash
  * report waiting from the last run is shown, and the update check is skipped
@@ -40,8 +54,13 @@ export default function App() {
   // rendered it permanently if the query ever failed — the gate failing OPEN.
   const [eula, setEula] = useState<EulaStatus | null | undefined>(undefined);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [draftScript, setDraftScript] = useState("");
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [projectorOpen, setProjectorOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
+  // The script currently open in the library (FT-10), or null for an unsaved
+  // scratch script. Autosave only runs when there is somewhere to save TO.
+  const [currentScript, setCurrentScript] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // `undefined` until the local crash folder has been read — the update check
   // below must not run before it knows whether a report is waiting.
   const [pendingCrash, setPendingCrash] = useState<string | null | undefined>(undefined);
@@ -63,6 +82,9 @@ export default function App() {
       .then((loaded) => {
         setSettings(loaded);
         applySettingsToDocument(loaded);
+        // Rust already reloaded the script that was open last time; this is the
+        // UI catching up on WHICH one, so autosave and the library agree.
+        setCurrentScript(loaded.recentScripts[0] ?? null);
       })
       .catch(() => {
         // No backend (unit test / lost host): fall back to OS language.
@@ -116,16 +138,153 @@ export default function App() {
     setAutoUpdateDone(true);
   }, []);
 
-  // Stable: the scroller attaches a native non-passive wheel listener keyed on
-  // this identity, so a fresh closure each render would tear it down and
-  // re-attach it on every keystroke in the script box and every engine event.
-  const seek = useCallback((offset: number) => {
-    void teleprompterControl("seek", offset);
+  const control = useCallback(
+    (action: Parameters<typeof teleprompterControl>[0], value?: number) =>
+      void teleprompterControl(action, value).catch(() => undefined),
+    [],
+  );
+
+  const caesuras = useMemo(
+    () => parseCaesuras(state.script, state.caesuraSecs),
+    [state.script, state.caesuraSecs],
+  );
+  // Time to read the whole script at the current pace, caesura pauses counted —
+  // it moves live with the speed control and with every edit.
+  const estSecs = timeAtOffset(
+    Math.max(1, visibleChars(state.script)),
+    state.speed > 0 ? state.speed : 1,
+    caesuras,
+  );
+
+  // -- speed: chars/sec or BPM (FT-14) ---------------------------------------
+  // An operator-local DISPLAY toggle over the same authoritative chars/sec.
+  const [bpmMode, setBpmMode] = useState(false);
+  const [bpmDraft, setBpmDraft] = useState<string | null>(null);
+  const displayBpm = clampBpm(bpmFromSpeed(state.speed));
+  const commitBpm = (raw: string) => {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n)) {
+      void teleprompterSetSpeed(speedFromBpm(clampBpm(n))).catch(() => undefined);
+    }
+    setBpmDraft(null);
+  };
+
+  // -- read aloud (FT-16) ----------------------------------------------------
+  // A preview-only MODE: never the projector, never the shared scroll state.
+  // When on, the transport and the seek drive the speech and the highlight
+  // follows the spoken word via `raOffset`. `engaged` (play pressed, until stop
+  // or the end) disables the checkbox so it cannot be flipped mid-speech.
+  const [readAloudMode, setReadAloudMode] = useState(false);
+  const [engaged, setEngaged] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [raOffset, setRaOffsetState] = useState(0);
+  const raOffsetRef = useRef(0);
+  const setRaOffset = (o: number) => {
+    raOffsetRef.current = o;
+    setRaOffsetState(o);
+  };
+  const [seekNonce, setSeekNonce] = useState(0);
+
+  // Start / restart speech when the read engages, the user seeks (nonce), or the
+  // pace/script changes — debounced so scrubbing does not stutter. Progress
+  // drives the local highlight; onEnd frees the checkbox again.
+  useEffect(() => {
+    if (!readAloudMode || !speaking) return;
+    const id = window.setTimeout(() => {
+      void readAloud(
+        state.script,
+        state.speed,
+        () => {
+          setSpeaking(false);
+          setEngaged(false);
+        },
+        raOffsetRef.current,
+        (off) => setRaOffset(off),
+        caesuras,
+      );
+    }, 100);
+    return () => window.clearTimeout(id);
+  }, [readAloudMode, speaking, seekNonce, state.speed, state.script, caesuras]);
+
+  // Stop speech when the mode turns off, and on unmount.
+  useEffect(() => {
+    if (readAloudMode) return;
+    stopReading();
+    // Defer the flag reset out of the effect body (avoids a synchronous setState).
+    const raf = requestAnimationFrame(() => {
+      setSpeaking(false);
+      setEngaged(false);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [readAloudMode]);
+  useEffect(() => () => stopReading(), []);
+
+  const raPlayPause = () => {
+    // Parked at the very end (finished, or seeked there)? Play restarts from the
+    // top automatically — no need to hit Stop first.
+    const atEnd = raOffsetRef.current >= visibleChars(state.script) - 0.5;
+    if (!engaged) {
+      if (atEnd) setRaOffset(0);
+      setEngaged(true);
+      setSpeaking(true);
+    } else if (speaking) {
+      stopReading();
+      setSpeaking(false); // pause — the offset stays; resume re-speaks from here
+    } else {
+      if (atEnd) setRaOffset(0);
+      setSpeaking(true);
+    }
+  };
+  const raStop = () => {
+    stopReading();
+    setSpeaking(false);
+    setEngaged(false);
+    setRaOffset(0);
+  };
+  // A click/seek/drag while reading: move the highlight and jump the speech
+  // there (the nonce forces a restart even to the same offset).
+  //
+  // Stable, because `seek` below depends on it and the scroller keys a native
+  // wheel listener on `seek`'s identity — a fresh closure per render would tear
+  // that listener down and re-attach it on every keystroke.
+  const raSeek = useCallback((o: number) => {
+    raOffsetRef.current = o;
+    setRaOffsetState(o);
+    setSeekNonce((n) => n + 1);
   }, []);
 
-  const loadScript = () => {
-    void teleprompterSetScript(draftScript);
+  // Stop halts the scroll AND rewinds, so the operator can re-read and re-edit.
+  // Pause alone leaves a short script scrolled off the top, which looks blank.
+  const stop = () => {
+    if (state.playing) control("toggle");
+    control("top");
   };
+
+  const seek = useCallback(
+    (offset: number) => (readAloudMode ? raSeek(offset) : control("seek", offset)),
+    [readAloudMode, raSeek, control],
+  );
+
+  // -- the editor + autosave (FT-10/FT-11) -----------------------------------
+  // Edits go to the engine immediately (so the preview and the projector show
+  // them as they are typed) and to disk on a debounce.
+  const saveTimer = useRef<number | null>(null);
+  const onScriptChange = (next: string) => {
+    void teleprompterSetScript(next).catch(() => undefined);
+    if (!currentScript) return; // an unsaved scratch script has nowhere to go
+    if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      scriptsSave(currentScript, next)
+        .then(() => setSaveError(null))
+        .catch((err) => setSaveError(String(err)));
+    }, AUTOSAVE_MS);
+  };
+  useEffect(
+    () => () => {
+      if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+    },
+    [],
+  );
 
   // The app is unusable until the current EULA version is accepted (FT-05).
   // Nothing renders until we know, and a failed query fails CLOSED — a legal
@@ -144,18 +303,23 @@ export default function App() {
     return <EulaGate status={eula} onAccepted={() => setEula({ ...eula, accepted: true })} />;
   }
 
+  const playing = readAloudMode ? speaking : state.playing;
+
   return (
     <div className="bg-havoc-bg text-havoc-text flex h-full w-full flex-col">
       <header className="flex items-center gap-2 border-b border-white/10 bg-white/[0.03] px-3 py-2">
         <span className="from-havoc-accent to-havoc-accent-2 bg-gradient-to-r bg-clip-text text-sm font-bold tracking-wide text-transparent">
           {t("app-name")}
         </span>
+        <span className="text-havoc-muted max-w-48 truncate text-[11px]">
+          {currentScript ?? t("editor-unsaved")}
+        </span>
         <div className="flex-1" />
-        <button type="button" className={BUTTON} onClick={() => void teleprompterControl("toggle")}>
-          {state.playing ? t("transport-pause") : t("transport-play")}
+        <button type="button" className={BUTTON} onClick={() => setLibraryOpen(true)}>
+          {t("toolbar-library")}
         </button>
-        <button type="button" className={BUTTON} onClick={() => void teleprompterControl("top")}>
-          {t("transport-restart")}
+        <button type="button" className={BUTTON} onClick={() => setProjectorOpen(true)}>
+          {t("toolbar-projector")}
         </button>
         <button type="button" className={BUTTON} onClick={() => setBugOpen(true)}>
           {t("toolbar-bug-report")}
@@ -168,25 +332,128 @@ export default function App() {
         </button>
       </header>
 
-      <main className="flex min-h-0 flex-1">
-        <section className="flex w-80 flex-col gap-2 border-r border-white/10 p-3">
-          <label className="text-havoc-muted text-[11px]" htmlFor="script-input">
+      <main className="grid min-h-0 flex-1 gap-3 p-3 md:grid-cols-2">
+        <section className="flex min-h-0 flex-col gap-2">
+          <label id="script-label" className="text-havoc-muted text-[11px]">
             {t("editor-label")}
           </label>
-          <textarea
-            id="script-input"
-            className="text-havoc-text min-h-0 flex-1 resize-none rounded-md border border-white/10 bg-white/5 p-2 font-mono text-xs"
+          <CaesuraEditor
+            value={state.script}
+            onChange={onScriptChange}
+            caesuraSecs={state.caesuraSecs}
             placeholder={t("editor-placeholder")}
-            value={draftScript}
-            onChange={(e) => setDraftScript(e.target.value)}
+            ariaLabelledBy="script-label"
+            className="text-havoc-text h-full w-full overflow-y-auto rounded-md border border-white/10 bg-white/5 p-2 font-mono text-xs"
           />
-          <button type="button" className={BUTTON} onClick={loadScript}>
-            {t("editor-load")}
-          </button>
+          <div className="text-havoc-muted flex items-center justify-between text-[11px]">
+            <span>{t("editor-caesura-hint")}</span>
+            <span className="font-mono">{t("editor-est-time", { time: fmtTime(estSecs) })}</span>
+          </div>
+          {saveError && (
+            <p role="alert" className="m-0 text-[11px] text-red-300">
+              {t("editor-save-failed", { error: saveError })}
+            </p>
+          )}
+
+          <Transport
+            playing={playing}
+            onTop={() => (readAloudMode ? raSeek(0) : control("top"))}
+            onStepBack={(step) => control("stepBack", step)}
+            onStepForward={(step) => control("stepForward", step)}
+            onSlower={() => control("slower")}
+            onFaster={() => control("faster")}
+            onPlayPause={() => (readAloudMode ? raPlayPause() : control("toggle"))}
+            onStop={() => (readAloudMode ? raStop() : stop())}
+          />
+
+          <label className="text-havoc-muted flex items-center justify-between text-[11px]">
+            <span>{bpmMode ? t("editor-speed-bpm") : t("editor-speed")}</span>
+            {bpmMode ? (
+              <input
+                type="number"
+                min={BPM_MIN}
+                max={BPM_MAX}
+                step={1}
+                value={bpmDraft ?? displayBpm}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setBpmDraft(raw);
+                  // Commit live while in range so the spinner arrows take effect
+                  // at once; anything typed out of range is clamped on blur/Enter.
+                  const n = Number(raw);
+                  if (raw !== "" && Number.isFinite(n) && n >= BPM_MIN && n <= BPM_MAX) {
+                    void teleprompterSetSpeed(speedFromBpm(n)).catch(() => undefined);
+                  }
+                }}
+                onBlur={(e) => {
+                  // Only commit an actual edit — a bare focus/blur must not
+                  // down-convert a high chars/sec speed to the clamped BPM view.
+                  if (bpmDraft !== null) commitBpm(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    commitBpm(e.currentTarget.value);
+                    e.currentTarget.blur();
+                  }
+                }}
+                aria-label={t("editor-speed-bpm")}
+                className="w-20 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-center font-mono"
+              />
+            ) : (
+              <span className="font-mono">{state.speed.toFixed(1)}</span>
+            )}
+          </label>
+          {!bpmMode && (
+            <input
+              type="range"
+              min={1}
+              max={60}
+              step={1}
+              value={state.speed}
+              aria-label={t("editor-speed")}
+              onChange={(e) =>
+                void teleprompterSetSpeed(Number(e.target.value)).catch(() => undefined)
+              }
+            />
+          )}
+
+          <label className="flex items-center gap-2 text-[11px]">
+            <input
+              type="checkbox"
+              checked={bpmMode}
+              onChange={(e) => setBpmMode(e.target.checked)}
+            />
+            {t("editor-bpm-mode")}
+          </label>
+
+          <label className="flex items-center gap-2 text-[11px]">
+            <input
+              type="checkbox"
+              checked={readAloudMode}
+              disabled={engaged}
+              onChange={(e) => setReadAloudMode(e.target.checked)}
+            />
+            {/* Disabled while a read is engaged, so it cannot be flipped
+                mid-speech; Stop re-enables it. */}
+            <span className={engaged ? "opacity-40" : undefined}>🔊 {t("editor-read-aloud")}</span>
+          </label>
         </section>
 
-        <section className="min-w-0 flex-1">
-          <TeleprompterScroller state={state} onSeek={seek} />
+        <section className="flex min-h-0 flex-col gap-2">
+          <span className="text-havoc-muted text-[11px]">{t("editor-preview")}</span>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-white/10">
+            <TeleprompterScroller
+              state={state}
+              onSeek={seek}
+              overrideOffset={readAloudMode ? raOffset : undefined}
+            />
+          </div>
+          <TeleprompterSeekBar
+            state={state}
+            caesuras={caesuras}
+            onSeek={seek}
+            overrideOffset={readAloudMode ? raOffset : undefined}
+          />
         </section>
       </main>
 
@@ -198,6 +465,24 @@ export default function App() {
           onApplied={onApplied}
         />
       )}
+
+      <ScriptLibrary
+        open={libraryOpen}
+        currentName={currentScript}
+        onClose={() => setLibraryOpen(false)}
+        onOpened={(name) => {
+          setCurrentScript(name);
+          setSaveError(null);
+        }}
+        onRenamed={(from, to) => setCurrentScript((c) => (c === from ? to : c))}
+        onDeleted={(name) => setCurrentScript((c) => (c === name ? null : c))}
+      />
+
+      <ProjectorSetup
+        open={projectorOpen}
+        mirror={state.mirror}
+        onClose={() => setProjectorOpen(false)}
+      />
 
       <BugReportDialog
         open={bugOpen}

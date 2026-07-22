@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Freally Teleprompt — mirror</title>
+    <style>
+      /*
+        The LAN mirror page (FT-12). Served by the desktop app to a device on
+        the operator's own network, and deliberately self-contained: no web
+        font, no stylesheet, no script from anywhere else, so it renders on a
+        machine with no internet at all.
+
+        This page never re-implements the scroll timing. It polls the
+        authoritative character offset and eases between samples, which is why
+        there is no caesura maths anywhere below.
+      */
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        color: #fff;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        overscroll-behavior: none;
+      }
+      #surface {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+      }
+      #track {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        will-change: transform;
+        /* The whole reason this page needs no timing model: the offset arrives
+           ten times a second and the transition carries the eye between them. */
+        transition: transform 120ms linear;
+      }
+      #guide {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 1px solid rgba(110, 168, 254, 0.5);
+        pointer-events: none;
+      }
+      #bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.72);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 13px;
+        transition: opacity 300ms;
+      }
+      #bar.faded {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #bar button {
+        min-width: 40px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      #bar button:active {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      #status {
+        margin-left: auto;
+        color: #93a0b5;
+      }
+      #status.bad {
+        color: #ffb4b4;
+      }
+      #empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #track,
+        #bar {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="surface">
+      <div id="track" aria-live="off"></div>
+      <div id="guide"></div>
+      <div id="empty">Waiting for a script…</div>
+    </div>
+    <div id="bar">
+      <button id="smaller" type="button" aria-label="Smaller text">A−</button>
+      <button id="bigger" type="button" aria-label="Larger text">A+</button>
+      <span id="status">connecting…</span>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+        var KEY = new URLSearchParams(location.search).get("k") || "";
+        var POLL_MS = 100;
+        /* The viewer's own font size, remembered per device. It is deliberately
+           local: changing it here must not change what the talent sees. */
+        var FONT_KEY = "ft-mirror-font";
+        var track = document.getElementById("track");
+        var guide = document.getElementById("guide");
+        var empty = document.getElementById("empty");
+        var status = document.getElementById("status");
+        var bar = document.getElementById("bar");
+
+        var fontPx = parseFloat(localStorage.getItem(FONT_KEY) || "") || 34;
+        var script = null; // the script text currently laid out
+        var spans = []; // one element per visible character
+        var guidePct = 12;
+
+        function applyFont() {
+          fontPx = Math.max(14, Math.min(140, fontPx));
+          track.style.fontSize = fontPx + "px";
+          try {
+            localStorage.setItem(FONT_KEY, String(fontPx));
+          } catch (err) {
+            /* private browsing: the size just does not persist */
+          }
+        }
+
+        /* One span per VISIBLE character, in reading order, so span N is exactly
+           character offset N — the same contract the desktop surfaces keep. */
+        function layout(text) {
+          track.textContent = "";
+          spans = [];
+          var lines = text.split("\n");
+          for (var l = 0; l < lines.length; l++) {
+            var row = document.createElement("div");
+            var chars = Array.from(lines[l]);
+            for (var c = 0; c < chars.length; c++) {
+              var span = document.createElement("span");
+              span.textContent = chars[c];
+              row.appendChild(span);
+              spans.push(span);
+            }
+            if (chars.length === 0) row.appendChild(document.createTextNode(" "));
+            track.appendChild(row);
+          }
+          empty.style.display = text.trim() ? "none" : "flex";
+        }
+
+        var litCount = 0;
+        function render(offset, accent) {
+          var total = spans.length;
+          if (total === 0) return;
+          var live = Math.max(0, Math.min(total, offset));
+          var i0 = Math.max(0, Math.min(total - 1, Math.floor(live)));
+          var pad = (guidePct / 100) * window.innerHeight;
+          var y0 = spans[i0].offsetTop - pad;
+          var y1 = i0 + 1 < total ? spans[i0 + 1].offsetTop - pad : y0;
+          var y = y0 + (live - Math.floor(live)) * (y1 - y0);
+          track.style.transform = "translateY(" + -y + "px)";
+          /* Repaint only the characters that changed since the last sample. */
+          var lit = Math.max(0, Math.min(total, Math.round(live)));
+          var i;
+          if (lit > litCount) {
+            for (i = litCount; i < lit; i++) spans[i].style.color = accent;
+          } else if (lit < litCount) {
+            for (i = lit; i < litCount; i++) spans[i].style.color = "";
+          }
+          litCount = lit;
+        }
+
+        function applyLook(look) {
+          if (!look) return;
+          var families = {
+            system: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+            sans: 'Inter, "Helvetica Neue", Arial, sans-serif',
+            serif: 'Georgia, "Times New Roman", serif',
+            mono: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
+            rounded: '"Nunito", "Trebuchet MS", system-ui, sans-serif',
+            slab: '"Rockwell", "Courier New", Georgia, serif',
+          };
+          track.style.fontFamily = families[look.fontFamily] || families.system;
+          track.style.fontWeight = String(look.fontWeight || 500);
+          track.style.lineHeight = String(look.lineHeight || 1.5);
+          track.style.color = look.textColor || "#ffffff";
+          track.style.paddingLeft = (look.marginPct || 0) + "%";
+          track.style.paddingRight = (look.marginPct || 0) + "%";
+          guidePct = look.guidePct || 12;
+          guide.style.top = guidePct + "%";
+        }
+
+        var failures = 0;
+        function poll() {
+          fetch("/state?k=" + encodeURIComponent(KEY), { cache: "no-store" })
+            .then(function (response) {
+              if (!response.ok) throw new Error(String(response.status));
+              return response.json();
+            })
+            .then(function (state) {
+              failures = 0;
+              status.className = "";
+              status.textContent = state.playing ? "playing" : "paused";
+              applyLook(state.look);
+              if (state.script !== script) {
+                script = state.script;
+                litCount = 0;
+                layout(script);
+              }
+              render(state.offset, "#6ea8fe");
+            })
+            .catch(function (err) {
+              failures++;
+              status.className = "bad";
+              /* One dropped poll is a hiccup; several in a row is worth saying. */
+              if (failures > 3) status.textContent = "not connected — " + err.message;
+            });
+        }
+
+        document.getElementById("bigger").addEventListener("click", function () {
+          fontPx += 4;
+          applyFont();
+        });
+        document.getElementById("smaller").addEventListener("click", function () {
+          fontPx -= 4;
+          applyFont();
+        });
+
+        /* The bar gets out of the way while reading and comes back on a touch. */
+        var hideTimer = 0;
+        function reveal() {
+          bar.classList.remove("faded");
+          clearTimeout(hideTimer);
+          hideTimer = setTimeout(function () {
+            bar.classList.add("faded");
+          }, 4000);
+        }
+        document.addEventListener("pointerdown", reveal);
+        window.addEventListener("resize", function () {
+          if (script !== null) render(litCount, "#6ea8fe");
+        });
+
+        applyFont();
+        reveal();
+        poll();
+        setInterval(poll, POLL_MS);
+      })();
+    </script>
+  </body>
+</html>

@@ -110,6 +110,80 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>0.200.0</h2>
+        <p class="date">21 July 2026 — the standalone teleprompter</p>
+
+        <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
+          Scripts you can keep, a projector for the talent, a real transport, and a prompter that
+          reads itself aloud.
+        </p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>A script library.</strong> Create, open, rename and delete scripts, with a
+            recent list and autosave while you type. They are saved as plain text files, so a
+            script of yours stays readable in any editor — even if this app disappears tomorrow.
+            The app reopens whatever you had open last.
+          </li>
+          <li>
+            <strong>Pause chips in the editor.</strong> Every inline <code>--</code> pause shows as
+            a small pill with its length. It behaves as one thing: the cursor steps over it,
+            Backspace removes the whole pause in one press, and copying it gives you back real
+            <code>--</code> text. Type two dashes and one appears.
+          </li>
+          <li>
+            <strong>A projector window for the talent.</strong> Put the reading surface on any
+            connected display, filling it edge to edge, with a <strong>mirror flip</strong> for
+            beam-splitter prompter glass. It scrolls off the same state as your preview, so the two
+            can never disagree, and it has its own transport and keyboard shortcuts for whoever is
+            reading.
+          </li>
+          <li>
+            <strong>Mirror to a phone or tablet.</strong> Show the scrolling script on any device on
+            your own network, from a link and QR code the app gives you — each device picks its own
+            font size without changing what anyone else sees. It is off by default, stays on this
+            computer until you explicitly open it to the network, and is <strong>read-only</strong>:
+            nothing on a phone can start, stop, or edit anything.
+          </li>
+          <li>
+            <strong>A proper transport.</strong> Play, pause, stop, rewind and fast-forward as real
+            buttons that repeat when held; a seek bar showing elapsed and total reading time, with a
+            preview of the words at any point; click a word to start there; and mousewheel
+            scrubbing.
+          </li>
+          <li>
+            <strong>Speed in BPM.</strong> Read the pace as characters per second, or as BPM
+            (20–250) if you are pacing to music.
+          </li>
+          <li>
+            <strong>Appearance controls.</strong> Typeface, weight, text colour, side margins, line
+            spacing, and where the reading guide sits on screen — applied to every surface at once.
+          </li>
+          <li>
+            <strong>Read aloud.</strong> Have the prompter read your script at the pace you have
+            set, to check timing before a take. Pauses are real silences, and the highlight follows
+            the spoken word. It uses the voices your computer already has — nothing is downloaded —
+            and it never moves the talent's projector.
+          </li>
+        </ul>
+
+        <h3>Changed</h3>
+        <ul>
+          <li>
+            <strong>The app icon is now the same artwork at every size.</strong> Small icons used to
+            show a cropped "F" instead; one consistent mark reads better in the taskbar.
+          </li>
+        </ul>
+
+        <p class="note">
+          <strong>Still no AI, no accounts, no telemetry.</strong> The network mirror serves your
+          script to devices you point at it, on your own network. Nothing is uploaded and nothing is
+          relayed through anyone's server.
+        </p>
+      </article>
+
+      <article class="release">
         <h2>0.100.0</h2>
         <p class="date">21 July 2026 — the scaffold phase</p>
 
@@ -160,7 +234,7 @@
       <div class="empty-state">
         <h2>Installers are not published yet</h2>
         <p>
-          0.100.0 is a development milestone — the release pipeline lands in a later phase. When
+          0.200.0 is a development milestone — the release pipeline lands in a later phase. When
           the first installers are cut they will appear here for Windows, macOS, and Linux — free,
           local-first, no account. Meanwhile, the
           <a href="documentation.html">documentation</a> describes what the app does.

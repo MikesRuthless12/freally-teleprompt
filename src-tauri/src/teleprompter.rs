@@ -24,7 +24,7 @@
 use std::sync::Mutex;
 use std::time::Instant;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 /// A script this big is almost certainly a paste error — cap the allocation.
@@ -51,6 +51,41 @@ pub(crate) const CAESURA_MIN_DEFAULT: f32 = 0.75;
 pub(crate) const CAESURA_MAX_DEFAULT: f32 = 2.0;
 /// Max start-countdown pre-roll (seconds) before scrolling begins.
 pub(crate) const COUNTDOWN_MAX: f32 = 10.0;
+
+// -- appearance (FT-15) -------------------------------------------------------
+//
+// These ride in the engine rather than staying UI-local because the projector
+// and the LAN mirror are separate surfaces that must look identical to the
+// preview. One broadcast, one appearance.
+
+/// The reading typefaces the operator may choose, as stable **ids**. The UI maps
+/// each id to a CSS font stack; Rust only validates membership, so an unknown id
+/// (a hand-edited settings file, a UI from a future build) falls back rather
+/// than reaching the DOM as an arbitrary string.
+pub(crate) const FONT_FAMILIES: [&str; 6] = ["system", "sans", "serif", "mono", "rounded", "slab"];
+/// The default reading typeface — the OS UI font, which is what Phase 0 shipped.
+pub(crate) const FONT_FAMILY_DEFAULT: &str = "system";
+pub(crate) const MIN_WEIGHT: u16 = 300;
+pub(crate) const MAX_WEIGHT: u16 = 900;
+/// Horizontal margin as a percentage of the reading stage's width, per side.
+pub(crate) const MIN_MARGIN_PCT: f32 = 0.0;
+pub(crate) const MAX_MARGIN_PCT: f32 = 25.0;
+pub(crate) const MIN_LINE_HEIGHT: f32 = 1.0;
+pub(crate) const MAX_LINE_HEIGHT: f32 = 2.5;
+/// Reading-guide position, as a percentage down the reading surface. Capped
+/// well short of the bottom: a guide below the halfway line leaves almost no
+/// upcoming script visible, which defeats the point of a prompter.
+pub(crate) const MIN_GUIDE_PCT: f32 = 5.0;
+pub(crate) const MAX_GUIDE_PCT: f32 = 50.0;
+/// Reading text colour, as `#rrggbb`. White on black is the prompter default.
+pub(crate) const TEXT_COLOR_DEFAULT: &str = "#ffffff";
+
+/// Whether `value` is a `#rrggbb` colour. Deliberately strict — the value is
+/// handed to the webview as a colour, and "anything the browser might accept"
+/// is a much larger surface than six hex digits.
+pub(crate) fn is_hex_color(value: &str) -> bool {
+    value.len() == 7 && value.starts_with('#') && value[1..].chars().all(|c| c.is_ascii_hexdigit())
+}
 
 /// A parsed caesura: a spot where the scroll crawls slowly (pausing), lighting
 /// the two dashes one at a time. Positions are in the same `offset` unit the
@@ -137,12 +172,84 @@ fn parse_caesuras(script: &str, default_secs: f32) -> Vec<Caesura> {
     out
 }
 
+/// The reading appearance (FT-15), kept together so it can be validated,
+/// carried, and broadcast as one value instead of six loose parameters.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Look {
+    /// A [`FONT_FAMILIES`] id; the UI maps it to a CSS stack.
+    pub font_family: String,
+    pub font_weight: u16,
+    /// `#rrggbb` — the colour of script text that has not been read yet.
+    pub text_color: String,
+    /// Horizontal margin per side, as a percentage of the stage width.
+    pub margin_pct: f32,
+    pub line_height: f32,
+    /// Reading-guide position, as a percentage down the reading surface.
+    pub guide_pct: f32,
+}
+
+impl Default for Look {
+    fn default() -> Self {
+        Self {
+            font_family: FONT_FAMILY_DEFAULT.to_string(),
+            font_weight: 500,
+            text_color: TEXT_COLOR_DEFAULT.to_string(),
+            margin_pct: 8.0,
+            line_height: 1.5,
+            guide_pct: 12.0,
+        }
+    }
+}
+
+impl Look {
+    /// Force every field into range. Applied wherever a `Look` arrives from
+    /// outside (a settings file, the UI), so no surface can be handed a weight
+    /// of 40 000 or a colour that is really a CSS expression.
+    pub fn clamp(&mut self) {
+        if !FONT_FAMILIES.contains(&self.font_family.as_str()) {
+            self.font_family = FONT_FAMILY_DEFAULT.to_string();
+        }
+        if !is_hex_color(&self.text_color) {
+            self.text_color = TEXT_COLOR_DEFAULT.to_string();
+        }
+        self.font_weight = self.font_weight.clamp(MIN_WEIGHT, MAX_WEIGHT);
+        let d = Look::default();
+        self.margin_pct = clamp_finite(
+            self.margin_pct,
+            MIN_MARGIN_PCT,
+            MAX_MARGIN_PCT,
+            d.margin_pct,
+        );
+        self.line_height = clamp_finite(
+            self.line_height,
+            MIN_LINE_HEIGHT,
+            MAX_LINE_HEIGHT,
+            d.line_height,
+        );
+        self.guide_pct = clamp_finite(self.guide_pct, MIN_GUIDE_PCT, MAX_GUIDE_PCT, d.guide_pct);
+    }
+}
+
+/// `value.clamp(lo, hi)`, but a NaN/infinity falls back to `fallback` — Rust's
+/// `f32::clamp` propagates NaN, which would then cross the IPC boundary as
+/// `null` and break the surface that reads it.
+pub(crate) fn clamp_finite(value: f32, lo: f32, hi: f32, fallback: f32) -> f32 {
+    if value.is_finite() {
+        value.clamp(lo, hi)
+    } else {
+        fallback
+    }
+}
+
 struct Inner {
     script: String,
     /// Scroll speed in visible characters per second.
     speed: f32,
     /// Reading font size in px (the reference the preview/projector scale from).
     font_size: f32,
+    /// Reading appearance (FT-15) — shared so every surface looks alike.
+    look: Look,
     /// Mirror horizontally (for a beam-splitter teleprompter glass).
     mirror: bool,
     /// Scroll offset (visible chars) at the last control change.
@@ -285,6 +392,8 @@ pub struct TeleprompterDto {
     pub script: String,
     pub speed: f32,
     pub font_size: f32,
+    /// The shared reading appearance (FT-15).
+    pub look: Look,
     pub mirror: bool,
     /// Current scroll offset in visible characters.
     pub offset: f32,
@@ -304,6 +413,7 @@ impl TeleprompterState {
                 script: String::new(),
                 speed: 12.0,
                 font_size: 48.0,
+                look: Look::default(),
                 mirror: false,
                 base_offset: 0.0,
                 play_started: None,
@@ -320,25 +430,19 @@ impl TeleprompterState {
     ///
     /// The single point where persisted preferences reach the live engine —
     /// called once at startup and again on every `settings_set`. Keeping it here
-    /// (rather than fanning five IPC calls out of the UI) means no surface can
+    /// (rather than fanning the IPC calls out of the UI) means no surface can
     /// forget the wiring: the projector and the LAN mirror read the same state,
     /// and a settings apply reaches all of them through one broadcast.
     ///
     /// Every value is re-clamped by the setters below, so a hand-edited
     /// settings file cannot push the engine out of range.
-    pub fn adopt_settings(
-        &self,
-        speed: f32,
-        font_size: f32,
-        caesura_secs: f32,
-        countdown: f32,
-        mirror: bool,
-    ) {
-        self.set_speed(speed);
-        self.set_font(font_size);
-        self.set_caesura_secs(caesura_secs);
-        self.set_countdown(countdown);
-        self.set_mirror(mirror);
+    pub fn adopt_settings(&self, settings: &crate::settings::Settings) {
+        self.set_speed(settings.speed);
+        self.set_font(settings.font_size);
+        self.set_caesura_secs(settings.caesura_secs);
+        self.set_countdown(settings.countdown_secs);
+        self.set_mirror(settings.mirror);
+        self.set_look(settings.look.clone());
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -354,6 +458,7 @@ impl TeleprompterState {
             script: inner.script.clone(),
             speed: inner.speed,
             font_size: inner.font_size,
+            look: inner.look.clone(),
             mirror: inner.mirror,
             offset: inner.offset().max(0.0),
             playing: inner.play_started.is_some(),
@@ -402,6 +507,13 @@ impl TeleprompterState {
 
     pub fn set_font(&self, font_size: f32) {
         self.lock().font_size = font_size.clamp(MIN_FONT, MAX_FONT);
+    }
+
+    /// Replace the reading appearance (FT-15), clamped — the caller may be a
+    /// hand-edited settings file or a UI from another build.
+    pub fn set_look(&self, mut look: Look) {
+        look.clamp();
+        self.lock().look = look;
     }
 
     pub fn set_mirror(&self, mirror: bool) {
@@ -476,7 +588,7 @@ impl Default for TeleprompterState {
 }
 
 /// Emit the current snapshot so every surface resyncs.
-fn broadcast<R: Runtime>(app: &AppHandle<R>) {
+pub(crate) fn broadcast<R: Runtime>(app: &AppHandle<R>) {
     let dto = app.state::<TeleprompterState>().dto();
     if let Err(err) = app.emit("teleprompter", dto) {
         eprintln!("teleprompter: emit failed: {err}");
@@ -489,13 +601,7 @@ fn broadcast<R: Runtime>(app: &AppHandle<R>) {
 /// at startup (so the app opens at the user's speed and font) and by
 /// `settings_set` (so Apply takes effect immediately, everywhere).
 pub fn apply_settings<R: Runtime>(app: &AppHandle<R>, settings: &crate::settings::Settings) {
-    app.state::<TeleprompterState>().adopt_settings(
-        settings.speed,
-        settings.font_size,
-        settings.caesura_secs,
-        settings.countdown_secs,
-        settings.mirror,
-    );
+    app.state::<TeleprompterState>().adopt_settings(settings);
     broadcast(app);
 }
 
@@ -772,7 +878,22 @@ mod tests {
         let before = s.dto();
         assert_eq!(before.speed, 12.0, "the built-in default");
 
-        s.adopt_settings(30.0, 96.0, 1.5, 3.0, true);
+        s.adopt_settings(&crate::settings::Settings {
+            speed: 30.0,
+            font_size: 96.0,
+            caesura_secs: 1.5,
+            countdown_secs: 3.0,
+            mirror: true,
+            look: Look {
+                font_family: "serif".to_string(),
+                font_weight: 700,
+                text_color: "#ffcc00".to_string(),
+                margin_pct: 4.0,
+                line_height: 1.8,
+                guide_pct: 30.0,
+            },
+            ..Default::default()
+        });
 
         let after = s.dto();
         assert_eq!(after.speed, 30.0);
@@ -780,6 +901,12 @@ mod tests {
         assert_eq!(after.caesura_secs, 1.5);
         assert_eq!(after.countdown_secs, 3.0);
         assert!(after.mirror);
+        // FT-15: the appearance rides along, or the projector and the LAN
+        // mirror would keep rendering the previous look.
+        assert_eq!(after.look.font_family, "serif");
+        assert_eq!(after.look.font_weight, 700);
+        assert_eq!(after.look.text_color, "#ffcc00");
+        assert_eq!(after.look.guide_pct, 30.0);
     }
 
     /// The engine re-clamps whatever it is handed, so a hand-edited settings
@@ -788,13 +915,51 @@ mod tests {
     #[test]
     fn adopt_settings_clamps_out_of_range_values() {
         let s = TeleprompterState::new();
-        s.adopt_settings(9_000.0, 1.0, 99.0, 900.0, false);
+        s.adopt_settings(&crate::settings::Settings {
+            speed: 9_000.0,
+            font_size: 1.0,
+            caesura_secs: 99.0,
+            countdown_secs: 900.0,
+            mirror: false,
+            look: Look {
+                // A CSS expression, not a colour; a font nobody offers; a
+                // weight no renderer has — each must fall back, not pass through.
+                font_family: "url(https://evil.example/x)".to_string(),
+                font_weight: 40_000,
+                text_color: "red; background: url(x)".to_string(),
+                margin_pct: f32::NAN,
+                line_height: 99.0,
+                guide_pct: 0.0,
+            },
+            ..Default::default()
+        });
 
         let dto = s.dto();
         assert_eq!(dto.speed, MAX_SPEED);
         assert_eq!(dto.font_size, MIN_FONT);
         assert_eq!(dto.caesura_secs, CAESURA_MAX_DEFAULT);
         assert_eq!(dto.countdown_secs, COUNTDOWN_MAX);
+        assert_eq!(dto.look.font_family, FONT_FAMILY_DEFAULT);
+        assert_eq!(dto.look.font_weight, MAX_WEIGHT);
+        assert_eq!(dto.look.text_color, TEXT_COLOR_DEFAULT);
+        assert_eq!(dto.look.margin_pct, Look::default().margin_pct);
+        assert_eq!(dto.look.line_height, MAX_LINE_HEIGHT);
+        assert_eq!(dto.look.guide_pct, MIN_GUIDE_PCT);
+    }
+
+    /// Only `#rrggbb` is a colour. Everything else — a named colour, a shorthand
+    /// hex, a CSS function — falls back, because the value is handed straight to
+    /// the webview as the reading text colour.
+    #[test]
+    fn only_six_digit_hex_is_accepted_as_a_colour() {
+        assert!(is_hex_color("#ffffff"));
+        assert!(is_hex_color("#0A1b2C"));
+        assert!(!is_hex_color("#fff"));
+        assert!(!is_hex_color("ffffff"));
+        assert!(!is_hex_color("#gggggg"));
+        assert!(!is_hex_color("red"));
+        assert!(!is_hex_color("rgb(1,2,3)"));
+        assert!(!is_hex_color(""));
     }
 
     /// "Back to top" must restate the pre-roll, not inherit leftover state.

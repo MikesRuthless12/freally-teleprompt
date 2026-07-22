@@ -6,6 +6,8 @@
 
 ## App shell
 app-name = Freally Teleprompt
+toolbar-library = Metinler
+toolbar-projector = Projektörü aç
 toolbar-settings = Ayarlar
 toolbar-bug-report = Sorun bildir
 toolbar-updates = Güncellemeleri denetle
@@ -13,15 +15,58 @@ toolbar-updates = Güncellemeleri denetle
 ## Transport
 transport-play = Oynat
 transport-pause = Duraklat
+transport-stop = Durdur
 transport-restart = Başa dön
+transport-rewind = Geri
+transport-forward = İleri
+transport-slower = Daha yavaş
+transport-faster = Daha hızlı
+transport-seek = Metinde ilerle
 
 ## Editor
 editor-label = Metin
 editor-placeholder = Metninizi yazın veya yapıştırın. Duraklama için " -- ", 2 saniye beklemek için " --2 " kullanın.
-editor-load = Prompter'a yükle
+editor-unsaved = Kaydedilmemiş metin
+editor-caesura-hint = Duraklama için -- yazın
+editor-est-time = Okuma süresi { $time }
+editor-preview = Önizleme
+editor-speed = Hız (saniyedeki karakter)
+editor-speed-bpm = Hız (BPM)
+editor-bpm-mode = BPM modu (şarkı)
+editor-read-aloud = İşletim sistemi konuşma sentezi ile sesli oku
+editor-save-failed = Kaydedilemedi: { $error }
+
+## Script library
+library-title = Metinler
+library-new = Yeni
+library-new-placeholder = Yeni metne bir ad verin
+library-empty = Henüz metin yok. Başlamak için yukarıda bir ad verin.
+library-open = Aç
+library-current = açık
+library-rename = Yeniden adlandır
+library-save-name = Kaydet
+library-delete = Sil
+library-delete-confirm = Silinsin mi?
+library-delete-yes = Evet
+library-delete-no = Hayır
+library-close = Kapat
+
+## Projector
+projector-title = Yansıtıcıyı aç
+projector-display = Ekran
+projector-windowed = Yüzen pencere (bu ekran)
+projector-display-option = Ekran { $n } — { $w }×{ $h }
+projector-primary = (birincil)
+projector-fill = Ekranın tamamını kapla
+projector-mirror = Yatay olarak aynala (ışın bölücü cam için)
+projector-mirror-hint = Yalnızca prompter camından okunuyorsa açın; o cam görüntüyü ters çevirir.
+projector-open = Aç
+projector-cancel = İptal
+projector-exit-hint = Çıkmak için Esc'e basın
+projector-window-title = Freally Teleprompt — yansıtıcı
 
 ## Prompter surface
-teleprompter-empty = Henüz metin yüklenmedi. Soldan bir metin yazın, sonra "Prompter'a yükle" seçeneğini kullanın.
+teleprompter-empty = Henüz metin yüklenmedi. Metinler'den birini açın ya da solda yazmaya başlayın.
 
 ## Settings
 settings-title = Ayarlar
@@ -30,11 +75,35 @@ settings-language-auto = Sistemimle aynı
 settings-theme = Tema
 settings-theme-dark = Koyu
 settings-theme-light = Açık
+settings-section-reading = Okuma
 settings-speed = Okuma hızı — saniyede { $value } karakter
 settings-font-size = Yazı boyutu — { $value } px
 settings-caesura = " -- " için varsayılan duraklama — { $value } saniye
 settings-countdown = Başlamadan önce geri sayım — { $value } saniye
+settings-section-appearance = Görünüm
+settings-font-family = Yazı tipi
+settings-font-system = Sistem
+settings-font-sans = Tırnaksız
+settings-font-serif = Tırnaklı
+settings-font-mono = Eş aralıklı
+settings-font-rounded = Yuvarlatılmış
+settings-font-slab = Slab
+settings-font-weight = Kalınlık
+settings-text-color = Metin rengi
+settings-line-height = Satır aralığı — { $value }
+settings-margins = Yan boşluklar — %{ $value }
+settings-guide = Okuma çizgisi — yukarıdan %{ $value }
+settings-section-projector = Yansıtıcı
 settings-mirror = Yansıtılan görüntüyü aynala (ışın ayırıcı cam için)
+settings-section-mirror = Ağıma yansıt
+settings-lan-enabled = Metni ağımdaki cihazlara yansıt
+settings-lan-all-interfaces = Yalnızca bu bilgisayara değil, diğer cihazlara da izin ver
+settings-lan-warning = Bağlantı tek kullanımlık bir anahtar taşır ve şifreli değildir; yalnızca güvendiğiniz bir ağda kullanın. Yansıtma salt okunurdur ve metniniz hiçbir yere yüklenmez.
+settings-lan-port = Bağlantı noktası
+settings-lan-open = Tarayıcımda aç
+settings-lan-open-hint = Kodu okutun ya da bu bağlantıyı aynı ağdaki bir cihazda açın.
+settings-lan-failed = Yansıtma başlatılamadı: { $error }
+mirror-qr-aria = Yansıtma bağlantısının QR kodu
 settings-cancel = İptal
 settings-apply = Uygula
 

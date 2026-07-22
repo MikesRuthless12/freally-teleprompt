@@ -9,6 +9,16 @@ const EMPTY: TeleprompterState = {
   script: "",
   speed: 12,
   fontSize: 48,
+  // Mirrors Rust's `Look::default()`. A surface renders with these for the one
+  // frame before the first snapshot lands, so they must not be blank.
+  look: {
+    fontFamily: "system",
+    fontWeight: 500,
+    textColor: "#ffffff",
+    marginPct: 8,
+    lineHeight: 1.5,
+    guidePct: 12,
+  },
   mirror: false,
   offset: 0,
   playing: false,

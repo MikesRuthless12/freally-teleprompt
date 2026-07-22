@@ -12,6 +12,7 @@ import {
   SOURCE_LOCALE,
 } from "../locales";
 import { t } from "../t";
+import { FONT_FAMILY_IDS } from "../../lib/fonts";
 
 /** `key = value` ids from a catalog, ignoring comments and blank lines. */
 function keysOf(source: string): Set<string> {
@@ -23,6 +24,23 @@ function keysOf(source: string): Set<string> {
   }
   return keys;
 }
+
+/**
+ * The typeface picker builds its ids at runtime — `t(\`settings-font-${id}\`)` —
+ * so `i18n-lint`'s scanner, which only sees string literals, cannot check them.
+ * This is that check: every id the picker can render must resolve to a real key,
+ * or the Settings dropdown ships showing raw ids like `settings-font-slab`.
+ */
+describe("typeface picker keys (FT-15)", () => {
+  it("every font id resolves to a string, not its own id", () => {
+    const source = keysOf(catalogSource(SOURCE_LOCALE));
+    for (const id of FONT_FAMILY_IDS) {
+      const key = `settings-font-${id}`;
+      expect(source.has(key), `${key} missing from ${SOURCE_LOCALE}.ftl`).toBe(true);
+      expect(t(key)).not.toBe(key);
+    }
+  });
+});
 
 describe("locale registry", () => {
   it("ships exactly eighteen locales", () => {

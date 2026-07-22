@@ -537,7 +537,15 @@ fn vet_url(url: &str) -> Result<(), String> {
 
 /// Hand a vetted URL to the OS default handler, as a **single argv entry** —
 /// never through a shell, so nothing in the URL can be read as a command.
-fn open_url_in_os(url: &str) -> Result<(), String> {
+///
+/// `pub(crate)` for one other caller: the LAN mirror's "open in a browser"
+/// button (FT-12). Its URL is plain `http:` on the local network, which
+/// [`vet_url`] refuses on purpose and must keep refusing — that gate exists to
+/// stop a URL that arrived *from the webview* being opened. The mirror's URL
+/// never arrives from anywhere: Rust builds it from its own listener state and
+/// the UI cannot influence a single character of it, so it goes to this
+/// function directly rather than through a widened allowlist.
+pub(crate) fn open_url_in_os(url: &str) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     let mut command = {
         let mut command = std::process::Command::new("rundll32");

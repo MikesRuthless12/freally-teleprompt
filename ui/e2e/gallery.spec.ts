@@ -27,7 +27,11 @@ test.describe("panel gallery", () => {
     // substring match would resolve to two elements and fail on strict mode.
     await expect(page.getByText("Freally Teleprompt", { exact: true })).toBeVisible();
     await expect(page.getByTestId("teleprompter-scroller")).toBeVisible();
-    await expect(page.getByLabel("Script")).toBeVisible();
+    // The chip editor, by its role and its visible label — `getByLabel("Script")`
+    // is a substring match and also caught the seek bar's "Seek through the
+    // script", which is a genuinely different control.
+    await expect(page.getByRole("textbox", { name: "Script", exact: true })).toBeVisible();
+    await expect(page.getByTestId("transport")).toBeVisible();
     await expect(page.getByRole("button", { name: "Report a problem" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Check for updates" })).toBeVisible();
 

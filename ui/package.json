@@ -1,7 +1,7 @@
 {
   "name": "@freally-teleprompt/ui",
   "private": true,
-  "version": "0.100.0",
+  "version": "0.200.0",
   "type": "module",
   "description": "Freally Teleprompt — the React + TypeScript UI (Vite, Havoc dark).",
   "license": "SEE LICENSE IN LICENSE",
@@ -39,6 +39,7 @@
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
+    "qrcode-generator": "^2.0.4",
     "react": "^19",
     "react-dom": "^19"
   },

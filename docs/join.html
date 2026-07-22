@@ -6,7 +6,7 @@
     <title>Join a Freally Teleprompt mirror</title>
     <meta
       name="description"
-      content="Mirror a Freally Teleprompt script on your phone or tablet over your own network — no install, no account. Coming in a later release."
+      content="Mirror a Freally Teleprompt script on your phone or tablet over your own network — no install, no account, read-only, and your script never leaves your network."
     />
     <link rel="icon" href="favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
@@ -103,41 +103,77 @@
 
     <main class="join-wrap">
       <div class="join-card">
-        <span class="badge">Not available yet</span>
-        <h2>The LAN mirror is still being built</h2>
+        <span class="badge">Available in 0.200.0</span>
+        <h2>Mirror a script on your phone, tablet, or a second laptop</h2>
         <p>
-          This page is where a phone, tablet, or second laptop will join a running
-          <a href="index.html">Freally Teleprompt</a> session and mirror the script as it scrolls —
-          in your browser, with nothing to install.
-        </p>
-        <p>
-          It is not wired up yet. When it ships, the desktop app will show you a link and a QR code
-          for this page; opening it on any device on the same network is the whole setup.
+          A running copy of <a href="index.html">Freally Teleprompt</a> can show its scrolling
+          script to any device on the same network — in a browser, with nothing to install and no
+          account.
         </p>
 
-        <h2>What it will do</h2>
+        <h2>How to join</h2>
         <ul class="join-list">
           <li>
-            <strong>Mirror the scroll in step.</strong> The same character-based engine drives the
-            operator preview, the talent projector, and this page, so they stay on the same word
-            even at completely different font sizes.
+            <strong>On the computer running the app:</strong> open <em>Settings</em> →
+            <em>Mirror to my network</em>, tick <strong>Mirror the script to devices on my
+            network</strong>, then tick <strong>Allow other devices, not just this
+            computer</strong>, and press <em>Apply</em>.
           </li>
           <li>
-            <strong>Read comfortably on a small screen.</strong> Set your own font size here without
-            changing what anyone else sees.
+            <strong>A link and a QR code appear.</strong> That link is the page — it is served by
+            the app itself, on your own network.
           </li>
-          <li><strong>No install and no account</strong> — it is a web page on your own network.</li>
+          <li>
+            <strong>On the phone:</strong> scan the code, or type the link into any browser. Make
+            sure the phone is on the same Wi-Fi.
+          </li>
+          <li>
+            <strong>Set your own text size</strong> with the A− / A+ buttons. It changes only your
+            screen — the operator's preview and the talent's projector are untouched.
+          </li>
+        </ul>
+
+        <h2>Why the link is not on this website</h2>
+        <p>
+          Because it cannot be. This page is served over HTTPS from the public site, and browsers
+          deliberately block an HTTPS page from talking to a plain-HTTP device on your local
+          network. So the mirror page is served <em>by the app</em>, directly to your device, and
+          the app hands you its address. That is also the more private arrangement: your script
+          never travels through this website at all.
+        </p>
+
+        <h2>If it does not connect</h2>
+        <ul class="join-list">
+          <li>
+            <strong>Check both switches.</strong> "Allow other devices" is separate from turning the
+            mirror on, on purpose — with it off, the mirror only answers on the computer itself.
+          </li>
+          <li>
+            <strong>Same network.</strong> A phone on mobile data, or on a guest network that
+            isolates clients, cannot reach the computer.
+          </li>
+          <li>
+            <strong>Firewall.</strong> The first time, Windows or macOS may ask whether to allow
+            incoming connections. Say yes for private networks.
+          </li>
+          <li>
+            <strong>Port already in use.</strong> If Settings shows a red "could not start" line,
+            change the port and press Apply again.
+          </li>
         </ul>
 
         <p class="privacy">
-          <strong>Your script never leaves your network.</strong> The mirror is served by the
-          desktop app directly to devices you point at it. Nothing is uploaded, nothing is relayed
-          through a server, and there is no AI anywhere in Freally Teleprompt.
+          <strong>Your script never leaves your network, and the mirror cannot touch anything.</strong>
+          The page is served by the desktop app straight to devices you point at it — nothing is
+          uploaded and nothing is relayed through a server. It is <strong>read-only</strong>: no
+          browser can start, stop, seek, or edit. The link carries a key that changes every time
+          the app launches, and because it is plain HTTP on your own network, use it on a network
+          you trust. And, as everywhere in Freally Teleprompt, there is no AI involved.
         </p>
 
         <p>
-          Meanwhile, the <a href="documentation.html">documentation</a> covers what the app does
-          today, and the <a href="changelog.html">changelog</a> tracks each release.
+          The <a href="documentation.html">documentation</a> covers the rest of the app, and the
+          <a href="changelog.html">changelog</a> tracks each release.
         </p>
       </div>
     </main>

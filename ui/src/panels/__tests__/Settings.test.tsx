@@ -4,13 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settings } from "../../api/types";
 import { SettingsDialog } from "../Settings";
 
-// The dialog is the client half of the draft/apply pattern; the backend call is
-// the only thing it does to the outside world, so that is what we stub. The
-// signature is given explicitly so `mock.calls[0][0]` stays typed as the draft —
-// these tests assert on exactly what would have been sent.
+// The dialog is the client half of the draft/apply pattern; the backend calls
+// are the only thing it does to the outside world, so that is what we stub. The
+// `settingsSet` signature is given explicitly so `mock.calls[0][0]` stays typed
+// as the draft — these tests assert on exactly what would have been sent.
+// `lanMirrorStatus` is stubbed because the dialog reads the mirror's LIVE state
+// on every open (FT-12); it must not be a draft field.
 const settingsSet = vi.fn<(next: Settings) => Promise<void>>();
 vi.mock("../../api/commands", () => ({
   settingsSet: (next: Settings) => settingsSet(next),
+  lanMirrorStatus: () => Promise.resolve({ running: false, url: null, error: null }),
+  lanMirrorOpen: () => Promise.resolve(),
 }));
 
 const BASE: Settings = {
@@ -21,6 +25,18 @@ const BASE: Settings = {
   caesuraSecs: 0.75,
   countdownSecs: 0,
   mirror: false,
+  look: {
+    fontFamily: "system",
+    fontWeight: 500,
+    textColor: "#ffffff",
+    marginPct: 8,
+    lineHeight: 1.5,
+    guidePct: 12,
+  },
+  lanEnabled: false,
+  lanAllInterfaces: false,
+  lanPort: 7346,
+  recentScripts: [],
   acceptedEulaVersion: "2026-07-21",
 };
 

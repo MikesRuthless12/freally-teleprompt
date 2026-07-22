@@ -2,11 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { TeleprompterState } from "../api/types";
 import { useT } from "../i18n/t";
-import { liveOffset, parseCaesuras } from "../lib/caesura";
-
-/** Line-height multiple used everywhere, so an offset maps to pixels the same
- * way on every surface (bigger font → bigger pixels, same reading pace). */
-const LINE_HEIGHT = 1.5;
+import {
+  type Caesura,
+  liveOffset,
+  parseCaesuras,
+  timeAtOffset,
+  visibleChars,
+} from "../lib/caesura";
+import { fontStack } from "../lib/fonts";
+import { fmtTime } from "../lib/time";
 
 /** The preview and the projector lay text out on a shared fixed-width virtual
  * "stage", then CSS-scale it to their own window — so wrapping is IDENTICAL on
@@ -43,6 +47,9 @@ function renderScript(script: string): React.ReactNode {
  * shared state and animates the scroll LOCALLY between control changes (rAF),
  * resyncing to `offset` whenever the state updates — so the preview, the
  * projector, and the LAN mirror stay in step without high-frequency polling.
+ *
+ * Appearance (FT-15) comes from `state.look`, not from props, precisely so the
+ * preview and the projector cannot be styled differently by accident.
  */
 export function TeleprompterScroller({
   state,
@@ -63,6 +70,7 @@ export function TeleprompterScroller({
 }) {
   const t = useT();
   const trackRef = useRef<HTMLDivElement>(null);
+  const look = state.look;
   // Inline ` -- ` caesuras drive the same flat-crawl pauses the Rust state uses.
   const caesuras = useMemo(
     () => parseCaesuras(state.script, state.caesuraSecs),
@@ -114,10 +122,11 @@ export function TeleprompterScroller({
     const total = chars.length;
     for (let i = 0; i < total; i++) chars[i].style.color = "";
     litCountRef.current = 0;
-    // Reading guide at 12% down the viewport, expressed in the stage's own
-    // coordinate system (the stage transform then scales it to the window).
+    // The reading guide sits `look.guidePct` down the viewport (FT-15), expressed
+    // in the stage's own coordinate system — the stage transform then scales it
+    // to the window, so preview and projector place it identically.
     const stageH = scale > 0 ? dims.h / scale : dims.h;
-    const padTop = 0.12 * stageH;
+    const padTop = (look.guidePct / 100) * stageH;
 
     const write = () => {
       const a = anchor.current;
@@ -184,6 +193,13 @@ export function TeleprompterScroller({
     state.fontSize,
     state.script,
     overrideOffset,
+    // The appearance changes where the guide sits and how tall a row is, so a
+    // stale frame would park the highlight off the line until the next event.
+    look.guidePct,
+    look.lineHeight,
+    look.marginPct,
+    look.fontFamily,
+    look.fontWeight,
   ]);
 
   // Re-parse the script only when its text changes (not on every speed/font tick).
@@ -242,10 +258,13 @@ export function TeleprompterScroller({
     <div
       ref={rootRef}
       data-testid="teleprompter-scroller"
-      className="relative h-full w-full overflow-hidden bg-black text-white"
+      className="relative h-full w-full overflow-hidden bg-black"
       style={{
         transform: mirrored ? "scaleX(-1)" : undefined,
         cursor: onSeek ? "pointer" : undefined,
+        // Unread script takes the operator's chosen colour; the sweep overrides
+        // each character to the accent as it is read.
+        color: look.textColor,
       }}
       onClick={onSeek ? handleClick : undefined}
     >
@@ -256,11 +275,14 @@ export function TeleprompterScroller({
         >
           <div
             ref={trackRef}
-            className="px-[8%] break-words will-change-transform"
+            className="break-words will-change-transform"
             style={{
               fontSize: state.fontSize,
-              lineHeight: LINE_HEIGHT,
-              fontWeight: 500,
+              fontFamily: fontStack(look.fontFamily),
+              lineHeight: look.lineHeight,
+              fontWeight: look.fontWeight,
+              paddingLeft: `${look.marginPct}%`,
+              paddingRight: `${look.marginPct}%`,
             }}
           >
             {body}
@@ -286,9 +308,196 @@ export function TeleprompterScroller({
       {/* Reading line — where the talent's eyes rest. */}
       <div
         className="border-havoc-accent/50 pointer-events-none absolute inset-x-0 border-t"
-        style={{ top: "12%" }}
+        style={{ top: `${look.guidePct}%` }}
         aria-hidden="true"
       />
+    </div>
+  );
+}
+
+/**
+ * A YouTube-style seek bar (FT-13): a scrubber with elapsed / total read time
+ * (caesura pauses counted), hover-to-preview the words at any point, and
+ * click / drag to jump there. Times come from the shared caesura-aware timing,
+ * so the numbers move with speed and seeks.
+ */
+export function TeleprompterSeekBar({
+  state,
+  caesuras,
+  onSeek,
+  overrideOffset,
+  onDark = false,
+}: {
+  state: TeleprompterState;
+  caesuras: Caesura[];
+  onSeek: (offset: number) => void;
+  /** Read-aloud: track this offset instead of the shared scroll (so the scrubber
+   * shows where the reading is, not where the shared scroll is). */
+  overrideOffset?: number;
+  /** True on the projector, whose chrome is black in both themes. */
+  onDark?: boolean;
+}) {
+  const t = useT();
+  const total = Math.max(1, visibleChars(state.script));
+  const speed = state.speed > 0 ? state.speed : 1;
+  const vis = useMemo(
+    () => Array.from(state.script).filter((c) => c.charCodeAt(0) !== 10),
+    [state.script],
+  );
+  const trackRef = useRef<HTMLDivElement>(null);
+  const anchor = useRef({
+    offset: state.offset,
+    t: 0,
+    playing: state.playing,
+    speed: state.speed,
+    countdown: state.countdownRemaining,
+  });
+  const [live, setLive] = useState(state.offset);
+  const [hoverFrac, setHoverFrac] = useState<number | null>(null);
+  const dragging = useRef(false);
+
+  useEffect(() => {
+    anchor.current = {
+      offset: state.offset,
+      t: performance.now(),
+      playing: state.playing,
+      speed: state.speed,
+      countdown: state.countdownRemaining,
+    };
+  }, [state.offset, state.playing, state.speed, state.countdownRemaining]);
+
+  // Advance the scrubber smoothly while playing; a single write while paused.
+  // In read-aloud mode the scrubber just follows the reading offset (no anim).
+  useEffect(() => {
+    let raf = 0;
+    if (overrideOffset !== undefined) {
+      raf = requestAnimationFrame(() => setLive(overrideOffset));
+      return () => cancelAnimationFrame(raf);
+    }
+    // Drive the scrubber from the animation frame (never a synchronous setState in
+    // the effect body): one write when paused, a loop while playing.
+    const run = () => {
+      const a = anchor.current;
+      // Honour the start-countdown pre-roll: the scrubber holds until it elapses.
+      const elapsed = Math.max(0, (a.playing ? (performance.now() - a.t) / 1000 : 0) - a.countdown);
+      // Clamp at the end (liveOffset itself is unbounded) so the elapsed read-time
+      // never climbs past the total once the scroll has reached the last line.
+      setLive(Math.min(total, liveOffset(a.offset, elapsed, a.speed, caesuras)));
+      if (state.playing) raf = requestAnimationFrame(run);
+    };
+    raf = requestAnimationFrame(run);
+    return () => cancelAnimationFrame(raf);
+  }, [
+    state.playing,
+    state.offset,
+    state.speed,
+    state.countdownRemaining,
+    caesuras,
+    overrideOffset,
+    total,
+  ]);
+
+  const fracFromX = (clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    return Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)));
+  };
+  const seekFrac = (frac: number) => onSeek(frac * total);
+
+  const progress = Math.max(0, Math.min(1, live / total));
+  // At the hovered seek time, show ~80 characters around that point with the
+  // highlight up to it (a "what would be lit here at this time" preview).
+  const hoverChar = hoverFrac === null ? 0 : Math.floor(hoverFrac * total);
+  const snipStart = Math.max(0, hoverChar - 40);
+  const snippet = hoverFrac === null ? "" : vis.slice(snipStart, snipStart + 80).join("");
+  const snipLit = Math.max(0, Math.min(snippet.length, hoverChar - snipStart));
+
+  // On the projector the chrome sits on black in both themes, so the muted
+  // colour and the track have to come from outside the theme's re-tints.
+  const label = onDark ? "text-white/70" : "text-havoc-muted";
+
+  return (
+    <div className="flex items-center gap-3" data-testid="teleprompter-seek">
+      <span className={`${label} w-11 shrink-0 text-right font-mono text-xs tabular-nums`}>
+        {fmtTime(timeAtOffset(live, speed, caesuras))}
+      </span>
+      <div className="relative flex-1">
+        {hoverFrac !== null && (
+          <div
+            // Deliberately dark in both themes: it is a preview of the reading
+            // surface, which is black whatever the app's palette.
+            className="border-havoc-accent/25 pointer-events-none absolute bottom-full mb-3 w-64 max-w-[70vw] -translate-x-1/2 rounded-md border bg-black/90 p-2 text-left shadow-lg"
+            style={{ left: `${Math.max(6, Math.min(94, hoverFrac * 100))}%` }}
+          >
+            <div className="text-havoc-accent mb-1 font-mono text-[11px]">
+              {fmtTime(timeAtOffset(hoverFrac * total, speed, caesuras))}
+            </div>
+            <div className="text-[11px] leading-snug break-words text-white/80">
+              <span style={{ color: "var(--color-havoc-accent)" }}>
+                {snippet.slice(0, snipLit)}
+              </span>
+              <span>{snippet.slice(snipLit)}</span>
+            </div>
+          </div>
+        )}
+        <div
+          ref={trackRef}
+          role="slider"
+          tabIndex={0}
+          aria-label={t("transport-seek")}
+          aria-valuemin={0}
+          aria-valuemax={Math.round(total)}
+          aria-valuenow={Math.round(live)}
+          className={`relative h-2.5 cursor-pointer rounded-full ${onDark ? "proj-track" : "bg-white/10"}`}
+          onPointerDown={(e) => {
+            dragging.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            seekFrac(fracFromX(e.clientX));
+          }}
+          onPointerMove={(e) => {
+            const frac = fracFromX(e.clientX);
+            setHoverFrac(frac);
+            if (dragging.current) seekFrac(frac);
+          }}
+          onPointerUp={(e) => {
+            dragging.current = false;
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }}
+          onPointerLeave={() => {
+            if (!dragging.current) setHoverFrac(null);
+          }}
+          onKeyDown={(e) => {
+            // A slider that only responds to a pointer is not a slider. One
+            // character per press, a screenful per PageUp/Down.
+            const step = e.key === "PageUp" || e.key === "PageDown" ? Math.max(1, total / 20) : 1;
+            if (e.key === "ArrowLeft" || e.key === "PageDown") {
+              e.preventDefault();
+              onSeek(Math.max(0, live - step));
+            } else if (e.key === "ArrowRight" || e.key === "PageUp") {
+              e.preventDefault();
+              onSeek(Math.min(total, live + step));
+            } else if (e.key === "Home") {
+              e.preventDefault();
+              onSeek(0);
+            } else if (e.key === "End") {
+              e.preventDefault();
+              onSeek(total);
+            }
+          }}
+        >
+          <div
+            className="bg-havoc-accent absolute inset-y-0 left-0 rounded-full"
+            style={{ width: `${progress * 100}%` }}
+          />
+          <div
+            className="bg-havoc-accent absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full shadow"
+            style={{ left: `${progress * 100}%` }}
+          />
+        </div>
+      </div>
+      <span className={`${label} w-11 shrink-0 font-mono text-xs tabular-nums`}>
+        {fmtTime(timeAtOffset(total, speed, caesuras))}
+      </span>
     </div>
   );
 }

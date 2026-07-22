@@ -135,7 +135,7 @@ jobs:
         run: cargo test --workspace
 
   tauri-build:
-    name: Tauri debug build (${{ matrix.os }})
+    name: Tauri debug build + launch shot (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -159,3 +159,28 @@ jobs:
         # --no-bundle keeps this a compile smoke — full bundling + installers
         # are exercised by release.yml on tags (FT-52).
         run: npm run tauri -- build --debug --no-bundle
+
+      # --- the app actually running, photographed, on all three OSes ---------
+      #
+      # The Playwright gallery proves the UI renders in Chromium against a
+      # mocked bridge. It cannot prove the real binary starts, that the OS's own
+      # webview paints (WebView2 / WKWebView / WebKitGTK), or that Rust answered
+      # the first IPC call — and those break on exactly one platform at a time.
+      # The three artifacts below are meant to be LOOKED AT after each phase.
+      - name: Give Linux a display to paint on
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb imagemagick xdotool
+          Xvfb :99 -screen 0 1600x1000x24 >/dev/null 2>&1 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+          # Give the X server a moment to accept connections.
+          sleep 3
+      - name: Launch the app and screenshot it running
+        run: node scripts/app-screenshot.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-running-${{ matrix.os }}
+          path: artifacts/*.png
+          if-no-files-found: error

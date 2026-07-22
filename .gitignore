@@ -58,3 +58,7 @@ secrets.json
 ui/e2e/screenshots/
 ui/e2e/.output/
 ui/test-results/
+
+# The per-OS "app actually running" screenshots (scripts/app-screenshot.mjs).
+# CI uploads them as build artifacts; locally they are just a look-and-see.
+artifacts/

@@ -9,6 +9,7 @@
 //   UI:   prettier (format:check) · eslint · i18n:lint · theme:lint · vitest
 //         (test:ui) · build (tsc --noEmit && vite build) · Playwright e2e
 //   Tauri: debug compile smoke  (npm run tauri -- build --debug --no-bundle)
+//          + launch the built app and screenshot it (scripts/app-screenshot.mjs)
 //
 // Unlike CI (which stops a job at the first failing step), this runs EVERY check
 // and prints one summary at the end, so a single pass surfaces all problems. It
@@ -96,6 +97,12 @@ if (!rustOnly && hasUi) {
 if (!uiOnly && hasRust && hasUi) {
   if (!noTauriBuild) {
     step("tauri: debug build", "npm run tauri -- build --debug --no-bundle", repoRoot);
+    // Then actually RUN it and photograph it. This is the step that catches
+    // "compiles fine, dies on launch" and "the webview paints nothing" — which
+    // the compile smoke and the mocked Playwright gallery both sail past. CI
+    // does the same on all three OSes and uploads the pictures; locally you get
+    // your own platform's, in artifacts/.
+    step("tauri: launch screenshot", "node scripts/app-screenshot.mjs", repoRoot);
   } else {
     console.log("• note: --no-tauri-build — skipping Tauri debug compile (CI runs it per-OS).");
   }

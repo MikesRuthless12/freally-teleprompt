@@ -171,8 +171,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb imagemagick xdotool
-          Xvfb :99 -screen 0 1600x1000x24 >/dev/null 2>&1 &
+          # x11-utils supplies xwininfo, which the script's failure diagnostics
+          # use to say WHY there is no window rather than only that there isn't.
+          sudo apt-get install -y xvfb imagemagick xdotool x11-utils
+          # `setsid` detaches Xvfb from this step's process group. Without it the
+          # runner tears the group down when the step ends, and the display would
+          # be gone by the time the next step tries to paint on it.
+          setsid Xvfb :99 -screen 0 1600x1000x24 >/dev/null 2>&1 &
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
           # Give the X server a moment to accept connections.
           sleep 3

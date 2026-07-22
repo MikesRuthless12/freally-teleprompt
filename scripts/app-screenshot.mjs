@@ -235,6 +235,35 @@ function windowIsUp() {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * When a Linux run fails, dump what X actually has.
+ *
+ * "The app is alive but there is no window" has several very different causes —
+ * the window is there under another name, the window is there but unmapped, X is
+ * not the display the app connected to, or the app never got as far as creating
+ * one. A byte count and a boolean cannot tell them apart, and each guess costs a
+ * full CI round-trip to test. This turns the next failure into an answer.
+ */
+function linuxDiagnostics() {
+  if (os !== "linux") return;
+  console.error("--- X diagnostics ---");
+  console.error(`DISPLAY=${process.env.DISPLAY ?? "(unset)"}`);
+  for (const [label, cmd, args] of [
+    ["every window name X knows", "xdotool", ["search", "--name", ".", "getwindowname", "%@"]],
+    ["the root window tree", "xwininfo", ["-root", "-tree"]],
+    ["our processes", "ps", ["-eo", "pid,stat,comm"]],
+  ]) {
+    const r = spawnSync(cmd, args, { encoding: "utf8" });
+    if (r.error) {
+      console.error(`${label}: ${cmd} unavailable (${r.error.message})`);
+      continue;
+    }
+    const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
+    console.error(`${label} (${cmd}):\n${out || "(nothing)"}`);
+  }
+  console.error("--- end diagnostics ---");
+}
+
 async function main() {
   const binary = binaryPath();
   mkdirSync(outDir, { recursive: true });
@@ -291,9 +320,11 @@ async function run(binary) {
           : windowUp
             ? "the window IS up, so this is a rendering problem, not a windowing one"
             : "and no app window was found either";
+      linuxDiagnostics();
       throw new Error(`${file} is only ${bytes} bytes — the screen looks blank (${window})`);
     }
     if (windowUp === false) {
+      linuxDiagnostics();
       throw new Error("no window titled 'Freally Teleprompt' was found");
     }
     console.log(

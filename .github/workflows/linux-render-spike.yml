@@ -46,7 +46,16 @@ jobs:
       - name: Diagnostic tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb imagemagick xdotool x11-utils openbox procps
+          # libgl1-mesa-dri is llvmpipe, the SOFTWARE rasteriser. The first spike
+          # found the actual cause: the app prints
+          #   libEGL warning: DRI3 error: Could not get DRI3 device
+          # and no WebKitWebProcess ever starts. WebKitGTK needs a working
+          # EGL/GL context; a bare Xvfb has no DRI3 and no GPU, so the web
+          # process dies before a window can exist. The absent toplevel was a
+          # symptom, not the problem. mesa-utils supplies eglinfo/glxinfo so the
+          # probe can prove GL works before blaming the app again.
+          sudo apt-get install -y xvfb imagemagick xdotool x11-utils openbox procps \
+            libgl1-mesa-dri libglx-mesa0 mesa-utils
 
       - name: Build
         run: npm run tauri -- build --debug --no-bundle
@@ -80,9 +89,15 @@ jobs:
           pkill -f "Xvfb :99"; pkill openbox; sleep 1
           exit 0
 
-      - name: Probe — xvfb-run + the workarounds CI now applies
+      - name: Probe — software GL (llvmpipe), the fix the first spike pointed at
         run: |
           set +e
+          mkdir -p spike
+          # Force Mesa's software rasteriser. This is the whole hypothesis: give
+          # WebKitGTK a GL context that does not need a GPU or DRI3.
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export GALLIUM_DRIVER=llvmpipe
+          export __GLX_VENDOR_LIBRARY_NAME=mesa
           export WEBKIT_DISABLE_DMABUF_RENDERER=1
           export WEBKIT_DISABLE_COMPOSITING_MODE=1
           export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
@@ -90,19 +105,21 @@ jobs:
           xvfb-run -a --server-args="-screen 0 1600x1000x24" bash -c '
             setsid openbox >/dev/null 2>&1 &
             sleep 2
-            ./target/debug/freally-teleprompt >spike/app-workarounds.log 2>&1 &
+            echo "--- does GL work at all now? ---"
+            glxinfo -B 2>&1 | head -8 || echo "glxinfo failed"
+            ./target/debug/freally-teleprompt >spike/app-softgl.log 2>&1 &
             APP=$!
-            for i in $(seq 1 15); do
+            for i in $(seq 1 10); do
               sleep 2
               echo "=== t+$((i*2))s ==="
               xwininfo -root -tree 2>&1 | sed -n "4,12p"
               pgrep -a WebKit || echo "(no WebKit processes)"
             done
-            import -window root -screen spike/xvfb-run.png 2>&1
+            import -window root -screen spike/softgl.png 2>&1
             kill $APP 2>/dev/null
           '
           echo "--- app said ---"
-          cat spike/app-workarounds.log
+          cat spike/app-softgl.log
           ls -la spike/ || true
           exit 0
 

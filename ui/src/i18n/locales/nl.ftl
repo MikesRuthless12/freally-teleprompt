@@ -71,3 +71,7 @@ updates-no = Nee, nu niet
 updates-installing = Downloaden en installeren…
 updates-none = Je hebt de nieuwste versie.
 updates-error = Kan niet op updates controleren.
+updates-checking = Controleren op updates…
+
+## Startup
+startup-failed = Freally Teleprompt kon niet starten.

@@ -18,6 +18,9 @@
 /** Default ` -- ` pause in seconds (mirror of Rust `CAESURA_DEFAULT_SECS`). */
 export const CAESURA_DEFAULT_SECS = 0.75;
 const CAESURA_MAX_SECS = 30;
+/** Longest numeric field a ` --N ` caesura may carry. Mirrored in
+ * `teleprompter.rs` — see `parseCaesuras` for why the bound is load-bearing. */
+const MAX_CAESURA_NUM_CHARS = 8;
 /** Newline char code, referenced without a newline literal. */
 const NL = 10;
 
@@ -61,9 +64,24 @@ export function parseCaesuras(
       while (j < n && chars[j] === "-") j += 1;
       if (j - i === 2) {
         const numStart = j;
-        while (j < n && (/[0-9]/.test(chars[j]) || chars[j] === ".")) j += 1;
+        // At most ONE dot, and at most MAX_CAESURA_NUM_CHARS of it. Both bounds
+        // exist to keep this parser and its Rust twin byte-identical in
+        // behaviour: without them the scanner could hand each side a string they
+        // read DIFFERENTLY.
+        //   `--2.5.3` — `parseFloat` prefix-parses it as 2.5;
+        //               Rust's parser rejects it and falls back to 0.75.
+        //   41 digits — f64 stays finite and clamps to 30;
+        //               f32 saturates to inf and falls back to 0.75.
+        // Either way the two surfaces dwell for different lengths and drift
+        // apart, which is the exact failure the twin exists to prevent. Bounded
+        // here, neither side ever sees such a string: it simply isn't a caesura.
+        let dots = 0;
+        while (j < n && (/[0-9]/.test(chars[j]) || (chars[j] === "." && dots === 0))) {
+          if (chars[j] === ".") dots += 1;
+          j += 1;
+        }
         const fencedAfter = j >= n || chars[j] === " " || isNl(chars[j]);
-        if (fencedAfter) {
+        if (fencedAfter && j - numStart <= MAX_CAESURA_NUM_CHARS) {
           const num = chars.slice(numStart, j).join("");
           const parsed = Number.parseFloat(num);
           const dur =

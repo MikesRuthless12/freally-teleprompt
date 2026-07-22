@@ -38,19 +38,34 @@ const CSS = join(SRC, "styles", "global.css");
  */
 const ON_DARK = {};
 
-/** `bg-white/10`, `bg-white/[0.03]`, `border-white/5`, `hover:bg-white/5`, … */
-const UTILITY = /(?<![\w:-])((?:hover:)?(?:bg|border)-white\/(?:\[[^\]]+\]|\d+))/g;
+/**
+ * `bg-white/10`, `bg-white/[0.03]`, `border-white/5`, `hover:bg-white/5`,
+ * `focus:…`, `group-hover:…`, `md:…` — the whole variant chain, not just
+ * `hover:`. Each variant emits its OWN selector (`.focus\:bg-white\/10:focus`),
+ * so one that this scanner cannot see ships with no light-theme override and
+ * renders white-on-white with nothing failing.
+ */
+const UTILITY = /(?<![\w:-])((?:[a-z0-9-]+:)*(?:bg|border)-white\/(?:\[[^\]]+\]|\d+))/g;
 
 /** The selector Tailwind actually emits for a utility. */
 function selectorFor(utility) {
-  const hover = utility.startsWith("hover:");
+  // Pseudo-class variants append a pseudo-selector; structural ones (`md:`,
+  // `group-hover:`) wrap the rule instead and add no suffix. Handles the whole
+  // chain, because the scanner above now sees more than just `hover:`.
+  const PSEUDO = ["hover", "focus", "active", "disabled", "visited", "focus-visible"];
+  const suffix = utility
+    .split(":")
+    .slice(0, -1)
+    .filter((v) => PSEUDO.includes(v))
+    .map((v) => `:${v}`)
+    .join("");
   const escaped = utility
     .replaceAll(":", "\\:")
     .replaceAll("/", "\\/")
     .replaceAll("[", "\\[")
     .replaceAll("]", "\\]")
     .replaceAll(".", "\\.");
-  return `.${escaped}${hover ? ":hover" : ""}`;
+  return `.${escaped}${suffix}`;
 }
 
 function sourceFiles(dir) {
@@ -73,8 +88,16 @@ const fail = [];
 
 // A guard on the guard. If the regex or the walk silently stops matching, every
 // check below passes vacuously and the lint becomes a green rubber stamp.
-if (used.size < 6) {
-  fail.push(`only ${used.size} white-alpha utilities found in src — the scanner is broken`);
+// Derive the floor from the overrides that already exist, rather than
+// hard-coding today's count: with a literal `< 6` and exactly 6 utilities in
+// use, legitimately deleting one component's `border-white/15` (and its now-dead
+// override) failed the build with "the scanner is broken".
+const overrideCount = [...css.matchAll(/:root\[data-theme="light"\] (\.\S*white\S*) \{/g)].length;
+if (overrideCount > 0 && used.size === 0) {
+  fail.push(
+    `${overrideCount} light overrides exist but the scanner found NO white-alpha ` +
+      `utilities in src — the scanner is broken`,
+  );
 }
 if (!css.includes('[data-theme="light"]')) {
   fail.push(`${relative(ROOT, CSS)} has no light-theme overrides — did the file move?`);

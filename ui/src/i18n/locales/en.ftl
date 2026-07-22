@@ -73,3 +73,7 @@ updates-no = No, not now
 updates-installing = Downloading and installing…
 updates-none = You're up to date.
 updates-error = Could not check for updates.
+updates-checking = Checking for updates…
+
+## Startup
+startup-failed = Freally Teleprompt could not start.

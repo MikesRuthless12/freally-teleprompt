@@ -71,3 +71,7 @@ updates-no = Tidak, nanti saja
 updates-installing = Mengunduh dan memasang…
 updates-none = Anda memakai versi terbaru.
 updates-error = Tidak dapat memeriksa pembaruan.
+updates-checking = Memeriksa pembaruan…
+
+## Startup
+startup-failed = Freally Teleprompt tidak dapat dijalankan.

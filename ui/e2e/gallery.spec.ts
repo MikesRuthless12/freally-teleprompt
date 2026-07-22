@@ -37,16 +37,21 @@ test.describe("panel gallery", () => {
   test("prompter renders one span per character, matching the Rust offset unit", async ({
     page,
   }) => {
-    const script = "abc -- def";
+    // Deliberately contains a newline AND an astral character: the previous
+    // version used a plain one-line ASCII script, so neither rule this test
+    // claims to check was actually exercised.
+    const script = "ab -- cd\nef 😀";
     await mockTauri(page, { script });
     await page.goto("/");
 
     const scroller = page.getByTestId("teleprompter-scroller");
     await expect(scroller).toBeVisible();
-    // The char-based engine's contract: every visible character is its own
+    // The char-based engine's contract: every VISIBLE character is its own
     // `data-ch` span, so span N is exactly visible-char offset N. Newlines are
-    // not characters, so this script has exactly `script.length` spans.
-    await expect(scroller.locator("[data-ch]")).toHaveCount(script.length);
+    // not visible characters, and the count is by code point (what Rust's
+    // `chars()` counts) — not by UTF-16 unit, which would double-count 😀.
+    const expected = Array.from(script.replace(/\n/g, "")).length;
+    await expect(scroller.locator("[data-ch]")).toHaveCount(expected);
 
     await page.screenshot({ path: `${SHOTS}/prompter-chars.png` });
   });
@@ -65,13 +70,31 @@ test.describe("panel gallery", () => {
     await page.screenshot({ path: `${SHOTS}/eula-gate.png` });
   });
 
-  test("Agree is disabled until the agreement is scrolled to the end", async ({ page }) => {
+  test("a short agreement enables Agree once measured as unscrollable", async ({ page }) => {
     await mockTauri(page, { eulaAccepted: false });
     await page.goto("/");
 
-    // The sample agreement is short enough to fit, so the gate enables Agree
-    // once it has measured that there is nothing to scroll.
+    // The sample agreement fits, so the gate enables Agree once it has measured
+    // that there is nothing to scroll.
     await expect(page.getByRole("button", { name: "I Agree" })).toBeEnabled();
+  });
+
+  test("Agree stays disabled until a LONG agreement is scrolled to the end", async ({ page }) => {
+    await mockTauri(page, { eulaAccepted: false, longEula: true });
+    await page.goto("/");
+
+    const agree = page.getByRole("button", { name: "I Agree" });
+    // The requirement, actually exercised: an agreement that overflows its box
+    // must be read to the end first. With the short sample this assertion was
+    // vacuous, so removing the `disabled` prop kept every test passing.
+    await expect(agree).toBeDisabled();
+
+    // Scroll the agreement pane itself to the bottom.
+    const pane = page.locator("[data-testid='eula-gate'] .overflow-auto").first();
+    await pane.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+
+    await expect(agree).toBeEnabled();
+    await page.screenshot({ path: `${SHOTS}/eula-gate-scrolled.png` });
   });
 
   test("settings dialog opens with the shared modal blur", async ({ page }) => {

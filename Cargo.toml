@@ -13,6 +13,19 @@ members = [
     "src-tauri", # `freally-teleprompt` — Tauri v2 app crate (scroll engine, settings, EULA, i18n bridge)
 ]
 
+# The crash reporter's fatal-panic gate is `cfg!(panic = "abort")`, and profiles
+# in member manifests are IGNORED — so without this, that gate is false in every
+# build and the whole crash → notice → restart → report loop is dead code in
+# production. The `--test-crash` drill calls the spawn directly, so it passed
+# regardless: drill green, production dead. Setting it here is what makes the
+# shipped behaviour match the drill.
+#
+# Real consequence beyond the gate: a panicking worker thread now aborts the
+# process instead of being swallowed, which is the intended semantics — a
+# "restart?" box for a process that kept running would be a lie.
+[profile.release]
+panic = "abort"
+
 [workspace.package]
 version = "0.100.0"
 edition = "2021"

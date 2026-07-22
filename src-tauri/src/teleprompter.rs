@@ -43,6 +43,9 @@ const STEP_CHARS: f32 = 5.0;
 const CAESURA_DEFAULT_SECS: f32 = 0.75;
 /// Cap one caesura pause so a paste error can't wedge the scroll.
 const CAESURA_MAX_SECS: f32 = 30.0;
+/// Longest numeric field a ` --N ` caesura may carry. Mirrored in `caesura.ts`
+/// — see `parse_caesuras` for why the bound is load-bearing, not cosmetic.
+const MAX_CAESURA_NUM_CHARS: usize = 8;
 /// The user-settable default-pause range for a bare ` -- ` (the operator slider).
 pub(crate) const CAESURA_MIN_DEFAULT: f32 = 0.75;
 pub(crate) const CAESURA_MAX_DEFAULT: f32 = 2.0;
@@ -89,11 +92,27 @@ fn parse_caesuras(script: &str, default_secs: f32) -> Vec<Caesura> {
             }
             if j - i == 2 {
                 let num_start = j;
-                while j < n && (chars[j].is_ascii_digit() || chars[j] == '.') {
+                // At most ONE dot, and at most MAX_CAESURA_NUM_CHARS of it.
+                // Both bounds exist to keep this parser and its TypeScript twin
+                // byte-identical in behaviour: without them the scanner could
+                // hand each side a string they read DIFFERENTLY.
+                //   `--2.5.3` — Rust's parser rejects it (default 0.75);
+                //               JS `parseFloat` prefix-parses it as 2.5.
+                //   41 digits — f32 saturates to inf and falls back to 0.75;
+                //               f64 stays finite and clamps to 30.
+                // Either way the two surfaces dwell for different lengths and
+                // drift apart, which is the exact failure the twin exists to
+                // prevent. Bounded here, neither side ever sees such a string:
+                // the token simply isn't a caesura.
+                let mut dots = 0;
+                while j < n && (chars[j].is_ascii_digit() || (chars[j] == '.' && dots == 0)) {
+                    if chars[j] == '.' {
+                        dots += 1;
+                    }
                     j += 1;
                 }
                 let fenced_after = j >= n || chars[j] == ' ' || is_nl(chars[j]);
-                if fenced_after {
+                if fenced_after && j - num_start <= MAX_CAESURA_NUM_CHARS {
                     let num: String = chars[num_start..j].iter().collect();
                     let dur = num
                         .parse::<f32>()
@@ -163,6 +182,13 @@ impl Inner {
         // The scroll clock ignores the first `lead_in` seconds — the pre-roll
         // countdown — so scrolling holds at `base_offset` until it elapses.
         let mut rem = (started.elapsed().as_secs_f32() - self.lead_in).max(0.0);
+        // Nothing has elapsed: return the base untouched, matching the TS twin's
+        // `if (elapsedSec <= 0) return base`. Without this, a zero-duration
+        // caesura sitting exactly at the current offset advanced `off` past it
+        // (its crawl costs no time), so the two sides disagreed by 2 characters.
+        if rem <= 0.0 {
+            return self.base_offset.min(self.total_chars);
+        }
         for c in &self.caesuras {
             let end = c.pos + c.width;
             if end <= off {
@@ -234,6 +260,14 @@ impl Inner {
     fn rewind(&mut self) {
         self.base_offset = 0.0;
         if self.play_started.is_some() {
+            // Restate the pre-roll rather than inheriting whatever the take
+            // happened to leave behind. `lead_in` is only ever set by `resume`
+            // and decremented by `rebase`, so without this line "back to top"
+            // replayed leftover state: a full countdown, a partial one, or none
+            // at all, for the same click. `resume` already recomputes it for the
+            // paused case; this is the playing half of the same rule, and it
+            // matches `seek`, which deliberately zeroes it.
+            self.lead_in = self.countdown_secs;
             self.play_started = Some(Instant::now());
         }
     }
@@ -658,6 +692,21 @@ mod tests {
         assert!(parse_caesuras("a --- b", d).is_empty());
         assert!(parse_caesuras("a--b", d).is_empty());
 
+        // Nor a multi-dot number, nor an over-long one. These used to be read
+        // DIFFERENTLY by the two twins — JS `parseFloat` prefix-parses "2.5.3"
+        // as 2.5 where Rust rejects it, and f64 keeps a 41-digit number finite
+        // where f32 saturates to inf — so the surfaces dwelled for different
+        // lengths and drifted. Excluded on both sides now; the matching TS
+        // cases live in `caesura.test.ts`.
+        assert!(parse_caesuras("a --2.5.3 b", d).is_empty());
+        assert!(parse_caesuras("a --1..2 b", d).is_empty());
+        assert!(parse_caesuras("a --0.5. b", d).is_empty());
+        assert!(parse_caesuras(&format!("a --{} b", "9".repeat(41)), d).is_empty());
+        // Exactly at the shared cap is still a caesura; one over is not.
+        assert_eq!(parse_caesuras("a --12345678 b", d).len(), 1);
+        assert!((parse_caesuras("a --12345678 b", d)[0].dur - CAESURA_MAX_SECS).abs() < 1e-6);
+        assert!(parse_caesuras("a --123456789 b", d).is_empty());
+
         // Line edges count as a fence; the second line indexes correctly.
         let cs = parse_caesuras("-- first\nlast --", d);
         assert_eq!(cs.len(), 2);
@@ -746,6 +795,34 @@ mod tests {
         assert_eq!(dto.font_size, MIN_FONT);
         assert_eq!(dto.caesura_secs, CAESURA_MAX_DEFAULT);
         assert_eq!(dto.countdown_secs, COUNTDOWN_MAX);
+    }
+
+    /// "Back to top" must restate the pre-roll, not inherit leftover state.
+    /// Before this, the same Restart click could replay a full countdown, a
+    /// partial one, or none at all, depending on what the take left behind.
+    #[test]
+    fn rewind_restates_the_countdown_instead_of_inheriting_it() {
+        let s = TeleprompterState::new();
+        s.set_script("a".repeat(400));
+        s.set_speed(40.0);
+        s.set_countdown(5.0);
+
+        // Play from the top and let the whole pre-roll elapse, so `lead_in`
+        // is spent and the scroll is genuinely running.
+        s.apply("play", None).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        // A speed change mid-take rebases, which is what used to zero `lead_in`
+        // and leave Restart with no pre-roll at all.
+        s.apply("faster", None).unwrap();
+
+        s.apply("top", None).unwrap();
+        let dto = s.dto();
+        assert_eq!(dto.offset, 0.0, "back at the top");
+        assert!(
+            (dto.countdown_remaining - 5.0).abs() < 0.2,
+            "the full pre-roll is restated, not inherited: got {}",
+            dto.countdown_remaining
+        );
     }
 
     #[test]

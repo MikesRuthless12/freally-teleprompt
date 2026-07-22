@@ -33,13 +33,26 @@ export default function App() {
   const t = useT();
   const state = useTeleprompter();
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [eula, setEula] = useState<EulaStatus | null>(null);
+  // Three states, and the distinction matters: `undefined` = still asking,
+  // `null` = the ask FAILED, an object = the answer. Collapsing the first two
+  // into `null` meant the shell rendered while the question was still in
+  // flight (a visible flash of an app the user has not agreed to) and, worse,
+  // rendered it permanently if the query ever failed — the gate failing OPEN.
+  const [eula, setEula] = useState<EulaStatus | null | undefined>(undefined);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftScript, setDraftScript] = useState("");
   const [bugOpen, setBugOpen] = useState(false);
   // `undefined` until the local crash folder has been read — the update check
   // below must not run before it knows whether a report is waiting.
   const [pendingCrash, setPendingCrash] = useState<string | null | undefined>(undefined);
+  // Whether a crash report was waiting **at launch**, latched once when that
+  // IPC resolves. Deliberately NOT derived from `pendingCrash`, which is live
+  // state that the reporter clears: deriving from it meant dismissing a report
+  // instantly released the launch update check *on top of the still-open
+  // reporter*, and merely closing one (rather than dismissing it) left the
+  // crash file on disk so the check was suppressed on every future launch —
+  // permanently, with nothing to tell the user.
+  const [crashAtLaunch, setCrashAtLaunch] = useState<boolean | undefined>(undefined);
   const [manualUpdates, setManualUpdates] = useState(false);
   const [autoUpdateDone, setAutoUpdateDone] = useState(false);
 
@@ -67,23 +80,28 @@ export default function App() {
     bugReportPending()
       .then((crash) => {
         setPendingCrash(crash);
+        setCrashAtLaunch(crash !== null);
         if (crash) setBugOpen(true);
       })
-      .catch(() => setPendingCrash(null));
+      .catch(() => {
+        setPendingCrash(null);
+        setCrashAtLaunch(false);
+      });
   }, []);
 
-  // One update check per launch, AFTER the EULA gate — and only when a pending
-  // crash report is not already claiming the dialog slot. The report wins; the
-  // update waits for the next launch. Offline, rate-limited or no-release-yet
-  // stays silent, which `UpdatesDialog` decides for itself.
+  // One update check per launch, AFTER the EULA gate — and only when a crash
+  // report was NOT already claiming the dialog slot at launch. The report wins;
+  // the update waits for the next launch. Offline, rate-limited or
+  // no-release-yet stays silent, which `UpdatesDialog` decides for itself.
   //
   // Derived during render rather than pushed into state by an effect: "is a
   // launch check due?" is a pure function of what we already know, and an effect
-  // that only calls setState is a cascading render for no gain. `pendingCrash`
-  // is `undefined` until its IPC resolves, so this stays false until the answer
-  // is actually in — the crash report gets first refusal on the dialog slot.
+  // that only calls setState is a cascading render for no gain.
+  //
+  // It reads `crashAtLaunch`, not `pendingCrash`, and that distinction is the
+  // whole point — see the latch's declaration above.
   const autoUpdateDue =
-    !autoUpdateDone && !manualUpdates && eula?.accepted === true && pendingCrash === null;
+    !autoUpdateDone && !manualUpdates && eula?.accepted === true && crashAtLaunch === false;
 
   const onApplied = useCallback((applied: Settings) => {
     setSettings(applied);
@@ -110,7 +128,19 @@ export default function App() {
   };
 
   // The app is unusable until the current EULA version is accepted (FT-05).
-  if (eula && !eula.accepted) {
+  // Nothing renders until we know, and a failed query fails CLOSED — a legal
+  // gate that opens when it breaks is not a gate.
+  if (eula === undefined) return null;
+  if (eula === null) {
+    return (
+      <div className="bg-havoc-bg text-havoc-text flex h-full w-full items-center justify-center p-6">
+        <p role="alert" className="m-0 text-center text-sm">
+          {t("startup-failed")}
+        </p>
+      </div>
+    );
+  }
+  if (!eula.accepted) {
     return <EulaGate status={eula} onAccepted={() => setEula({ ...eula, accepted: true })} />;
   }
 
@@ -121,10 +151,10 @@ export default function App() {
           {t("app-name")}
         </span>
         <div className="flex-1" />
-        <button type="button" className={BUTTON} onClick={() => teleprompterControl("toggle")}>
+        <button type="button" className={BUTTON} onClick={() => void teleprompterControl("toggle")}>
           {state.playing ? t("transport-pause") : t("transport-play")}
         </button>
-        <button type="button" className={BUTTON} onClick={() => teleprompterControl("top")}>
+        <button type="button" className={BUTTON} onClick={() => void teleprompterControl("top")}>
           {t("transport-restart")}
         </button>
         <button type="button" className={BUTTON} onClick={() => setBugOpen(true)}>

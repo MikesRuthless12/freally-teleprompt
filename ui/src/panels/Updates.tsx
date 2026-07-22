@@ -109,7 +109,11 @@ export function UpdatesDialog({
   const notes = phase.kind === "available" ? phase.update.body : undefined;
   return (
     <ModalShell
-      open={phase.kind !== "checking"}
+      // A check the USER asked for owes them an answer immediately, even while
+      // it is still running — otherwise the button appears to do nothing on a
+      // slow network, and clicking again is a no-op. The launch check stays
+      // invisible while checking, which is what "never nag" requires.
+      open={manual || phase.kind !== "checking"}
       // A download in flight has nothing to cancel to, so it is not dismissable.
       onClose={phase.kind === "installing" ? undefined : onClose}
       labelledBy="updates-heading"
@@ -144,6 +148,8 @@ export function UpdatesDialog({
             </div>
           </>
         )}
+
+        {phase.kind === "checking" && <p className="m-0 text-xs">{t("updates-checking")}</p>}
 
         {phase.kind === "installing" && (
           <div className="flex flex-col gap-2">

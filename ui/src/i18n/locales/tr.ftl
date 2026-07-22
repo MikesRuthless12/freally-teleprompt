@@ -71,3 +71,7 @@ updates-no = Hayır, şimdi değil
 updates-installing = İndiriliyor ve kuruluyor…
 updates-none = En son sürümü kullanıyorsunuz.
 updates-error = Güncellemeler denetlenemedi.
+updates-checking = Güncellemeler denetleniyor…
+
+## Startup
+startup-failed = Freally Teleprompt başlatılamadı.

@@ -48,10 +48,19 @@ export function SettingsDialog({
   // case that matters most: edit, Cancel, reopen — `settings` is unchanged
   // (nothing was applied), so the abandoned draft would still be sitting there,
   // and "Cancel restores exactly what you had" would be a lie.
+  // `busy` and `error` are reset alongside the draft, not left behind. The
+  // dialog is never unmounted, so a failed Apply used to render its stale error
+  // under a freshly-reopened dialog — and Cancelling mid-Apply left `busy`
+  // stuck true, disabling Apply on the next opening while the in-flight write
+  // closed the dialog out from under the user when it finally resolved.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setDraft(settings);
+    if (open) {
+      setDraft(settings);
+      setBusy(false);
+      setError(null);
+    }
   }
 
   const patch = (fields: Partial<Settings>) => setDraft((d) => ({ ...d, ...fields }));

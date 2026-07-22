@@ -49,4 +49,13 @@ the character-based scroll engine ported over from Freally Capture.
   check; it sends nothing about you, your machine, or your scripts.
 - Download links on the site are placeholders until the release pipeline lands.
 
+### Known limitations
+
+- **There are no installers yet.** `0.100.0` is a source milestone; the signed,
+  per-OS release pipeline is a later phase.
+- **Automatic updates are not active.** The updater ships without its signing
+  public key, so it refuses every package rather than installing an unverified
+  one — it fails safe, but it also cannot succeed. "Check for updates" will
+  report an error until code signing lands.
+
 [0.100.0]: https://github.com/MikesRuthless12/freally-teleprompt/releases/tag/v0.100.0

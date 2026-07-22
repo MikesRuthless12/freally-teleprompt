@@ -96,7 +96,6 @@ fn main() {
             scripts::scripts_delete,
             projector::list_displays,
             projector::projector_open,
-            projector::projector_close,
             lanmirror::lan_mirror_status,
             lanmirror::lan_mirror_open,
             tray::tray_sync,

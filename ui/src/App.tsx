@@ -13,7 +13,7 @@ import {
 import type { EulaStatus, Settings } from "./api/types";
 import { applySettingsToDocument, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor } from "./components/CaesuraEditor";
-import { BUTTON } from "./components/styles";
+import { BUTTON, ERROR_LINE } from "./components/styles";
 import { ResizeEdges, TitleBar } from "./components/TitleBar";
 import { Transport } from "./components/Transport";
 import { parseCaesuras, timeAtOffset, visibleChars } from "./lib/caesura";
@@ -163,11 +163,13 @@ export default function App() {
     [state.script, state.caesuraSecs],
   );
   // Time to read the whole script at the current pace, caesura pauses counted —
-  // it moves live with the speed control and with every edit.
-  const estSecs = timeAtOffset(
-    Math.max(1, visibleChars(state.script)),
-    state.speed > 0 ? state.speed : 1,
-    caesuras,
+  // it moves live with the speed control and with every edit. Memoised because
+  // the shell re-renders on every engine broadcast (i.e. every keystroke) and
+  // again at up to 60Hz while read-aloud runs, and this is an O(script) scan.
+  const totalChars = useMemo(() => Math.max(1, visibleChars(state.script)), [state.script]);
+  const estSecs = useMemo(
+    () => timeAtOffset(totalChars, state.speed > 0 ? state.speed : 1, caesuras),
+    [totalChars, state.speed, caesuras],
   );
 
   // -- speed: chars/sec or BPM (FT-14) ---------------------------------------
@@ -267,13 +269,6 @@ export default function App() {
     setSeekNonce((n) => n + 1);
   }, []);
 
-  // Stop halts the scroll AND rewinds, so the operator can re-read and re-edit.
-  // Pause alone leaves a short script scrolled off the top, which looks blank.
-  const stop = () => {
-    if (state.playing) control("toggle");
-    control("top");
-  };
-
   const seek = useCallback(
     (offset: number) => (readAloudMode ? raSeek(offset) : control("seek", offset)),
     [readAloudMode, raSeek, control],
@@ -330,8 +325,13 @@ export default function App() {
     );
   }
   if (!eula.accepted) {
+    // Wrapped in a `flex-1 min-h-0` box, not dropped in bare: the gate's own
+    // root is `h-full`, which under the title bar resolved to the FULL window
+    // height and pushed its Agree/Decline buttons off the bottom edge.
     return chrome(
-      <EulaGate status={eula} onAccepted={() => setEula({ ...eula, accepted: true })} />,
+      <div className="min-h-0 flex-1">
+        <EulaGate status={eula} onAccepted={() => setEula({ ...eula, accepted: true })} />
+      </div>,
     );
   }
 
@@ -376,7 +376,7 @@ export default function App() {
             <span className="font-mono">{t("editor-est-time", { time: fmtTime(estSecs) })}</span>
           </div>
           {saveError && (
-            <p role="alert" className="m-0 text-[11px] text-red-300">
+            <p role="alert" className={ERROR_LINE}>
               {t("editor-save-failed", { error: saveError })}
             </p>
           )}
@@ -389,7 +389,7 @@ export default function App() {
             onSlower={() => control("slower")}
             onFaster={() => control("faster")}
             onPlayPause={() => (readAloudMode ? raPlayPause() : control("toggle"))}
-            onStop={() => (readAloudMode ? raStop() : stop())}
+            onStop={() => (readAloudMode ? raStop() : control("stop"))}
           />
 
           <label className="text-havoc-muted flex items-center justify-between text-[11px]">

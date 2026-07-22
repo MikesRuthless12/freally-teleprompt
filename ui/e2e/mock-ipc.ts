@@ -179,16 +179,13 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       eula_status: data.eula,
       eula_accept: null,
       scripts_list: data.scripts,
-      // Opening returns the script's text; the gallery's library only needs a
-      // resolved promise to drive the UI's own half of the flow.
-      scripts_open: "opened script text",
+      scripts_open: null,
       scripts_save: null,
       scripts_create: null,
       scripts_rename: null,
       scripts_delete: null,
       list_displays: data.displays,
       projector_open: null,
-      projector_close: null,
       lan_mirror_status: data.mirrorStatus,
       lan_mirror_open: null,
       tts_speak: null,
@@ -234,6 +231,11 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             if (args.action === "toggle") engine.playing = !engine.playing;
             if (args.action === "play") engine.playing = true;
             if (args.action === "pause") engine.playing = false;
+            // Mirror of `teleprompter.rs`: stop halts AND rewinds, pause holds.
+            if (args.action === "stop") {
+              engine.playing = false;
+              engine.offset = 0;
+            }
             if (args.action === "top") engine.offset = 0;
             if (args.action === "seek") engine.offset = Number(args.value ?? 0);
             emit();

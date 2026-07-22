@@ -120,11 +120,3 @@ pub async fn projector_open(
     }
     Ok(())
 }
-
-/// Close the projector from the operator window (it also has its own Esc/✕).
-#[tauri::command]
-pub fn projector_close(app: AppHandle) {
-    if let Some(window) = app.get_webview_window(PROJECTOR_LABEL) {
-        let _ = window.close();
-    }
-}

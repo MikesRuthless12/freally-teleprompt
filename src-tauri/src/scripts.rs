@@ -239,16 +239,19 @@ pub fn scripts_list() -> Result<Vec<ScriptInfo>, String> {
 /// them separately could load a script the library then disagrees about — and
 /// doing them here means the projector and the LAN mirror get the new script
 /// from the same broadcast every other change uses.
+///
+/// Returns nothing on purpose: the text reaches every surface through that
+/// broadcast, so handing it back would clone the whole script and serialise it
+/// across the IPC boundary a second time for a caller that discards it.
 #[tauri::command]
-pub fn scripts_open(app: tauri::AppHandle, name: String) -> Result<String, String> {
+pub fn scripts_open(app: tauri::AppHandle, name: String) -> Result<(), String> {
     let text = read_in(&scripts_dir(), &name)?;
     app.state::<crate::teleprompter::TeleprompterState>()
-        .set_script(text.clone());
+        .set_script(text);
     crate::teleprompter::broadcast(&app);
     app.state::<SettingsStore>()
         .touch_recent(&name)
-        .map_err(|err| format!("could not update the recent list: {err}"))?;
-    Ok(text)
+        .map_err(|err| format!("could not update the recent list: {err}"))
 }
 
 /// Save text into a script file (the editor's autosave).

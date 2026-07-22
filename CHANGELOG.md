@@ -79,6 +79,27 @@ a real transport, and the prompter reading itself aloud.
   out to matter more than a legible-but-different one, so the crop is gone —
   taskbar, tray and favicon all show the same icon now.
 
+### Fixed
+
+Found by the review pass over this phase, before release:
+
+- **A pause chip could appear where the prompter took no pause.** The editor and
+  read-aloud each carried their own copy of the ` -- ` grammar, without the
+  bounds the scroll engine applies — so `--2.5.3` was drawn as a pause the
+  prompter would skip straight past. All three now share one scanner.
+- **Right-clicking the tray icon restored the window** instead of opening the
+  menu, which made the tray's own "Quit" unreachable.
+- **The first-run agreement's buttons could sit below the bottom of the window**
+  now that the app draws its own title bar.
+- **Settings could show a value the app was not using.** A number the backend
+  clamped (a port below 1024, say) kept displaying as the one that was typed
+  until the next restart; the dialog now shows what was actually stored.
+- **Searching Settings could leave the wrong panel on screen**, with no
+  highlighted category to explain it.
+- **Stop is now one action in the engine** rather than a pause-and-rewind pair
+  composed by each button, so anything else that stops the scroll behaves the
+  same way.
+
 ### Testing
 
 - **Playwright now covers every Phase 1 feature it can reach** — the script

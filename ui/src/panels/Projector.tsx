@@ -41,13 +41,6 @@ export function Projector() {
   // re-attached on every engine event.
   const seek = useCallback((offset: number) => control("seek", Math.max(0, offset)), [control]);
 
-  // Stop halts the scroll AND rewinds. Pause alone leaves a short script
-  // scrolled off the top, which reads as a blank screen.
-  const stop = useCallback(() => {
-    if (state.playing) control("toggle");
-    control("top");
-  }, [control, state.playing]);
-
   const reveal = useCallback(() => {
     setChromeVisible(true);
     if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
@@ -123,7 +116,7 @@ export function Projector() {
             onSlower={() => control("slower")}
             onFaster={() => control("faster")}
             onPlayPause={() => control("toggle")}
-            onStop={stop}
+            onStop={() => control("stop")}
           />
           <span
             className="ml-2 w-16 text-center font-mono text-xs text-white/60"

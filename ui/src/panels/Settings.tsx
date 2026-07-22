@@ -4,7 +4,7 @@ import { lanMirrorOpen, lanMirrorStatus, settingsSet } from "../api/commands";
 import type { Look, MirrorStatus, Settings } from "../api/types";
 import { ModalShell } from "../components/ModalShell";
 import { QrSvg } from "../components/QrSvg";
-import { ERROR_LINE } from "../components/styles";
+import { BUTTON, DIALOG_TITLE, ERROR_LINE, FIELD, PRIMARY } from "../components/styles";
 import { AUTO_LOCALE, LOCALES } from "../i18n/locales";
 import { useT } from "../i18n/t";
 import { FONT_FAMILY_IDS } from "../lib/fonts";
@@ -50,10 +50,6 @@ const CATEGORY_KEYS: Record<CategoryId, string[]> = {
 
 /** The weights the picker offers, matching Rust's 300–900 clamp. */
 const WEIGHTS = [300, 400, 500, 600, 700, 800, 900];
-
-const FIELD =
-  "rounded-md border border-white/10 bg-havoc-panel px-2 py-1 text-xs text-havoc-text " +
-  "outline-none focus:border-havoc-accent/60";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -193,18 +189,29 @@ export function SettingsDialog({
     );
   }, [search, t]);
 
+  // Which pane is actually on screen. When a search hides the selected category
+  // its tab disappears but `active` does not change, so the pane went on showing
+  // a category with no visible tab — a search for "guide" listed only Appearance
+  // while still displaying General. Derived rather than stored, so it cannot get
+  // out of step with the filter.
+  const shown = visibleCategories.includes(active) ? active : (visibleCategories[0] ?? active);
+
   /** Save the whole draft. Resolves to whether it stuck — OK closes only then. */
   const apply = async (): Promise<boolean> => {
     if (!dirty) return true;
     setBusy(true);
     setError(null);
     try {
-      await settingsSet(draft);
-      setApplied(draft);
+      // Adopt what Rust STORED, not the draft: it clamps every numeric field,
+      // so a port of 80 comes back as 7346. Showing the draft instead left the
+      // dialog displaying a number the app was not using.
+      const stored = await settingsSet(draft);
+      setDraft(stored);
+      setApplied(stored);
       // The shell owns the tray: `onApplied` updates its `settings`, and its
       // effect re-syncs the tray from there. Doing it here as well would be two
       // callers for one job, which is how they drift.
-      onApplied(draft);
+      onApplied(stored);
       refreshMirror();
       setBusy(false);
       return true;
@@ -238,16 +245,13 @@ export function SettingsDialog({
     tabRefs.current[next]?.focus();
   };
 
-  const footerButton =
-    "rounded-md border px-4 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40";
-
   return (
     <ModalShell open={open} onClose={onClose} labelledBy="settings-title">
       <div
         data-testid="settings-dialog"
         className="flex h-[34rem] max-h-full w-[46rem] max-w-full flex-col"
       >
-        <h2 id="settings-title" className="m-0 px-4 py-3 text-sm font-bold tracking-wide">
+        <h2 id="settings-title" className={`${DIALOG_TITLE} px-4 py-3`}>
           {t("settings-title")}
         </h2>
 
@@ -307,11 +311,11 @@ export function SettingsDialog({
           <div
             role="tabpanel"
             id="settings-active-pane"
-            aria-labelledby={`settings-tab-${active}`}
+            aria-labelledby={`settings-tab-${shown}`}
             tabIndex={0}
             className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4"
           >
-            {active === "general" && (
+            {shown === "general" && (
               <>
                 <Section title={t("settings-cat-general")}>
                   <label className="flex items-center justify-between gap-3">
@@ -359,7 +363,7 @@ export function SettingsDialog({
               </>
             )}
 
-            {active === "reading" && (
+            {shown === "reading" && (
               <Section title={t("settings-cat-reading")}>
                 <Slider
                   label={t("settings-speed", { value: Math.round(draft.speed) })}
@@ -396,7 +400,7 @@ export function SettingsDialog({
               </Section>
             )}
 
-            {active === "appearance" && (
+            {shown === "appearance" && (
               <Section title={t("settings-cat-appearance")}>
                 <label className="flex items-center justify-between gap-3">
                   <span className="text-havoc-muted text-[11px]">{t("settings-font-family")}</span>
@@ -468,7 +472,7 @@ export function SettingsDialog({
               </Section>
             )}
 
-            {active === "projector" && (
+            {shown === "projector" && (
               <Section title={t("settings-cat-projector")}>
                 <label className="flex items-center gap-2 text-[11px]">
                   <input
@@ -481,7 +485,7 @@ export function SettingsDialog({
               </Section>
             )}
 
-            {active === "network" && (
+            {shown === "network" && (
               <Section title={t("settings-cat-network")}>
                 <label className="flex items-center gap-2 text-[11px]">
                   <input
@@ -542,7 +546,7 @@ export function SettingsDialog({
                       </code>
                       <button
                         type="button"
-                        className={`${footerButton} border-white/10 text-havoc-muted hover:text-havoc-text self-start`}
+                        className={`${BUTTON} self-start`}
                         onClick={() => void lanMirrorOpen().catch((err) => setError(String(err)))}
                       >
                         {t("settings-lan-open")}
@@ -568,26 +572,17 @@ export function SettingsDialog({
             </p>
           )}
           <div className="ml-auto flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={confirm}
-              disabled={busy}
-              className={`${footerButton} border-havoc-accent/60 bg-havoc-accent/15 text-havoc-text hover:bg-havoc-accent/25 font-semibold`}
-            >
+            <button type="button" onClick={confirm} disabled={busy} className={PRIMARY}>
               {t("settings-ok")}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`${footerButton} text-havoc-muted hover:text-havoc-text border-white/10`}
-            >
+            <button type="button" onClick={onClose} className={BUTTON}>
               {t("settings-cancel")}
             </button>
             <button
               type="button"
               onClick={() => void apply()}
               disabled={!dirty || busy}
-              className={`${footerButton} text-havoc-muted hover:border-havoc-accent/50 hover:text-havoc-text border-white/10`}
+              className={`${BUTTON} disabled:cursor-not-allowed disabled:opacity-40`}
             >
               {t("settings-apply")}
             </button>

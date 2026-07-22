@@ -23,7 +23,7 @@
  * Ported from Freally Capture.
  */
 import { ttsSpeakNative, ttsStopNative } from "../api/commands";
-import { CAESURA_DEFAULT_SECS, type Caesura } from "./caesura";
+import { CAESURA_DEFAULT_SECS, type Caesura, scanCaesuraAt } from "./caesura";
 
 // At Web-Speech rate 1.0 a voice utters roughly this many characters per second
 // (including spaces). Mapping the teleprompter's chars/sec onto the rate keeps
@@ -36,19 +36,16 @@ export function paceToRate(charsPerSec: number): number {
   return Math.min(10, Math.max(0.1, cps / BASELINE_CPS));
 }
 
-// A caesura's TWO DASHES (optionally ` --1.5 `) starting at scalar index `i` —
-// fenced by a space, newline, or the text edge on BOTH sides, exactly like
-// `parseCaesuras`. Returns the dash(+digits) length (visible chars, NOT the
-// fencing spaces) or 0. A caesura next to a line break used to be read aloud as
-// "dash dash" because the old check demanded a literal space on each side.
+// A caesura's TWO DASHES (optionally ` --1.5 `) starting at scalar index `i`.
+// Returns the dash(+digits) length (visible chars, NOT the fencing spaces) or 0.
+//
+// Recognition is `scanCaesuraAt`'s — the same function the scroll engine's
+// parser uses. This carried its own `/[0-9.]/` scan with no bounds, which meant
+// read-aloud and the scroll disagreed about what a caesura even was: on
+// `a --2.5.3 b` the engine spoke the token while this fell silent for it.
 function caesuraDashesAt(chars: string[], i: number): number {
-  if (chars[i] !== "-" || chars[i + 1] !== "-") return 0;
-  const fence = (c: string | undefined) => c === undefined || c === " " || c.charCodeAt(0) === 10;
-  if (!fence(chars[i - 1])) return 0;
-  let j = i + 2;
-  while (j < chars.length && /[0-9.]/.test(chars[j])) j++;
-  if (!fence(chars[j])) return 0;
-  return j - i;
+  const token = scanCaesuraAt(chars, i);
+  return token ? token.end - i : 0;
 }
 
 // A run of speech, or a timed silent pause (a caesura). `map` aligns each spoken

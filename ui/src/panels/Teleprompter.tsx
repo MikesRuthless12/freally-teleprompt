@@ -112,6 +112,17 @@ export function TeleprompterScroller({
   const countdownRef = useRef<HTMLDivElement>(null);
   // The beam-splitter mirror is only meaningful on the reading surface.
   const mirrored = fullscreen && state.mirror;
+  // Read-aloud's offset, in a ref rather than the effect's dep list. It ticks at
+  // up to 60Hz, and re-running the effect for each tick re-queried every
+  // character span and cleared the colour on all of them before re-lighting a
+  // few — defeating the delta update the whole loop is built around.
+  const overrideRef = useRef(overrideOffset);
+  useEffect(() => {
+    overrideRef.current = overrideOffset;
+  }, [overrideOffset]);
+  // Whether an override is ACTIVE — a plain boolean so the effect below can
+  // depend on the mode without depending on the value.
+  const overriding = overrideOffset !== undefined;
 
   useEffect(() => {
     const track = trackRef.current;
@@ -137,15 +148,16 @@ export function TeleprompterScroller({
       const cd = Math.max(0, a.countdown - raw);
       const elapsed = Math.max(0, raw - a.countdown);
       if (countdownRef.current) {
-        const show = overrideOffset === undefined && cd > 0;
+        const show = overrideRef.current === undefined && cd > 0;
         countdownRef.current.style.display = show ? "flex" : "none";
         if (show) countdownRef.current.textContent = String(Math.ceil(cd));
       }
       // Read-aloud drives the highlight locally via `overrideOffset`; otherwise
       // it's the shared, time-animated scroll offset.
+      const override = overrideRef.current;
       const live =
-        overrideOffset !== undefined
-          ? Math.max(0, Math.min(total, overrideOffset))
+        override !== undefined
+          ? Math.max(0, Math.min(total, override))
           : Math.max(0, Math.min(total, liveOffset(a.offset, elapsed, a.speed, caesuras)));
       liveRef.current = live;
       // Put the CURRENT character's row exactly at the reading guide (measured
@@ -168,9 +180,9 @@ export function TeleprompterScroller({
       }
       litCountRef.current = litCount;
     };
-    // Override mode (read-aloud) writes once per offset change; only the shared,
-    // playing scroll animates every frame.
-    const animating = overrideOffset === undefined && state.playing;
+    // Animate whenever something is moving: the shared scroll while playing, or
+    // read-aloud's own offset, which the ref above feeds in.
+    const animating = overriding || state.playing;
     if (!animating) {
       write();
       return;
@@ -192,7 +204,9 @@ export function TeleprompterScroller({
     scale,
     state.fontSize,
     state.script,
-    overrideOffset,
+    // Only whether an override is ACTIVE, never its value — the value lives in
+    // `overrideRef` precisely so a 60Hz tick does not rebuild this effect.
+    overriding,
     // The appearance changes where the guide sits and how tall a row is, so a
     // stale frame would park the highlight off the line until the next event.
     look.guidePct,
@@ -338,8 +352,14 @@ export function TeleprompterSeekBar({
   onDark?: boolean;
 }) {
   const t = useT();
-  const total = Math.max(1, visibleChars(state.script));
+  // Memoised: the component re-renders every animation frame while playing, and
+  // both of these are O(script) scans over a value that only changes on an edit.
+  const total = useMemo(() => Math.max(1, visibleChars(state.script)), [state.script]);
   const speed = state.speed > 0 ? state.speed : 1;
+  const totalLabel = useMemo(
+    () => fmtTime(timeAtOffset(total, speed, caesuras)),
+    [total, speed, caesuras],
+  );
   const vis = useMemo(
     () => Array.from(state.script).filter((c) => c.charCodeAt(0) !== 10),
     [state.script],
@@ -495,9 +515,7 @@ export function TeleprompterSeekBar({
           />
         </div>
       </div>
-      <span className={`${label} w-11 shrink-0 font-mono text-xs tabular-nums`}>
-        {fmtTime(timeAtOffset(total, speed, caesuras))}
-      </span>
+      <span className={`${label} w-11 shrink-0 font-mono text-xs tabular-nums`}>{totalLabel}</span>
     </div>
   );
 }

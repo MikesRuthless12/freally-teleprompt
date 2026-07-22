@@ -40,6 +40,58 @@ export function visibleChars(script: string): number {
   return n;
 }
 
+/**
+ * Does a caesura token start at scalar index `i`? If so, where it ends and what
+ * numeric field it carries.
+ *
+ * **The single definition of the token's shape**, and it must stay that way.
+ * Three separate scanners for it grew up here — this one, the chip tokenizer,
+ * and read-aloud's dash detector — and they drifted: the other two dropped the
+ * two bounds below, so `a --2.5.3 b` was chipped in the editor and skipped by
+ * the scroll. The operator was shown a pause the prompter would not take.
+ * `caesuraChips.ts` and `tts.ts` now call this instead.
+ *
+ * The bounds are load-bearing, not cosmetic. They keep this parser and its Rust
+ * twin (`teleprompter.rs`) byte-identical in behaviour: without them the scanner
+ * could hand each side a string they read DIFFERENTLY.
+ *   `--2.5.3` — `parseFloat` prefix-parses it as 2.5;
+ *               Rust's parser rejects it and falls back to the default.
+ *   41 digits — f64 stays finite and clamps to 30;
+ *               f32 saturates to inf and falls back to the default.
+ * Either way the two surfaces dwell for different lengths and drift apart,
+ * which is the exact failure the twin exists to prevent. Bounded here, neither
+ * side ever sees such a string: it simply isn't a caesura.
+ */
+export function scanCaesuraAt(chars: string[], i: number): { end: number; num: string } | null {
+  const n = chars.length;
+  const isNl = (c: string) => c.charCodeAt(0) === NL;
+  // A fence is a space, a newline, or the edge of the text. `chars[-1]` and
+  // `chars[n]` are `undefined`, which is how the two edges are covered.
+  const fence = (c: string | undefined) => c === undefined || c === " " || isNl(c);
+  if (!fence(chars[i - 1])) return null;
+  if (chars[i] !== "-" || chars[i + 1] !== "-") return null;
+  let j = i;
+  while (j < n && chars[j] === "-") j += 1;
+  if (j - i !== 2) return null; // exactly two dashes, never three
+  const numStart = j;
+  let dots = 0;
+  while (j < n && (/[0-9]/.test(chars[j]) || (chars[j] === "." && dots === 0))) {
+    if (chars[j] === ".") dots += 1;
+    j += 1;
+  }
+  if (!fence(chars[j])) return null;
+  if (j - numStart > MAX_CAESURA_NUM_CHARS) return null;
+  return { end: j, num: chars.slice(numStart, j).join("") };
+}
+
+/** The pause a token's numeric field asks for, or `defaultSecs` for a bare one. */
+export function caesuraSeconds(num: string, defaultSecs: number): number {
+  const parsed = Number.parseFloat(num);
+  return num !== "" && Number.isFinite(parsed)
+    ? Math.min(Math.max(parsed, 0), CAESURA_MAX_SECS)
+    : defaultSecs;
+}
+
 /** Parse inline ` -- ` caesuras as GLOBAL visible-char positions (newlines not
  * counted, matching the UI's per-character `data-ch` spans). Mirrors Rust
  * `parse_caesuras` exactly. */
@@ -58,42 +110,12 @@ export function parseCaesuras(
       i += 1;
       continue;
     }
-    const fencedBefore = i === 0 || chars[i - 1] === " " || isNl(chars[i - 1]);
-    if (fencedBefore && chars[i] === "-" && i + 1 < n && chars[i + 1] === "-") {
-      let j = i;
-      while (j < n && chars[j] === "-") j += 1;
-      if (j - i === 2) {
-        const numStart = j;
-        // At most ONE dot, and at most MAX_CAESURA_NUM_CHARS of it. Both bounds
-        // exist to keep this parser and its Rust twin byte-identical in
-        // behaviour: without them the scanner could hand each side a string they
-        // read DIFFERENTLY.
-        //   `--2.5.3` — `parseFloat` prefix-parses it as 2.5;
-        //               Rust's parser rejects it and falls back to 0.75.
-        //   41 digits — f64 stays finite and clamps to 30;
-        //               f32 saturates to inf and falls back to 0.75.
-        // Either way the two surfaces dwell for different lengths and drift
-        // apart, which is the exact failure the twin exists to prevent. Bounded
-        // here, neither side ever sees such a string: it simply isn't a caesura.
-        let dots = 0;
-        while (j < n && (/[0-9]/.test(chars[j]) || (chars[j] === "." && dots === 0))) {
-          if (chars[j] === ".") dots += 1;
-          j += 1;
-        }
-        const fencedAfter = j >= n || chars[j] === " " || isNl(chars[j]);
-        if (fencedAfter && j - numStart <= MAX_CAESURA_NUM_CHARS) {
-          const num = chars.slice(numStart, j).join("");
-          const parsed = Number.parseFloat(num);
-          const dur =
-            num !== "" && Number.isFinite(parsed)
-              ? Math.min(Math.max(parsed, 0), CAESURA_MAX_SECS)
-              : defaultSecs;
-          out.push({ pos: vis, width: 2, dur });
-          vis += j - i; // consumed dashes + digits are all visible chars
-          i = j;
-          continue;
-        }
-      }
+    const token = scanCaesuraAt(chars, i);
+    if (token) {
+      out.push({ pos: vis, width: 2, dur: caesuraSeconds(token.num, defaultSecs) });
+      vis += token.end - i; // consumed dashes + digits are all visible chars
+      i = token.end;
+      continue;
     }
     vis += 1;
     i += 1;

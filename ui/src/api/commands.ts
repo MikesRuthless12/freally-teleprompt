@@ -24,8 +24,15 @@ import type {
 
 export const settingsGet = (): Promise<Settings> => invoke("settings_get");
 
-/** Apply a settings draft. `acceptedEulaVersion` is ignored by the backend. */
-export const settingsSet = (next: Settings): Promise<void> => invoke("settings_set", { next });
+/**
+ * Apply a settings draft, and resolve with the settings **as stored**.
+ *
+ * Not the same object: Rust clamps every numeric field and preserves
+ * `acceptedEulaVersion` and `recentScripts` regardless of what was sent. Adopt
+ * the RESULT, never the draft — otherwise a value the backend rewrote goes on
+ * being displayed as the one that was typed.
+ */
+export const settingsSet = (next: Settings): Promise<Settings> => invoke("settings_set", { next });
 
 export const eulaStatus = (): Promise<EulaStatus> => invoke("eula_status");
 
@@ -61,9 +68,12 @@ export const scriptsList = (): Promise<ScriptInfo[]> => invoke("scripts_list");
 /**
  * Open a script: Rust reads it, loads it into the shared engine, and marks it
  * as current — one command, because those three have to happen together.
- * Resolves with the script's text.
+ *
+ * The text is not returned: it arrives through the engine broadcast every other
+ * surface already listens to, so returning it would ship the whole script across
+ * the boundary twice.
  */
-export const scriptsOpen = (name: string): Promise<string> => invoke("scripts_open", { name });
+export const scriptsOpen = (name: string): Promise<void> => invoke("scripts_open", { name });
 
 /** Autosave: write the editor's text into the named script file. */
 export const scriptsSave = (name: string, text: string): Promise<void> =>
@@ -87,8 +97,6 @@ export const projectorOpen = (
   display: number | null,
   fill: boolean,
 ): Promise<void> => invoke("projector_open", { title, display, fill });
-
-export const projectorClose = (): Promise<void> => invoke("projector_close");
 
 export const lanMirrorStatus = (): Promise<MirrorStatus> => invoke("lan_mirror_status");
 

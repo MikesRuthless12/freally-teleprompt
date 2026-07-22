@@ -19,8 +19,10 @@
 use std::sync::Mutex;
 
 use tauri::menu::{Menu, MenuEvent, MenuItem};
-use tauri::tray::{TrayIcon, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
+
+use crate::lanmirror::lock;
 
 /// The menu-item ids, matched in the event handler.
 const SHOW: &str = "tray-show";
@@ -42,12 +44,6 @@ impl Default for TrayState {
             labels: Mutex::new(("Show Freally Teleprompt".into(), "Quit".into())),
         }
     }
-}
-
-fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    mutex
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 /// Drop the tray icon, if there is one.
@@ -96,7 +92,18 @@ fn build(app: &AppHandle, show_label: &str, quit_label: &str) -> tauri::Result<T
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click { .. } = event {
+            // LEFT button, on RELEASE, and nothing else.
+            //
+            // `Click` fires for every button and for both press and release, so
+            // matching it loosely meant a RIGHT-click restored the window and
+            // destroyed the icon — taking the context menu with it, which made
+            // "Quit" unreachable. It also fired `reveal` twice per left click.
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
                 reveal(tray.app_handle());
             }
         });

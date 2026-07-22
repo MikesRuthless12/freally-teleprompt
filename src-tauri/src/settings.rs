@@ -359,12 +359,19 @@ pub fn settings_get(store: tauri::State<'_, SettingsStore>) -> Settings {
 /// happens here rather than in the UI so every surface — preview, projector,
 /// LAN mirror — picks it up from one broadcast, and no future panel can forget
 /// to fan the calls out itself.
+/// Returns the settings **as stored**, which is not always what was sent:
+/// `validate` clamps every numeric field and normalises the enum-ish ones. The
+/// UI adopts the return value rather than its own draft, so a value Rust
+/// rewrote — a port of 80 becoming 7346, a line height of 9 becoming 2.5 — is
+/// visible immediately instead of only after a restart. Without this the dialog
+/// went on displaying the number the user typed while the app behaved
+/// differently, which is the worst way for a clamp to fail.
 #[tauri::command]
 pub fn settings_set(
     app: tauri::AppHandle,
     store: tauri::State<'_, SettingsStore>,
     next: Settings,
-) -> Result<(), String> {
+) -> Result<Settings, String> {
     store
         .set(next)
         .map_err(|err| format!("could not save settings: {err}"))?;
@@ -377,7 +384,7 @@ pub fn settings_set(
     // is reconciled from the same one place for the same reason: a panel that
     // had to remember to restart it would eventually forget.
     crate::lanmirror::apply_settings(&app, &applied);
-    Ok(())
+    Ok(applied)
 }
 
 #[cfg(test)]

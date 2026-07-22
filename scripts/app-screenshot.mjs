@@ -207,6 +207,18 @@ function childEnv() {
     ...process.env,
     WEBKIT_DISABLE_DMABUF_RENDERER: "1",
     WEBKIT_DISABLE_COMPOSITING_MODE: "1",
+    // WebKitGTK's bubblewrap sandbox needs namespaces and xdg-portals that a CI
+    // runner does not provide. Observed symptom: the app starts, spawns
+    // xdg-desktop-portal / xdg-document-portal / fusermount3, and then sits
+    // there — its GTK window stuck at the placeholder 10x10+10+10 it is created
+    // with, never resized to the configured 1280x800, because the web process
+    // never comes up to finish initialising it.
+    //
+    // The variable is named to make you think twice, so: this is set ONLY for
+    // this ~20-second child process, which loads nothing but our own bundled
+    // local HTML with no network content, and never for a shipped app. It is a
+    // property of the screenshot harness, not of Freally Teleprompt.
+    WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: "1",
   };
 }
 
@@ -222,10 +234,31 @@ function windowIsUp() {
     return (r.stdout ?? "").includes("Freally Teleprompt");
   }
   if (os === "linux") {
-    const r = spawnSync("xdotool", ["search", "--name", "Freally Teleprompt"], {
-      encoding: "utf8",
-    });
-    return r.status === 0 && (r.stdout ?? "").trim().length > 0;
+    // X reports the window under the BINARY name (`freally-teleprompt`), not the
+    // configured title ("Freally Teleprompt") — searching for the title alone
+    // reported "no window" while `xwininfo` was plainly showing one. Match
+    // either, with any separator, either case.
+    //
+    // And ask for its GEOMETRY, not merely its existence: a GTK window is
+    // created at a placeholder 10x10 and only resized once the webview finishes
+    // coming up, so "a window exists" was true even while the app was wedged.
+    // A real window is the configured 1280x800.
+    const r = spawnSync(
+      "xdotool",
+      ["search", "--name", "[Ff]really.[Tt]eleprompt", "getwindowgeometry", "%@"],
+      { encoding: "utf8" },
+    );
+    if (r.status !== 0 || !(r.stdout ?? "").trim()) return false;
+    const size = /Geometry:\s*(\d+)x(\d+)/.exec(r.stdout);
+    // If the output shape ever changes, fall back to "it exists" rather than
+    // failing the build on a parse miss.
+    if (!size) return true;
+    const [w, h] = [Number(size[1]), Number(size[2])];
+    if (w < 200 || h < 200) {
+      console.error(`app-screenshot: the app window is only ${w}x${h} — it never finished opening`);
+      return false;
+    }
+    return true;
   }
   // macOS window enumeration needs Accessibility permission the runner has not
   // granted, so "the process is alive and the screen shot is non-empty" is the

@@ -321,6 +321,7 @@ export function SettingsDialog({
                   <label className="flex items-center justify-between gap-3">
                     <span className="text-havoc-muted text-[11px]">{t("settings-language")}</span>
                     <select
+                      data-testid="settings-language"
                       className={FIELD}
                       value={draft.language}
                       onChange={(e) => patch({ language: e.target.value })}
@@ -571,15 +572,29 @@ export function SettingsDialog({
               {error}
             </p>
           )}
+          {/* These three carry testids because their own labels are translated:
+              a test that switches the language cannot then find "Apply". */}
           <div className="ml-auto flex shrink-0 gap-2">
-            <button type="button" onClick={confirm} disabled={busy} className={PRIMARY}>
+            <button
+              type="button"
+              data-testid="settings-ok"
+              onClick={confirm}
+              disabled={busy}
+              className={PRIMARY}
+            >
               {t("settings-ok")}
             </button>
-            <button type="button" onClick={onClose} className={BUTTON}>
+            <button
+              type="button"
+              data-testid="settings-cancel"
+              onClick={onClose}
+              className={BUTTON}
+            >
               {t("settings-cancel")}
             </button>
             <button
               type="button"
+              data-testid="settings-apply"
               onClick={() => void apply()}
               disabled={!dirty || busy}
               className={`${BUTTON} disabled:cursor-not-allowed disabled:opacity-40`}

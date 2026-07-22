@@ -64,15 +64,26 @@ function appDirs() {
     const base = join(homedir(), "Library", "Application Support", "com.Freally.Freally-Teleprompt");
     return { config: base, data: base };
   }
+  // `freallyteleprompt`, NOT `freally-teleprompt`. The `directories` crate's
+  // XDG project path lowercases the application name and strips spaces outright
+  // — its own README shows `"Bar App"` becoming `~/.config/barapp`. Seeding the
+  // hyphenated guess put the settings somewhere the app never looks, and the
+  // Linux screenshot came back showing the first-run EULA gate. That is the
+  // "loud failure" this function's comment promised, actually happening.
   const config = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config");
   const data = process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share");
-  return { config: join(config, "freally-teleprompt"), data: join(data, "freally-teleprompt") };
+  return { config: join(config, "freallyteleprompt"), data: join(data, "freallyteleprompt") };
 }
 
-/** The debug binary `tauri build --debug --no-bundle` produces. */
+/** The debug binary `tauri build --debug --no-bundle` produces.
+ *
+ * Honours `CARGO_TARGET_DIR`, because that is where cargo actually put it. The
+ * Linux container build uses one so its artifacts do not collide with the
+ * host's `target/`. */
 function binaryPath() {
   const name = os === "win32" ? "freally-teleprompt.exe" : "freally-teleprompt";
-  const path = join(repoRoot, "target", "debug", name);
+  const targetDir = process.env.CARGO_TARGET_DIR || join(repoRoot, "target");
+  const path = join(targetDir, "debug", name);
   if (!existsSync(path)) {
     console.error(`app-screenshot: no built binary at ${path}`);
     console.error("  run: npm run tauri -- build --debug --no-bundle");
@@ -288,13 +299,20 @@ function windowIsUp() {
       { encoding: "utf8" },
     );
     if (r.status !== 0 || !(r.stdout ?? "").trim()) return false;
-    const size = /Geometry:\s*(\d+)x(\d+)/.exec(r.stdout);
+    // EVERY match, not the first. The name matches GTK's 10x10 *leader* window
+    // as well as the real toplevel, and xdotool lists the leader first — so
+    // reading one geometry reported "it never finished opening" about an app
+    // that was running perfectly well with its window on screen.
+    const sizes = [...r.stdout.matchAll(/Geometry:\s*(\d+)x(\d+)/g)].map(([, w, h]) => [
+      Number(w),
+      Number(h),
+    ]);
     // If the output shape ever changes, fall back to "it exists" rather than
     // failing the build on a parse miss.
-    if (!size) return true;
-    const [w, h] = [Number(size[1]), Number(size[2])];
-    if (w < 200 || h < 200) {
-      console.error(`app-screenshot: the app window is only ${w}x${h} — it never finished opening`);
+    if (sizes.length === 0) return true;
+    if (!sizes.some(([w, h]) => w >= 200 && h >= 200)) {
+      const seen = sizes.map(([w, h]) => `${w}x${h}`).join(", ");
+      console.error(`app-screenshot: no real app window — only found ${seen}`);
       return false;
     }
     return true;

@@ -27,6 +27,11 @@ const SOURCE = "en";
 /**
  * Keys whose ids the lint cannot follow because they're built at runtime.
  * Empty for now — add a prefix here only with a note on who supplies the id.
+ *
+ * Note the Settings typeface picker (`t(\`settings-font-${id}\`)`) is NOT listed:
+ * a template literal is not matched by the scanner at all, so listing its prefix
+ * would buy nothing and would silently exempt `settings-font-size` too. Its keys
+ * are covered by a unit test instead — see `i18n.test.ts`.
  */
 const DYNAMIC_PREFIXES = [];
 

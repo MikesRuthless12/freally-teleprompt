@@ -1,7 +1,7 @@
 {
   "name": "freally-teleprompt-workspace",
   "private": true,
-  "version": "0.100.0",
+  "version": "0.200.0",
   "description": "Freally Teleprompt — npm workspace root (React/Vite UI + Tauri CLI).",
   "license": "SEE LICENSE IN LICENSE",
   "workspaces": [

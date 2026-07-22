@@ -27,9 +27,15 @@ use serde::{Deserialize, Serialize};
 /// settings file must not be able to push the engine outside the range it
 /// enforces anyway, and two copies of these numbers would drift silently.
 use crate::teleprompter::{
-    CAESURA_MAX_DEFAULT as CAESURA_MAX, CAESURA_MIN_DEFAULT as CAESURA_MIN, COUNTDOWN_MAX,
-    MAX_FONT, MAX_SPEED, MIN_FONT, MIN_SPEED,
+    clamp_finite, Look, CAESURA_MAX_DEFAULT as CAESURA_MAX, CAESURA_MIN_DEFAULT as CAESURA_MIN,
+    COUNTDOWN_MAX, MAX_FONT, MAX_SPEED, MIN_FONT, MIN_SPEED,
 };
+
+/// How many script names the "recent" list remembers (FT-10).
+pub(crate) const MAX_RECENTS: usize = 10;
+/// The LAN mirror's default port (FT-12). Nothing is listening on it until the
+/// mirror is switched on, which it is not by default.
+pub(crate) const DEFAULT_LAN_PORT: u16 = 7346;
 
 /// Persisted in `language` to mean "follow the operating system". The UI's
 /// `AUTO_LOCALE` sentinel — a word, not an empty string, so `validate` can tell
@@ -54,6 +60,10 @@ fn default_font_size() -> f32 {
 
 fn default_caesura_secs() -> f32 {
     0.75
+}
+
+fn default_lan_port() -> u16 {
+    DEFAULT_LAN_PORT
 }
 
 /// Every persisted preference. `#[serde(default)]` on each field means an older
@@ -83,6 +93,35 @@ pub struct Settings {
     /// Mirror the projector horizontally (beam-splitter glass).
     #[serde(default)]
     pub mirror: bool,
+    /// Reading appearance (FT-15) — typeface, weight, colour, margins, line
+    /// height, and where the reading guide sits.
+    #[serde(default)]
+    pub look: Look,
+    /// Minimise to the system tray instead of the taskbar. Off by default, and
+    /// while it is off no tray icon is created at all.
+    #[serde(default)]
+    pub minimize_to_tray: bool,
+    /// Serve the read-only LAN mirror (FT-12). **Off by default**: while it is
+    /// off no socket is opened at all.
+    #[serde(default)]
+    pub lan_enabled: bool,
+    /// Bind the mirror to every interface instead of loopback only. Loopback is
+    /// the default even once the mirror is on, so turning it on and turning it
+    /// *outward* are two separate, deliberate acts.
+    #[serde(default)]
+    pub lan_all_interfaces: bool,
+    /// The mirror's TCP port.
+    #[serde(default = "default_lan_port")]
+    pub lan_port: u16,
+    /// Recently-opened scripts (FT-10), most recent first; the first entry is
+    /// the script currently open.
+    ///
+    /// NOT user-editable — like `accepted_eula_version` this is a record of what
+    /// happened, not a preference, and [`SettingsStore::set`] preserves it.
+    /// [`SettingsStore::touch_recent`] and [`SettingsStore::forget_recent`] are
+    /// the only writers.
+    #[serde(default)]
+    pub recent_scripts: Vec<String>,
     /// The EULA version the user accepted, if any.
     ///
     /// NOT user-editable — see the module docs. [`SettingsStore::accept_eula`]
@@ -101,6 +140,12 @@ impl Default for Settings {
             caesura_secs: default_caesura_secs(),
             countdown_secs: 0.0,
             mirror: false,
+            look: Look::default(),
+            minimize_to_tray: false,
+            lan_enabled: false,
+            lan_all_interfaces: false,
+            lan_port: default_lan_port(),
+            recent_scripts: Vec::new(),
             accepted_eula_version: None,
         }
     }
@@ -130,17 +175,19 @@ impl Settings {
             default_caesura_secs(),
         );
         self.countdown_secs = clamp_finite(self.countdown_secs, 0.0, COUNTDOWN_MAX, 0.0);
-    }
-}
-
-/// `value.clamp(lo, hi)`, but a NaN/infinity falls back to `fallback` instead of
-/// propagating — `f32::clamp` returns NaN for a NaN input, which would then be
-/// serialised as `null` and fail to parse on the next load.
-fn clamp_finite(value: f32, lo: f32, hi: f32, fallback: f32) -> f32 {
-    if value.is_finite() {
-        value.clamp(lo, hi)
-    } else {
-        fallback
+        self.look.clamp();
+        // Port 0 means "any free port" to the OS, which would hand the mirror a
+        // different address every launch and make the printed URL a lie; the
+        // ports below 1024 need privileges we do not have and should not want.
+        if self.lan_port < 1024 {
+            self.lan_port = default_lan_port();
+        }
+        // A recents list is a record, but it is still read back off disk: cap it
+        // and drop anything that is no longer a legal script name, so a
+        // hand-edited file cannot smuggle a path into the library UI.
+        self.recent_scripts
+            .retain(|name| crate::scripts::is_valid_name(name));
+        self.recent_scripts.truncate(MAX_RECENTS);
     }
 }
 
@@ -221,16 +268,43 @@ impl SettingsStore {
 
     /// Replace the settings and persist them atomically.
     ///
-    /// `accepted_eula_version` is deliberately **not** replaceable through here
-    /// — see the module docs. Everything else is the user's to change.
+    /// `accepted_eula_version` and `recent_scripts` are deliberately **not**
+    /// replaceable through here — see the module docs and the fields' own. Both
+    /// are records of what happened rather than preferences, and a Settings
+    /// dialog opened before either changed carries a stale copy in its draft.
+    /// Everything else is the user's to change.
     pub fn set(&self, next: Settings) -> io::Result<()> {
         {
             let mut guard = self.lock();
             let accepted = guard.accepted_eula_version.clone();
+            let recents = std::mem::take(&mut guard.recent_scripts);
             *guard = next;
             guard.accepted_eula_version = accepted;
+            guard.recent_scripts = recents;
             guard.validate();
         }
+        self.persist()
+    }
+
+    /// Move `name` to the front of the recent list (FT-10) and persist.
+    ///
+    /// The front entry is also "the script that is open", so this runs on every
+    /// open, create, and rename — one call, one meaning.
+    pub fn touch_recent(&self, name: &str) -> io::Result<()> {
+        {
+            let mut guard = self.lock();
+            guard.recent_scripts.retain(|entry| entry != name);
+            guard.recent_scripts.insert(0, name.to_owned());
+            guard.recent_scripts.truncate(MAX_RECENTS);
+        }
+        self.persist()
+    }
+
+    /// Drop `name` from the recent list (FT-10) — a script that was deleted or
+    /// renamed away. Persists even when nothing matched, which costs one write
+    /// and keeps the caller free of "did it change?" bookkeeping.
+    pub fn forget_recent(&self, name: &str) -> io::Result<()> {
+        self.lock().recent_scripts.retain(|entry| entry != name);
         self.persist()
     }
 
@@ -299,6 +373,10 @@ pub fn settings_set(
     // rather than whatever the UI happened to send.
     let applied = store.get();
     crate::teleprompter::apply_settings(&app, &applied);
+    // The LAN mirror is settings-driven too (on/off, interface, port), and it
+    // is reconciled from the same one place for the same reason: a panel that
+    // had to remember to restart it would eventually forget.
+    crate::lanmirror::apply_settings(&app, &applied);
     Ok(())
 }
 
@@ -362,6 +440,79 @@ mod tests {
             None,
             "set() is not a path to accepting the EULA"
         );
+    }
+
+    /// The recent list is the second field with the EULA's shape: a record of
+    /// what happened, carried in every Settings draft, and therefore trivially
+    /// clobbered by an Apply from a dialog that was opened before the last
+    /// script was touched. Same rule, same test.
+    #[test]
+    fn set_preserves_the_recent_scripts() {
+        let store = temp_store("preserves-recents");
+        let stale = store.get(); // a draft taken before any script was opened
+        assert!(stale.recent_scripts.is_empty());
+
+        store.touch_recent("Take 1").unwrap();
+        store.touch_recent("Take 2").unwrap();
+        assert_eq!(store.get().recent_scripts, vec!["Take 2", "Take 1"]);
+
+        let mut next = stale.clone();
+        next.theme = "light".to_string();
+        // An outright attempt to write the field is refused too, not merely
+        // ignored when absent.
+        next.recent_scripts = vec!["forged".to_string()];
+        store.set(next).unwrap();
+        assert_eq!(store.get().theme, "light", "the preference did apply");
+        assert_eq!(
+            store.get().recent_scripts,
+            vec!["Take 2", "Take 1"],
+            "saving settings must never rewrite the recent list"
+        );
+    }
+
+    /// Touching an existing entry moves it to the front rather than duplicating
+    /// it, and the list is capped — a year of takes must not grow without end.
+    #[test]
+    fn recents_deduplicate_and_cap() {
+        let store = temp_store("recents-cap");
+        for i in 0..(MAX_RECENTS + 5) {
+            store.touch_recent(&format!("script {i}")).unwrap();
+        }
+        let recents = store.get().recent_scripts;
+        assert_eq!(recents.len(), MAX_RECENTS);
+        assert_eq!(recents[0], format!("script {}", MAX_RECENTS + 4));
+
+        store.touch_recent("script 12").unwrap();
+        let recents = store.get().recent_scripts;
+        assert_eq!(recents[0], "script 12");
+        assert_eq!(
+            recents.iter().filter(|n| *n == "script 12").count(),
+            1,
+            "re-opening a script moves it, it does not duplicate it"
+        );
+
+        store.forget_recent("script 12").unwrap();
+        assert!(!store
+            .get()
+            .recent_scripts
+            .contains(&"script 12".to_string()));
+    }
+
+    /// The recent list is read back off disk, so a hand-edited file is one more
+    /// place a path could try to enter the script library.
+    #[test]
+    fn validate_drops_recent_entries_that_are_not_script_names() {
+        let mut s = Settings {
+            recent_scripts: vec![
+                "fine".to_string(),
+                "../../etc/passwd".to_string(),
+                "C:\\Windows\\System32".to_string(),
+                "also fine".to_string(),
+            ],
+            ..Settings::default()
+        };
+        s.validate();
+        assert_eq!(s.recent_scripts, vec!["fine", "also fine"]);
     }
 
     #[test]

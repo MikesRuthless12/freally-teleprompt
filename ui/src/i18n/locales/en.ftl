@@ -8,35 +8,135 @@
 
 ## App shell
 app-name = Freally Teleprompt
+toolbar-library = Scripts
+toolbar-projector = Projector
 toolbar-settings = Settings
+toolbar-about = About
 toolbar-bug-report = Report a problem
 toolbar-updates = Check for updates
+
+## Window controls (the app draws its own title bar)
+window-minimize = Minimize
+window-maximize = Maximize
+window-restore = Restore
+window-close = Close
+
+## System tray
+tray-show = Show Freally Teleprompt
+tray-quit = Quit
+
+## About
+about-version = Version { $version }
+about-tagline = A local-first teleprompter for creators, presenters and performers. One character-based engine keeps the preview, the projector and the network mirror on the same word.
+about-privacy = No AI, no account, no telemetry. Your scripts stay on your device.
+about-copyright = © 2026 Mike Weaver — Havoc Software. All rights reserved.
+about-website = Website
+about-source = Source
+about-close = Close
 
 ## Transport
 transport-play = Play
 transport-pause = Pause
+transport-stop = Stop
 transport-restart = Back to top
+transport-rewind = Rewind
+transport-forward = Fast-forward
+transport-slower = Slower
+transport-faster = Faster
+transport-seek = Seek through the script
 
 ## Editor
 editor-label = Script
 editor-placeholder = Type or paste your script. Use " -- " for a pause, or " --2 " to hold for 2 seconds.
-editor-load = Load into prompter
+editor-caesura-hint = Type -- for a pause
+editor-est-time = Read time { $time }
+editor-speed = Speed (characters per second)
+editor-speed-bpm = Speed (BPM)
+editor-bpm-mode = BPM mode (for singing)
+editor-read-aloud = Read aloud with per-OS speech synthesis
+editor-save-failed = Could not save: { $error }
+
+## Script library
+library-title = Scripts
+library-new = New
+library-new-placeholder = Name a new script
+library-empty = No scripts yet. Name one above to begin.
+library-open = Open
+library-current = open
+library-rename = Rename
+library-save-name = Save
+library-delete = Delete
+library-delete-confirm = Delete it?
+library-delete-yes = Yes
+library-delete-no = No
+library-close = Close
+
+## Projector
+projector-title = Open the projector
+projector-display = Display
+projector-windowed = Floating window (this screen)
+projector-display-option = Display { $n } — { $w }×{ $h }
+projector-primary = (primary)
+projector-fill = Fill the whole display
+projector-mirror = Mirror horizontally (for beam-splitter glass)
+projector-mirror-hint = Turn this on only if the talent reads through prompter glass, which reverses the image.
+projector-open = Open
+projector-cancel = Cancel
+projector-exit-hint = Press Esc to close
+projector-window-title = Freally Teleprompt — projector
 
 ## Prompter surface
-teleprompter-empty = No script loaded yet. Type one on the left, then choose "Load into prompter".
+teleprompter-empty = No script loaded yet. Open one from Scripts, or start typing on the left.
 
 ## Settings
 settings-title = Settings
+settings-search-placeholder = Search settings
+settings-search-none = Nothing matches that.
+settings-changed = Changed, not yet applied
+settings-ok = OK
+settings-cat-general = General
+settings-cat-reading = Reading
+settings-cat-appearance = Appearance
+settings-cat-projector = Projector
+settings-cat-network = Network
 settings-language = Language
 settings-language-auto = Same as my system
 settings-theme = Theme
 settings-theme-dark = Dark
 settings-theme-light = Light
+settings-window-section = Window
+settings-minimize-to-tray = Minimize to the system tray
+settings-minimize-to-tray-note = The minimize button hides the window instead of sending it to the taskbar. Click the tray icon to bring it back. The icon only exists while the window is hidden — restoring it takes the icon away again.
+settings-lan-off-hint = The mirror is off. Turn it on and press Apply to get a link and a QR code.
+settings-section-reading = Reading
 settings-speed = Reading speed — { $value } characters per second
 settings-font-size = Font size — { $value } px
 settings-caesura = Default pause for " -- " — { $value } seconds
 settings-countdown = Countdown before starting — { $value } seconds
+settings-section-appearance = Appearance
+settings-font-family = Typeface
+settings-font-system = System
+settings-font-sans = Sans-serif
+settings-font-serif = Serif
+settings-font-mono = Monospace
+settings-font-rounded = Rounded
+settings-font-slab = Slab
+settings-font-weight = Weight
+settings-text-color = Text colour
+settings-line-height = Line spacing — { $value }
+settings-margins = Side margins — { $value }%
+settings-guide = Reading guide — { $value }% down the screen
+settings-section-projector = Projector
 settings-mirror = Mirror the projector (for beam-splitter glass)
+settings-section-mirror = Mirror to my network
+settings-lan-enabled = Mirror the script to devices on my network
+settings-lan-all-interfaces = Allow other devices, not just this computer
+settings-lan-warning = The link carries a one-time key and is not encrypted, so use this only on a network you trust. The mirror is read-only, and your script is never uploaded anywhere.
+settings-lan-port = Port
+settings-lan-open = Open in my browser
+settings-lan-open-hint = Scan the code, or open this link on any device on the same network.
+settings-lan-failed = The mirror could not start: { $error }
+mirror-qr-aria = QR code for the mirror link
 settings-cancel = Cancel
 settings-apply = Apply
 

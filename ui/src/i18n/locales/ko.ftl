@@ -6,35 +6,135 @@
 
 ## App shell
 app-name = Freally Teleprompt
+toolbar-library = 대본
+toolbar-projector = 프로젝터 열기
 toolbar-settings = 설정
+toolbar-about = 정보
 toolbar-bug-report = 문제 신고
 toolbar-updates = 업데이트 확인
+
+## Window controls (the app draws its own title bar)
+window-minimize = 최소화
+window-maximize = 최대화
+window-restore = 이전 크기로
+window-close = 닫기
+
+## System tray
+tray-show = Freally Teleprompt 표시
+tray-quit = 종료
+
+## About
+about-version = 버전 { $version }
+about-tagline = 크리에이터와 발표자, 공연자를 위한 로컬 텔레프롬프터입니다. 하나의 문자 단위 엔진이 미리보기와 프로젝터, 네트워크 미러를 같은 단어에 맞춥니다.
+about-privacy = AI도, 계정도, 원격 수집도 없습니다. 대본은 기기 안에만 남습니다.
+about-copyright = © 2026 Mike Weaver — Havoc Software. All rights reserved.
+about-website = 웹사이트
+about-source = 소스 코드
+about-close = 닫기
 
 ## Transport
 transport-play = 재생
 transport-pause = 일시정지
+transport-stop = 정지
 transport-restart = 맨 위로
+transport-rewind = 뒤로
+transport-forward = 앞으로
+transport-slower = 느리게
+transport-faster = 빠르게
+transport-seek = 대본 탐색
 
 ## Editor
 editor-label = 대본
 editor-placeholder = 대본을 입력하거나 붙여넣으세요. " -- "를 넣으면 잠시 멈추고, " --2 "를 넣으면 2초 동안 멈춥니다.
-editor-load = 프롬프터에 불러오기
+editor-caesura-hint = 일시정지하려면 -- 입력
+editor-est-time = 읽는 시간 { $time }
+editor-speed = 속도(초당 글자 수)
+editor-speed-bpm = 속도 (BPM)
+editor-bpm-mode = BPM 모드 (노래)
+editor-read-aloud = OS 기본 음성 합성으로 읽어주기
+editor-save-failed = 저장하지 못했습니다: { $error }
+
+## Script library
+library-title = 대본
+library-new = 새로 만들기
+library-new-placeholder = 새 대본의 이름
+library-empty = 아직 대본이 없습니다. 위에 이름을 입력해 시작하세요.
+library-open = 열기
+library-current = 열림
+library-rename = 이름 변경
+library-save-name = 저장
+library-delete = 삭제
+library-delete-confirm = 삭제할까요?
+library-delete-yes = 예
+library-delete-no = 아니오
+library-close = 닫기
+
+## Projector
+projector-title = 프로젝터 열기
+projector-display = 디스플레이
+projector-windowed = 떠 있는 창(이 화면)
+projector-display-option = 디스플레이 { $n } — { $w }×{ $h }
+projector-primary = (기본)
+projector-fill = 화면 전체 채우기
+projector-mirror = 좌우 반전(하프미러용)
+projector-mirror-hint = 프롬프터 유리를 통해 읽을 때만 켜세요. 유리가 화면을 좌우로 뒤집습니다.
+projector-open = 열기
+projector-cancel = 취소
+projector-exit-hint = 종료하려면 Esc를 누르세요
+projector-window-title = Freally Teleprompt — 프로젝터
 
 ## Prompter surface
-teleprompter-empty = 아직 불러온 대본이 없습니다. 왼쪽에 입력한 다음 "프롬프터에 불러오기"를 선택하세요.
+teleprompter-empty = 아직 불러온 대본이 없습니다. 대본에서 열거나 왼쪽에 입력해 보세요.
 
 ## Settings
 settings-title = 설정
+settings-search-placeholder = 설정 검색…
+settings-search-none = 일치하는 설정이 없습니다.
+settings-changed = 열람 후 변경됨
+settings-ok = 확인
+settings-cat-general = 일반
+settings-cat-reading = 읽기
+settings-cat-appearance = 모양
+settings-cat-projector = 프로젝터
+settings-cat-network = 네트워크
 settings-language = 언어
 settings-language-auto = 시스템과 동일
 settings-theme = 테마
 settings-theme-dark = 어둡게
 settings-theme-light = 밝게
+settings-window-section = 창
+settings-minimize-to-tray = 시스템 트레이로 최소화
+settings-minimize-to-tray-note = 최소화 단추가 창을 작업 표시줄로 보내지 않고 숨깁니다. 트레이 아이콘을 클릭하면 다시 나타납니다. 아이콘은 창이 숨겨져 있는 동안에만 존재하며, 창을 되돌리면 사라집니다.
+settings-lan-off-hint = 미러가 꺼져 있습니다. 켠 뒤 적용을 누르면 링크와 QR 코드가 나타납니다.
+settings-section-reading = 읽기
 settings-speed = 읽기 속도: 초당 { $value }자
 settings-font-size = 글꼴 크기: { $value } px
 settings-caesura = " -- "의 기본 멈춤: { $value }초
 settings-countdown = 시작 전 카운트다운: { $value }초
+settings-section-appearance = 모양
+settings-font-family = 글꼴
+settings-font-system = 시스템
+settings-font-sans = 산세리프
+settings-font-serif = 세리프
+settings-font-mono = 고정폭
+settings-font-rounded = 둥근 글꼴
+settings-font-slab = 슬랩 세리프
+settings-font-weight = 굵기
+settings-text-color = 글자 색
+settings-line-height = 줄 간격 — { $value }
+settings-margins = 좌우 여백 — { $value } %
+settings-guide = 읽기 안내선 — 위에서 { $value } %
+settings-section-projector = 프로젝터
 settings-mirror = 프로젝터 화면 좌우 반전 (빔 스플리터 유리용)
+settings-section-mirror = 내 네트워크로 미러링
+settings-lan-enabled = 같은 네트워크의 기기에 대본 미러링
+settings-lan-all-interfaces = 이 컴퓨터뿐 아니라 다른 기기도 허용
+settings-lan-warning = 링크에는 일회용 키가 들어 있고 암호화되지 않습니다. 신뢰하는 네트워크에서만 사용하세요. 미러는 읽기 전용이며 대본은 어디에도 업로드되지 않습니다.
+settings-lan-port = 포트
+settings-lan-open = 브라우저에서 열기
+settings-lan-open-hint = 코드를 스캔하거나 같은 네트워크의 기기에서 이 링크를 여세요.
+settings-lan-failed = 미러를 시작하지 못했습니다: { $error }
+mirror-qr-aria = 미러 링크 QR 코드
 settings-cancel = 취소
 settings-apply = 적용
 

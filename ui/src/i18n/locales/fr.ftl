@@ -6,35 +6,135 @@
 
 ## App shell
 app-name = Freally Teleprompt
+toolbar-library = Scripts
+toolbar-projector = Ouvrir le projecteur
 toolbar-settings = Paramètres
+toolbar-about = À propos
 toolbar-bug-report = Signaler un problème
 toolbar-updates = Rechercher des mises à jour
+
+## Window controls (the app draws its own title bar)
+window-minimize = Réduire
+window-maximize = Agrandir
+window-restore = Restaurer
+window-close = Fermer
+
+## System tray
+tray-show = Afficher Freally Teleprompt
+tray-quit = Quitter
+
+## About
+about-version = Version { $version }
+about-tagline = Un prompteur local pour créateurs, conférenciers et artistes. Un même moteur fondé sur les caractères garde l'aperçu, le projecteur et la diffusion réseau sur le même mot.
+about-privacy = Pas d'IA, pas de compte, pas de télémétrie. Vos scripts restent sur votre appareil.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Tous droits réservés.
+about-website = Site web
+about-source = Code source
+about-close = Fermer
 
 ## Transport
 transport-play = Lecture
 transport-pause = Pause
+transport-stop = Arrêter
 transport-restart = Revenir au début
+transport-rewind = Reculer
+transport-forward = Avancer
+transport-slower = Plus lent
+transport-faster = Plus rapide
+transport-seek = Se déplacer dans le script
 
 ## Editor
 editor-label = Script
 editor-placeholder = Saisissez ou collez votre script. Utilisez " -- " pour une pause, ou " --2 " pour marquer 2 secondes.
-editor-load = Charger dans le prompteur
+editor-caesura-hint = Tapez -- pour une pause
+editor-est-time = Temps de lecture { $time }
+editor-speed = Vitesse (caractères par seconde)
+editor-speed-bpm = Vitesse (BPM)
+editor-bpm-mode = Mode BPM (chant)
+editor-read-aloud = Lire à voix haute avec la synthèse vocale du système
+editor-save-failed = Enregistrement impossible : { $error }
+
+## Script library
+library-title = Scripts
+library-new = Nouveau
+library-new-placeholder = Nommez un nouveau script
+library-empty = Aucun script pour l'instant. Nommez-en un ci-dessus pour commencer.
+library-open = Ouvrir
+library-current = ouvert
+library-rename = Renommer
+library-save-name = Enregistrer
+library-delete = Supprimer
+library-delete-confirm = Le supprimer ?
+library-delete-yes = Oui
+library-delete-no = Non
+library-close = Fermer
+
+## Projector
+projector-title = Ouvrir le projecteur
+projector-display = Écran
+projector-windowed = Fenêtre flottante (cet écran)
+projector-display-option = Écran { $n } — { $w }×{ $h }
+projector-primary = (principal)
+projector-fill = Occuper tout l'écran
+projector-mirror = Miroir horizontal (pour verre séparateur)
+projector-mirror-hint = À activer uniquement si la lecture se fait à travers le verre du prompteur, qui inverse l'image.
+projector-open = Ouvrir
+projector-cancel = Annuler
+projector-exit-hint = Appuyez sur Échap pour quitter
+projector-window-title = Freally Teleprompt — projecteur
 
 ## Prompter surface
-teleprompter-empty = Aucun script chargé pour l'instant. Saisissez-en un à gauche, puis choisissez « Charger dans le prompteur ».
+teleprompter-empty = Aucun script chargé. Ouvrez-en un depuis Scripts, ou commencez à taper à gauche.
 
 ## Settings
 settings-title = Paramètres
+settings-search-placeholder = Rechercher dans les paramètres…
+settings-search-none = Aucun paramètre correspondant.
+settings-changed = Modifié depuis l'ouverture
+settings-ok = OK
+settings-cat-general = Général
+settings-cat-reading = Lecture
+settings-cat-appearance = Apparence
+settings-cat-projector = Projecteur
+settings-cat-network = Réseau
 settings-language = Langue
 settings-language-auto = Comme mon système
 settings-theme = Thème
 settings-theme-dark = Sombre
 settings-theme-light = Clair
+settings-window-section = Fenêtre
+settings-minimize-to-tray = Réduire dans la zone de notification
+settings-minimize-to-tray-note = Le bouton Réduire masque la fenêtre au lieu de l'envoyer dans la barre des tâches. Cliquez sur l'icône de la zone de notification pour la faire revenir. L'icône n'existe que tant que la fenêtre est masquée : la restaurer la fait disparaître.
+settings-lan-off-hint = La diffusion est désactivée. Activez-la puis appuyez sur Appliquer pour obtenir un lien et un QR code.
+settings-section-reading = Lecture
 settings-speed = Vitesse de lecture — { $value } caractères par seconde
 settings-font-size = Taille de police — { $value } px
 settings-caesura = Pause par défaut pour " -- " — { $value } secondes
 settings-countdown = Compte à rebours avant le départ — { $value } secondes
+settings-section-appearance = Apparence
+settings-font-family = Police
+settings-font-system = Système
+settings-font-sans = Sans empattement
+settings-font-serif = Avec empattement
+settings-font-mono = Chasse fixe
+settings-font-rounded = Arrondie
+settings-font-slab = Égyptienne
+settings-font-weight = Graisse
+settings-text-color = Couleur du texte
+settings-line-height = Interligne — { $value }
+settings-margins = Marges latérales — { $value } %
+settings-guide = Ligne de lecture — { $value } % depuis le haut
+settings-section-projector = Projecteur
 settings-mirror = Inverser l'image du projecteur (pour verre semi-réfléchissant)
+settings-section-mirror = Diffuser sur mon réseau
+settings-lan-enabled = Diffuser le script vers les appareils de mon réseau
+settings-lan-all-interfaces = Autoriser d'autres appareils, pas seulement cet ordinateur
+settings-lan-warning = Le lien contient une clé à usage unique et n'est pas chiffré : ne l'utilisez que sur un réseau de confiance. La diffusion est en lecture seule et votre script n'est jamais téléversé.
+settings-lan-port = Port
+settings-lan-open = Ouvrir dans mon navigateur
+settings-lan-open-hint = Scannez le code, ou ouvrez ce lien sur n'importe quel appareil du même réseau.
+settings-lan-failed = La diffusion n'a pas pu démarrer : { $error }
+mirror-qr-aria = Code QR du lien de diffusion
 settings-cancel = Annuler
 settings-apply = Appliquer
 

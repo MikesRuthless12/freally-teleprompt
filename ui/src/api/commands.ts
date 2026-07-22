@@ -3,7 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   BugReport,
   BugReportTarget,
+  DisplayInfo,
   EulaStatus,
+  MirrorStatus,
+  ScriptInfo,
   Settings,
   TeleprompterAction,
   TeleprompterState,
@@ -50,6 +53,82 @@ export const teleprompterSetCountdown = (secs: number): Promise<void> =>
 
 export const teleprompterControl = (action: TeleprompterAction, value?: number): Promise<void> =>
   invoke("teleprompter_control", { action, value });
+
+// -- the script library (FT-10) ----------------------------------------------
+
+export const scriptsList = (): Promise<ScriptInfo[]> => invoke("scripts_list");
+
+/**
+ * Open a script: Rust reads it, loads it into the shared engine, and marks it
+ * as current — one command, because those three have to happen together.
+ * Resolves with the script's text.
+ */
+export const scriptsOpen = (name: string): Promise<string> => invoke("scripts_open", { name });
+
+/** Autosave: write the editor's text into the named script file. */
+export const scriptsSave = (name: string, text: string): Promise<void> =>
+  invoke("scripts_save", { name, text });
+
+export const scriptsCreate = (name: string): Promise<void> => invoke("scripts_create", { name });
+
+export const scriptsRename = (from: string, to: string): Promise<void> =>
+  invoke("scripts_rename", { from, to });
+
+export const scriptsDelete = (name: string): Promise<void> => invoke("scripts_delete", { name });
+
+// -- the projector + LAN mirror (FT-12) --------------------------------------
+
+export const listDisplays = (): Promise<DisplayInfo[]> => invoke("list_displays");
+
+/** Open (or focus) the projector window. `display` indexes `listDisplays()`;
+ * `fill` covers that monitor edge to edge. */
+export const projectorOpen = (
+  title: string,
+  display: number | null,
+  fill: boolean,
+): Promise<void> => invoke("projector_open", { title, display, fill });
+
+export const projectorClose = (): Promise<void> => invoke("projector_close");
+
+export const lanMirrorStatus = (): Promise<MirrorStatus> => invoke("lan_mirror_status");
+
+/**
+ * Open the mirror in this machine's browser. Takes no argument on purpose —
+ * Rust rebuilds the URL from the running listener, so `openUrl`'s
+ * https/mailto allowlist (which exists to distrust URLs from the webview) does
+ * not need widening to plain `http:`.
+ */
+export const lanMirrorOpen = (): Promise<void> => invoke("lan_mirror_open");
+
+// -- the system tray + window -------------------------------------------------
+
+/**
+ * Create or destroy the tray icon to match `minimizeToTray`.
+ *
+ * The menu labels are passed in because Rust has no Fluent catalogs — the 18
+ * locales live here. That also means the menu re-localises when the language
+ * changes, which a Rust-side copy never would.
+ */
+export const traySync = (showLabel: string, quitLabel: string): Promise<void> =>
+  invoke("tray_sync", { showLabel, quitLabel });
+
+/**
+ * Minimise the main window — to the tray if the user asked for that, otherwise
+ * to the taskbar. Rust decides, because Rust owns the setting.
+ */
+export const windowMinimize = (): Promise<void> => invoke("window_minimize");
+
+// -- read-aloud (FT-16) ------------------------------------------------------
+
+/**
+ * The Linux speech fallback. Windows and macOS speak through the WebView's own
+ * `speechSynthesis`; this rejects everywhere but Linux on purpose, so a caller
+ * that reached it by mistake falls back rather than going silently quiet.
+ */
+export const ttsSpeakNative = (text: string, rate: number): Promise<void> =>
+  invoke("tts_speak", { text, rate });
+
+export const ttsStopNative = (): Promise<void> => invoke("tts_stop");
 
 /** The scrubbed crash report from the previous run, or `null` after a clean one. */
 export const bugReportPending = (): Promise<string | null> => invoke("bug_report_pending");

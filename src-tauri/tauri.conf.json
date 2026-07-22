@@ -3,7 +3,7 @@
   "productName": "Freally Teleprompt",
   "identifier": "com.freally.teleprompt",
   "mainBinaryName": "freally-teleprompt",
-  "version": "0.100.0",
+  "version": "0.200.0",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -20,7 +20,8 @@
         "minWidth": 960,
         "minHeight": 600,
         "center": true,
-        "resizable": true
+        "resizable": true,
+        "decorations": false
       }
     ],
     "security": {

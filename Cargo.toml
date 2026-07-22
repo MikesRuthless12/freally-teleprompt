@@ -27,7 +27,7 @@ members = [
 panic = "abort"
 
 [workspace.package]
-version = "0.100.0"
+version = "0.200.0"
 edition = "2021"
 rust-version = "1.80"
 authors = ["Mike Weaver <mythodikalone@gmail.com>"]
@@ -46,6 +46,12 @@ directories = "6"
 # UTC, so a crash reported days later can still be ordered. Already in the tree
 # via the Tauri plugins; named here so `bugreport.rs` can use it directly.
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+# --- the LAN mirror (FT-12) -------------------------------------------------
+# The mirror's session key must be unguessable, so it comes from the OS CSPRNG
+# rather than the clock. Already in the tree via the Tauri stack; named here so
+# `lanmirror.rs` can call it directly instead of inventing a weaker source.
+getrandom = "0.3"
 # The post-crash notice is a NATIVE message box: the webview dies with the app,
 # so the helper process cannot use the dialog plugin. Pinned to `gtk3` with no
 # default features to match `tauri-plugin-dialog` — cargo unions features across
@@ -61,5 +67,9 @@ windows-sys = { version = "0.60", features = [
     "Win32_System_Threading",
 ] }
 
-tauri = { version = "2", features = [] }
+# `tray-icon` is what lets "minimize to system tray" put the window somewhere.
+# On Linux it links against libayatana-appindicator3 — see
+# `.github/actions/linux-deps`, which every Linux job shares so the requirement
+# cannot drift between CI and the release build.
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-build = "2"

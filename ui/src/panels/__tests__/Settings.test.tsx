@@ -4,13 +4,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settings } from "../../api/types";
 import { SettingsDialog } from "../Settings";
 
-// The dialog is the client half of the draft/apply pattern; the backend call is
-// the only thing it does to the outside world, so that is what we stub. The
-// signature is given explicitly so `mock.calls[0][0]` stays typed as the draft —
-// these tests assert on exactly what would have been sent.
+// The dialog is the client half of the draft/apply pattern; the backend calls
+// are the only thing it does to the outside world, so that is what we stub. The
+// `settingsSet` signature is given explicitly so `mock.calls[0][0]` stays typed
+// as the draft — these tests assert on exactly what would have been sent.
+// `lanMirrorStatus` is stubbed because the dialog reads the mirror's LIVE state
+// on every open (FT-12); it must not be a draft field.
 const settingsSet = vi.fn<(next: Settings) => Promise<void>>();
 vi.mock("../../api/commands", () => ({
   settingsSet: (next: Settings) => settingsSet(next),
+  lanMirrorStatus: () => Promise.resolve({ running: false, url: null, error: null }),
+  lanMirrorOpen: () => Promise.resolve(),
+  // Applying reconciles the tray, whose menu labels are localised here.
+  traySync: () => Promise.resolve(),
 }));
 
 const BASE: Settings = {
@@ -21,6 +27,19 @@ const BASE: Settings = {
   caesuraSecs: 0.75,
   countdownSecs: 0,
   mirror: false,
+  look: {
+    fontFamily: "system",
+    fontWeight: 500,
+    textColor: "#ffffff",
+    marginPct: 8,
+    lineHeight: 1.5,
+    guidePct: 12,
+  },
+  minimizeToTray: false,
+  lanEnabled: false,
+  lanAllInterfaces: false,
+  lanPort: 7346,
+  recentScripts: [],
   acceptedEulaVersion: "2026-07-21",
 };
 
@@ -57,8 +76,25 @@ describe("SettingsDialog — the draft/apply contract", () => {
 
   it("keeps EULA acceptance in the payload — the backend ignores it, but we never blank it", () => {
     renderDialog(true);
+    // An edit first: Apply on an unchanged draft deliberately writes nothing
+    // (see the next test), so without one there would be no payload to inspect.
+    fireEvent.change(themeSelect(), { target: { value: "light" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
     expect(settingsSet.mock.calls[0][0].acceptedEulaVersion).toBe("2026-07-21");
+  });
+
+  /**
+   * Apply is disabled — and refuses — when nothing has changed. A settings write
+   * is not free: it re-validates, re-broadcasts to every surface, and restarts
+   * the LAN mirror. Doing all that because someone pressed a button twice would
+   * be a visible hitch for no reason.
+   */
+  it("writes nothing when the draft is unchanged", () => {
+    renderDialog(true);
+    const applyButton = screen.getByRole("button", { name: "Apply" });
+    expect(applyButton).toBeDisabled();
+    fireEvent.click(applyButton);
+    expect(settingsSet).not.toHaveBeenCalled();
   });
 
   /**

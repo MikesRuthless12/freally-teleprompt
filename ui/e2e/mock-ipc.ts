@@ -8,6 +8,12 @@ import type { Page } from "@playwright/test";
  * `@tauri-apps/api` call funnels through — is stubbed before any app code runs.
  * That keeps the mock at one seam: panels, `api/commands.ts`, and the event
  * bridge all work unchanged.
+ *
+ * The stub also RECORDS every call on `window.__ipcCalls`, so a spec can assert
+ * what the UI actually asked the backend to do. That is what makes it possible
+ * to test the script library and the projector without a Rust process: the
+ * feature under test is the UI's half of the contract, and the Rust half has its
+ * own tests in `src-tauri`.
  */
 
 export type MockState = {
@@ -26,7 +32,36 @@ export type MockState = {
   playing?: boolean;
   offset?: number;
   theme?: "dark" | "light";
+  /** The reading appearance the engine reports (FT-15). */
+  look?: Partial<Look>;
+  /** The library listing `scripts_list` returns (FT-10). */
+  scripts?: { name: string; bytes: number; modifiedMs: number }[];
+  /** Which script is open (`recentScripts[0]`). */
+  currentScript?: string;
+  /** The displays `list_displays` returns (FT-12). */
+  displays?: { index: number; name: string; width: number; height: number; primary: boolean }[];
+  /** The LAN mirror's reported state (FT-12). */
+  mirror?: { running: boolean; url: string | null; error: string | null };
+  /**
+   * The Tauri window label this page believes it is (FT-12). `main.tsx` routes
+   * on it, so `"projector"` renders the talent surface instead of the operator
+   * shell. Omitted means no metadata at all — which is what a plain browser
+   * looks like, and what every other spec wants.
+   */
+  windowLabel?: string;
 };
+
+type Look = {
+  fontFamily: string;
+  fontWeight: number;
+  textColor: string;
+  marginPct: number;
+  lineHeight: number;
+  guidePct: number;
+};
+
+/** One recorded IPC call, for assertions. */
+export type IpcCall = { cmd: string; args: Record<string, unknown> };
 
 const DEFAULT_SCRIPT = [
   "Welcome to Freally Teleprompt.",
@@ -63,6 +98,15 @@ const LONG_EULA = [
   ),
 ].join("\n");
 
+const DEFAULT_LOOK: Look = {
+  fontFamily: "system",
+  fontWeight: 500,
+  textColor: "#ffffff",
+  marginPct: 8,
+  lineHeight: 1.5,
+  guidePct: 12,
+};
+
 /**
  * Install the stub. Must be called BEFORE `page.goto` — it runs as an init
  * script so it is in place before the bundle boots.
@@ -72,6 +116,7 @@ const LONG_EULA = [
  * NOT capture surrounding closure variables.
  */
 export async function mockTauri(page: Page, state: MockState = {}): Promise<void> {
+  const look = { ...DEFAULT_LOOK, ...(state.look ?? {}) };
   const payload = {
     settings: {
       language: "en",
@@ -81,6 +126,11 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       caesuraSecs: 0.75,
       countdownSecs: 0,
       mirror: false,
+      look,
+      lanEnabled: state.mirror !== undefined,
+      lanAllInterfaces: false,
+      lanPort: 7346,
+      recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
     },
     eula: {
@@ -92,6 +142,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       script: state.script ?? DEFAULT_SCRIPT,
       speed: 12,
       fontSize: 48,
+      look,
       mirror: false,
       offset: state.offset ?? 0,
       playing: state.playing ?? false,
@@ -99,24 +150,97 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       countdownSecs: 0,
       countdownRemaining: 0,
     },
+    scripts: state.scripts ?? [],
+    displays: state.displays ?? [],
+    mirrorStatus: state.mirror ?? { running: false, url: null, error: null },
+    windowLabel: state.windowLabel ?? null,
   };
 
   await page.addInitScript((data: typeof payload) => {
+    const calls: IpcCall[] = [];
+    (window as unknown as Record<string, unknown>).__ipcCalls = calls;
+
+    // A tiny stand-in for the Rust engine. It exists so the UI's own feedback
+    // loop actually closes: the editor is a CONTROLLED surface over
+    // engine-authoritative text, so without a broadcast coming back, typing
+    // would be reverted on the next render and no editor test could pass.
+    // It models only what the UI observes — never the caesura timing, which has
+    // its own tests on both sides of the IPC boundary.
+    const engine = { ...data.teleprompter };
+    const listeners: ((event: { event: string; payload: unknown }) => void)[] = [];
+    const emit = () => {
+      const snapshot = { ...engine };
+      for (const handler of listeners) handler({ event: "teleprompter", payload: snapshot });
+    };
+
     const responses: Record<string, unknown> = {
       settings_get: data.settings,
       settings_set: null,
       eula_status: data.eula,
       eula_accept: null,
-      teleprompter_get: data.teleprompter,
+      scripts_list: data.scripts,
+      // Opening returns the script's text; the gallery's library only needs a
+      // resolved promise to drive the UI's own half of the flow.
+      scripts_open: "opened script text",
+      scripts_save: null,
+      scripts_create: null,
+      scripts_rename: null,
+      scripts_delete: null,
+      list_displays: data.displays,
+      projector_open: null,
+      projector_close: null,
+      lan_mirror_status: data.mirrorStatus,
+      lan_mirror_open: null,
+      tts_speak: null,
+      tts_stop: null,
     };
 
-    // Tauri routes event subscriptions through a command too; returning an
-    // unlisten id is enough because the gallery never emits.
-    const eventCommands = ["plugin:event|listen", "plugin:event|unlisten"];
-
     (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {
-      invoke: (cmd: string) => {
-        if (eventCommands.includes(cmd)) return Promise.resolve(0);
+      // `getCurrentWindow()` reads this synchronously. Present ONLY when a spec
+      // asks for a label, so the default stays "no Tauri host", which is what
+      // `main.tsx` treats as the operator shell.
+      metadata: data.windowLabel ? { currentWindow: { label: data.windowLabel } } : undefined,
+      invoke: (cmd: string, args: Record<string, unknown> = {}) => {
+        // `listen()` passes the already-transformed callback straight through,
+        // because `transformCallback` below is the identity — so the handler
+        // arriving here IS the subscriber's function.
+        if (cmd === "plugin:event|listen") {
+          if (args.event === "teleprompter" && typeof args.handler === "function") {
+            listeners.push(args.handler as (event: { event: string; payload: unknown }) => void);
+          }
+          return Promise.resolve(0);
+        }
+        if (cmd === "plugin:event|unlisten") return Promise.resolve(0);
+
+        calls.push({ cmd, args });
+
+        switch (cmd) {
+          case "teleprompter_get":
+            return Promise.resolve({ ...engine });
+          case "teleprompter_set_script":
+            engine.script = String(args.text ?? "");
+            engine.offset = 0;
+            emit();
+            return Promise.resolve(null);
+          case "teleprompter_set_speed":
+            engine.speed = Number(args.speed);
+            emit();
+            return Promise.resolve(null);
+          case "teleprompter_set_mirror":
+            engine.mirror = Boolean(args.mirror);
+            emit();
+            return Promise.resolve(null);
+          case "teleprompter_control":
+            if (args.action === "toggle") engine.playing = !engine.playing;
+            if (args.action === "play") engine.playing = true;
+            if (args.action === "pause") engine.playing = false;
+            if (args.action === "top") engine.offset = 0;
+            if (args.action === "seek") engine.offset = Number(args.value ?? 0);
+            emit();
+            return Promise.resolve(null);
+          default:
+            break;
+        }
         if (cmd in responses) return Promise.resolve(responses[cmd]);
         // An unmocked command must not reject: a panel that catches and hides
         // itself would silently produce an empty screenshot, which reads as a
@@ -126,4 +250,18 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       transformCallback: (cb: unknown) => cb,
     };
   }, payload);
+}
+
+/** Every IPC call the page has made, in order. */
+export async function ipcCalls(page: Page): Promise<IpcCall[]> {
+  return page.evaluate(() => (window as unknown as { __ipcCalls: IpcCall[] }).__ipcCalls);
+}
+
+/** The arguments of the last call to `cmd`, or undefined if it never ran. */
+export async function lastCall(
+  page: Page,
+  cmd: string,
+): Promise<Record<string, unknown> | undefined> {
+  const calls = await ipcCalls(page);
+  return calls.filter((c) => c.cmd === cmd).pop()?.args;
 }

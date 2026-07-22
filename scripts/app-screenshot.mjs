@@ -181,8 +181,33 @@ function capture(file) {
     // -x = no shutter sound; the runner has a real WindowServer session.
     return spawnSync("screencapture", ["-x", file], { stdio: "inherit" });
   }
-  // Linux: ImageMagick against the Xvfb root window.
-  return spawnSync("import", ["-window", "root", file], { stdio: "inherit" });
+  // Linux: ImageMagick against the X root window. `-screen` is load-bearing —
+  // without it `import` grabs the root window's OWN backing contents, which on a
+  // bare Xvfb server (no compositor) is an empty pixmap; with it, it grabs what
+  // is actually on screen, child windows included.
+  return spawnSync("import", ["-window", "root", "-screen", file], { stdio: "inherit" });
+}
+
+/**
+ * Environment for the app process.
+ *
+ * On Linux, WebKitGTK's DMA-BUF renderer needs a GPU path that a headless CI
+ * runner (Xvfb + llvmpipe) does not have. It does not crash — it silently
+ * composites nothing, so the process stays happily alive and paints a blank
+ * window, which is exactly the failure this script exists to catch and exactly
+ * the failure that looks like a broken app. Turning it off falls back to
+ * software rendering, which is all a screenshot needs.
+ *
+ * Scoped to this child process only, so nothing about a developer's real desktop
+ * session changes.
+ */
+function childEnv() {
+  if (os !== "linux") return process.env;
+  return {
+    ...process.env,
+    WEBKIT_DISABLE_DMABUF_RENDERER: "1",
+    WEBKIT_DISABLE_COMPOSITING_MODE: "1",
+  };
 }
 
 /** Does a window belonging to the app exist? Cheap where the OS will tell us. */
@@ -223,7 +248,11 @@ async function main() {
 
 async function run(binary) {
   console.log(`app-screenshot: launching ${binary}`);
-  const child = spawn(binary, [], { stdio: "inherit", detached: os !== "win32" });
+  const child = spawn(binary, [], {
+    stdio: "inherit",
+    detached: os !== "win32",
+    env: childEnv(),
+  });
   let exited = null;
   child.on("exit", (code, signal) => {
     exited = signal ? `signal ${signal}` : `code ${code}`;
@@ -250,8 +279,19 @@ async function run(binary) {
     // A blank screen compresses to almost nothing, so size is a crude but
     // effective "did anything actually paint" check. It is a proxy, not proof —
     // the artifact is there to be looked at, which is the real check.
+    //
+    // The window state is reported alongside, because the two failures need
+    // completely different fixes and the size alone cannot tell them apart:
+    // "window up, screen blank" is a RENDERER problem, "no window" is a
+    // windowing/display problem.
     if (bytes < 20_000) {
-      throw new Error(`${file} is only ${bytes} bytes — the screen looks blank`);
+      const window =
+        windowUp === null
+          ? "window state not checkable on this OS"
+          : windowUp
+            ? "the window IS up, so this is a rendering problem, not a windowing one"
+            : "and no app window was found either";
+      throw new Error(`${file} is only ${bytes} bytes — the screen looks blank (${window})`);
     }
     if (windowUp === false) {
       throw new Error("no window titled 'Freally Teleprompt' was found");

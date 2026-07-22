@@ -460,8 +460,15 @@ export default function App() {
               onChange={(e) => setReadAloudMode(e.target.checked)}
             />
             {/* Disabled while a read is engaged, so it cannot be flipped
-                mid-speech; Stop re-enables it. */}
-            <span className={engaged ? "opacity-40" : undefined}>🔊 {t("editor-read-aloud")}</span>
+                mid-speech; Stop re-enables it.
+
+                No emoji here. This label used to lead with a speaker glyph, and
+                the Linux CI screenshot showed it as a tofu box: the bundled Noto
+                families cover writing systems, not emoji, and a bare Linux box
+                has no emoji font either. Bundling ~10 MB of Noto Color Emoji to
+                decorate one checkbox is not a trade worth making, and the label
+                says what it does without it. */}
+            <span className={engaged ? "opacity-40" : undefined}>{t("editor-read-aloud")}</span>
           </label>
         </section>
 

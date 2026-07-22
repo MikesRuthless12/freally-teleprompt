@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Copioni
 toolbar-projector = Apri proiettore
 toolbar-settings = Impostazioni
+toolbar-about = Informazioni
 toolbar-bug-report = Segnala un problema
 toolbar-updates = Controlla gli aggiornamenti
+
+## Window controls (the app draws its own title bar)
+window-minimize = Riduci a icona
+window-maximize = Ingrandisci
+window-restore = Ripristina
+window-close = Chiudi
+
+## System tray
+tray-show = Mostra Freally Teleprompt
+tray-quit = Esci
+
+## About
+about-version = Versione { $version }
+about-tagline = Un gobbo elettronico locale per creator, relatori e interpreti. Un unico motore basato sui caratteri tiene anteprima, proiettore e mirror di rete sulla stessa parola.
+about-privacy = Niente IA, niente account, niente telemetria. I tuoi copioni restano sul tuo dispositivo.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Tutti i diritti riservati.
+about-website = Sito web
+about-source = Codice sorgente
+about-close = Chiudi
 
 ## Transport
 transport-play = Riproduci
@@ -26,10 +46,8 @@ transport-seek = Scorri nel copione
 ## Editor
 editor-label = Copione
 editor-placeholder = Scrivi o incolla il tuo copione. Usa " -- " per una pausa, oppure " --2 " per fermarti 2 secondi.
-editor-unsaved = Copione non salvato
 editor-caesura-hint = Digita -- per una pausa
 editor-est-time = Tempo di lettura { $time }
-editor-preview = Anteprima
 editor-speed = Velocità (caratteri al secondo)
 editor-speed-bpm = Velocità (BPM)
 editor-bpm-mode = Modalità BPM (canto)
@@ -70,11 +88,24 @@ teleprompter-empty = Nessun copione caricato. Aprine uno da Copioni, oppure iniz
 
 ## Settings
 settings-title = Impostazioni
+settings-search-placeholder = Cerca nelle impostazioni…
+settings-search-none = Nessuna impostazione corrispondente.
+settings-changed = Modificato dall'apertura
+settings-ok = OK
+settings-cat-general = Generale
+settings-cat-reading = Lettura
+settings-cat-appearance = Aspetto
+settings-cat-projector = Proiettore
+settings-cat-network = Rete
 settings-language = Lingua
 settings-language-auto = Come il sistema
 settings-theme = Tema
 settings-theme-dark = Scuro
 settings-theme-light = Chiaro
+settings-window-section = Finestra
+settings-minimize-to-tray = Riduci nell'area di notifica
+settings-minimize-to-tray-note = Il pulsante Riduci a icona nasconde la finestra invece di mandarla nella barra delle applicazioni. Fai clic sull'icona nell'area di notifica per riaprirla. L'icona esiste solo finché la finestra è nascosta: ripristinandola scompare.
+settings-lan-off-hint = Il mirror è disattivato. Attivalo e premi Applica per ottenere un link e un codice QR.
 settings-section-reading = Lettura
 settings-speed = Velocità di lettura — { $value } caratteri al secondo
 settings-font-size = Dimensione testo — { $value } px

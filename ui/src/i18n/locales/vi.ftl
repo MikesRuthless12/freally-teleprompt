@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Kịch bản
 toolbar-projector = Mở máy chiếu
 toolbar-settings = Cài đặt
+toolbar-about = Giới thiệu
 toolbar-bug-report = Báo cáo sự cố
 toolbar-updates = Kiểm tra bản cập nhật
+
+## Window controls (the app draws its own title bar)
+window-minimize = Thu nhỏ
+window-maximize = Phóng to
+window-restore = Khôi phục
+window-close = Đóng
+
+## System tray
+tray-show = Hiện Freally Teleprompt
+tray-quit = Thoát
+
+## About
+about-version = Phiên bản { $version }
+about-tagline = Máy nhắc chữ chạy cục bộ cho người sáng tạo, diễn giả và người biểu diễn. Một bộ máy dựa trên ký tự giữ cho bản xem trước, màn hình chiếu và bản phản chiếu qua mạng cùng ở một từ.
+about-privacy = Không AI, không tài khoản, không thu thập dữ liệu. Kịch bản của bạn ở lại trên máy bạn.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Bảo lưu mọi quyền.
+about-website = Trang web
+about-source = Mã nguồn
+about-close = Đóng
 
 ## Transport
 transport-play = Phát
@@ -26,10 +46,8 @@ transport-seek = Di chuyển trong kịch bản
 ## Editor
 editor-label = Kịch bản
 editor-placeholder = Nhập hoặc dán kịch bản của bạn. Dùng " -- " để tạo một khoảng dừng, hoặc " --2 " để dừng 2 giây.
-editor-unsaved = Kịch bản chưa lưu
 editor-caesura-hint = Nhập -- để tạm dừng
 editor-est-time = Thời gian đọc { $time }
-editor-preview = Xem trước
 editor-speed = Tốc độ (ký tự mỗi giây)
 editor-speed-bpm = Tốc độ (BPM)
 editor-bpm-mode = Chế độ BPM (hát)
@@ -70,11 +88,24 @@ teleprompter-empty = Chưa nạp kịch bản nào. Mở một kịch bản tron
 
 ## Settings
 settings-title = Cài đặt
+settings-search-placeholder = Tìm cài đặt…
+settings-search-none = Không có cài đặt phù hợp.
+settings-changed = Đã thay đổi kể từ khi mở
+settings-ok = OK
+settings-cat-general = Chung
+settings-cat-reading = Đọc
+settings-cat-appearance = Giao diện
+settings-cat-projector = Màn hình chiếu
+settings-cat-network = Mạng
 settings-language = Ngôn ngữ
 settings-language-auto = Giống hệ thống của tôi
 settings-theme = Chủ đề
 settings-theme-dark = Tối
 settings-theme-light = Sáng
+settings-window-section = Cửa sổ
+settings-minimize-to-tray = Thu nhỏ xuống khay hệ thống
+settings-minimize-to-tray-note = Nút thu nhỏ sẽ ẩn cửa sổ thay vì đưa xuống thanh tác vụ. Bấm biểu tượng ở khay hệ thống để mở lại. Biểu tượng chỉ tồn tại khi cửa sổ đang ẩn — khôi phục cửa sổ thì biểu tượng cũng mất.
+settings-lan-off-hint = Bản phản chiếu đang tắt. Bật lên rồi bấm Áp dụng để nhận liên kết và mã QR.
 settings-section-reading = Đọc
 settings-speed = Tốc độ đọc — { $value } ký tự mỗi giây
 settings-font-size = Cỡ chữ — { $value } px

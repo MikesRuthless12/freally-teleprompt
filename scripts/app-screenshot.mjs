@@ -167,6 +167,14 @@ function capture(file) {
     const psLiteral = `'${file.replaceAll("'", "''")}'`;
     const ps = [
       "Add-Type -AssemblyName System.Windows.Forms,System.Drawing;",
+      // Become DPI-aware BEFORE asking how big the screen is. Without this,
+      // `VirtualScreen` reports SCALED coordinates (1707x1067 on a 2560x1440
+      // display at 150%) while the capture itself works in physical pixels — so
+      // the screenshot silently contained only the top-left ~44% of the screen,
+      // and anything on the right of a window looked like it had not rendered.
+      // CI runners are all at 100%, so this only ever bit on a real desktop.
+      "Add-Type -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool SetProcessDPIAware();' -Name U -Namespace N;",
+      "[void][N.U]::SetProcessDPIAware();",
       "$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;",
       "$bmp=New-Object System.Drawing.Bitmap $b.Width,$b.Height;",
       "$g=[System.Drawing.Graphics]::FromImage($bmp);",
@@ -225,13 +233,19 @@ function childEnv() {
 /** Does a window belonging to the app exist? Cheap where the OS will tell us. */
 function windowIsUp() {
   if (os === "win32") {
+    // Ask whether the process owns a TOP-LEVEL WINDOW, not whether that window
+    // carries a particular title. Once `decorations: false` landed, Windows
+    // stopped reporting a `MainWindowTitle` for it, and a title check started
+    // failing on a perfectly healthy app — the same mistake the Linux check
+    // made with the window name. A window handle is the fact we actually want.
     const ps =
       "$p = Get-Process freally-teleprompt -ErrorAction SilentlyContinue | " +
-      "Where-Object { $_.MainWindowHandle -ne 0 }; if ($p) { $p.MainWindowTitle } ";
+      "Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1; " +
+      "if ($p) { 'window:' + $p.MainWindowHandle }";
     const r = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps], {
       encoding: "utf8",
     });
-    return (r.stdout ?? "").includes("Freally Teleprompt");
+    return (r.stdout ?? "").includes("window:");
   }
   if (os === "linux") {
     // X reports the window under the BINARY name (`freally-teleprompt`), not the
@@ -267,6 +281,37 @@ function windowIsUp() {
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Bring the app to the front before photographing it.
+ *
+ * A CI runner has an empty desktop, so the app is trivially on top there and
+ * this looks unnecessary. On a real machine it is not: the screenshot came back
+ * showing a browser and two other apps stacked over the window, which reads
+ * exactly like "the app rendered nothing" and is the kind of false alarm that
+ * teaches you to stop trusting the check.
+ */
+function raise() {
+  if (os === "win32") {
+    const ps = [
+      "Add-Type -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h, int c);' -Name W -Namespace N;",
+      "$p = Get-Process freally-teleprompt -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1;",
+      // 9 = SW_RESTORE, in case it came up minimised.
+      "if ($p) { [void][N.W]::ShowWindow($p.MainWindowHandle, 9); [void][N.W]::SetForegroundWindow($p.MainWindowHandle) }",
+    ].join(" ");
+    spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps], {
+      stdio: "ignore",
+    });
+    return;
+  }
+  if (os === "linux") {
+    spawnSync("xdotool", ["search", "--name", "[Ff]really.[Tt]eleprompt", "windowactivate", "%@"], {
+      stdio: "ignore",
+    });
+  }
+  // macOS needs Accessibility permission to raise another app's window, which a
+  // runner has not granted. Left alone rather than half-done.
+}
 
 /**
  * When a Linux run fails, dump what X actually has.
@@ -310,9 +355,22 @@ async function main() {
 
 async function run(binary) {
   console.log(`app-screenshot: launching ${binary}`);
+  // Detach on EVERY platform, and on Windows give up the inherited console too.
+  //
+  // `main.rs` only sets `windows_subsystem = "windows"` for release, so a DEBUG
+  // build — which is exactly what this script runs — is a CONSOLE application.
+  // Sharing the harness's console means the app receives that console's control
+  // events, and a console app that gets CTRL_CLOSE exits gracefully with code 0.
+  // That produced an intermittent "the app exited early (code 0)" inside
+  // `ci:local` that never reproduced when the script was run on its own, which
+  // is the worst kind of red: the app was fine, the harness killed it.
+  //
+  // The cost is the app's stderr on Windows. Worth it — a flaky gate teaches
+  // people to ignore red, and a panic would still show as an early exit.
   const child = spawn(binary, [], {
-    stdio: "inherit",
-    detached: os !== "win32",
+    stdio: os === "win32" ? "ignore" : "inherit",
+    detached: true,
+    windowsHide: true,
     env: childEnv(),
   });
   let exited = null;
@@ -329,6 +387,10 @@ async function run(binary) {
     if (exited !== null) {
       throw new Error(`the app exited early (${exited}) — it did not stay running`);
     }
+
+    raise();
+    // A moment for the compositor to actually put it in front.
+    await sleep(700);
 
     const file = join(outDir, `app-${os}.png`);
     const shot = capture(file);
@@ -362,7 +424,7 @@ async function run(binary) {
     }
     console.log(
       `app-screenshot: ok — ${file} (${Math.round(bytes / 1024)} KB)` +
-        (windowUp === null ? ", window title not checkable on this OS" : ", window title confirmed"),
+        (windowUp === null ? ", window title not checkable on this OS" : ", top-level window confirmed"),
     );
   } finally {
     // Always stop the app, whatever the verdict — a leaked GUI process wedges

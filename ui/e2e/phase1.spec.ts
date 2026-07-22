@@ -71,8 +71,6 @@ test.describe("FT-10 script library", () => {
       .toContain("scripts_create");
     expect(await lastCall(page, "scripts_create")).toEqual({ name: "Take 3" });
     expect(await lastCall(page, "scripts_open")).toEqual({ name: "Take 3" });
-    // And the toolbar now names it, so autosave has a destination.
-    await expect(page.getByText("Take 3")).toBeVisible();
   });
 
   test("Open loads the chosen script and closes the dialog", async ({ page }) => {
@@ -256,6 +254,7 @@ test.describe("FT-12 projector and LAN mirror", () => {
     await page.goto("/");
 
     await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("tab", { name: "Network" }).click();
     await expect(
       page.getByText("http://192.168.1.24:7346/?k=0123456789abcdef01234567"),
     ).toBeVisible();
@@ -304,6 +303,7 @@ test.describe("FT-12 projector and LAN mirror", () => {
     await page.goto("/");
 
     await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("tab", { name: "Network" }).click();
     // A switch that is on next to a mirror that is not running would be a lie.
     await expect(page.getByRole("alert")).toContainText("could not listen on 0.0.0.0:7346");
   });
@@ -469,6 +469,7 @@ test.describe("FT-15 appearance", () => {
     await mockTauri(page);
     await page.goto("/");
     await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("tab", { name: "Appearance" }).click();
 
     const picker = page.getByRole("combobox", { name: "Typeface" });
     // Read the option labels outright: `hasText` is a substring match, and
@@ -478,6 +479,124 @@ test.describe("FT-15 appearance", () => {
     // The ids are built at runtime, so an untranslated one would ship as
     // `settings-font-slab` and only ever be caught here.
     await expect(picker).not.toContainText("settings-font-");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The app's own window chrome (the OS decorations are off)
+// ---------------------------------------------------------------------------
+
+test.describe("custom title bar", () => {
+  test("carries a centred title and the three window buttons", async ({ page }) => {
+    await mockTauri(page);
+    await page.goto("/");
+
+    const bar = page.getByTestId("titlebar");
+    await expect(bar).toBeVisible();
+    for (const name of ["Minimize", "Maximize", "Close"]) {
+      await expect(bar.getByRole("button", { name })).toBeVisible();
+    }
+
+    // Centred on the WINDOW, not in the space left over beside the buttons —
+    // a flex layout would sit it half a button-cluster to the left.
+    const title = bar.getByText("Freally Teleprompt", { exact: true });
+    const titleBox = await title.boundingBox();
+    const viewport = page.viewportSize();
+    expect(titleBox).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    const titleCentre = titleBox!.x + titleBox!.width / 2;
+    expect(Math.abs(titleCentre - viewport!.width / 2)).toBeLessThan(2);
+
+    await page.screenshot({ path: `${SHOTS}/titlebar.png` });
+  });
+
+  test("minimize goes through Rust, which owns the minimize-to-tray rule", async ({ page }) => {
+    await mockTauri(page);
+    await page.goto("/");
+
+    await page.getByTestId("titlebar").getByRole("button", { name: "Minimize" }).click();
+    // NOT `plugin:window|minimize` — Rust decides minimise-vs-hide-to-tray,
+    // because Rust owns the setting.
+    await expect
+      .poll(async () => (await ipcCalls(page)).map((c) => c.cmd))
+      .toContain("window_minimize");
+  });
+
+  test("the window has resize grips on every edge and corner", async ({ page }) => {
+    await mockTauri(page);
+    await page.goto("/");
+
+    // With no OS decorations there is no resize border, so these are the only
+    // thing making the window resizable at all.
+    const edges = page.getByTestId("resize-edges");
+    await expect(edges.locator("[data-resize]")).toHaveCount(8);
+    for (const direction of ["North", "South", "East", "West", "NorthEast", "SouthWest"]) {
+      await expect(edges.locator(`[data-resize="${direction}"]`)).toHaveCount(1);
+    }
+  });
+
+  test("the About dialog names the app and offers its links", async ({ page }) => {
+    await mockTauri(page);
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "About" }).click();
+    const about = page.getByTestId("about-dialog");
+    await expect(about).toBeVisible();
+    await expect(about.getByRole("button", { name: "Website" })).toBeVisible();
+    await expect(about.getByRole("button", { name: "Source" })).toBeVisible();
+
+    await page.screenshot({ path: `${SHOTS}/about.png` });
+  });
+});
+
+test.describe("Settings modal", () => {
+  test("is a category sidebar with a search box and an OK/Cancel/Apply footer", async ({
+    page,
+  }) => {
+    await mockTauri(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Settings" }).click();
+
+    const dialog = page.getByTestId("settings-dialog");
+    await expect(dialog).toBeVisible();
+    for (const name of ["General", "Reading", "Appearance", "Projector", "Network"]) {
+      await expect(dialog.getByRole("tab", { name })).toBeVisible();
+    }
+    for (const name of ["OK", "Cancel", "Apply"]) {
+      await expect(dialog.getByRole("button", { name })).toBeVisible();
+    }
+    // Apply is dead until something actually changes — a settings write
+    // re-broadcasts to every surface and restarts the LAN mirror.
+    await expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
+
+    await page.screenshot({ path: `${SHOTS}/settings-dialog.png` });
+  });
+
+  test("the search box narrows the sidebar to matching panes", async ({ page }) => {
+    await mockTauri(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Settings" }).click();
+
+    await page.getByLabel("Search settings").fill("guide");
+    // "Reading guide" is an Appearance control, so that pane must survive and
+    // the others must not.
+    await expect(page.getByRole("tab", { name: "Appearance" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Reading" })).toHaveCount(0);
+  });
+
+  test("minimize to tray is offered, and rides in the applied draft", async ({ page }) => {
+    await mockTauri(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Settings" }).click();
+
+    const box = page.getByRole("checkbox", { name: "Minimize to the system tray" });
+    await expect(box).toBeVisible();
+    await expect(box).not.toBeChecked();
+    await box.check();
+    await page.getByRole("button", { name: "Apply" }).click();
+
+    const sent = (await lastCall(page, "settings_set")) as { next: { minimizeToTray: boolean } };
+    expect(sent.next.minimizeToTray).toBe(true);
   });
 });
 

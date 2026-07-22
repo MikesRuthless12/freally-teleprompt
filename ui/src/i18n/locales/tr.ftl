@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Metinler
 toolbar-projector = Projektörü aç
 toolbar-settings = Ayarlar
+toolbar-about = Hakkında
 toolbar-bug-report = Sorun bildir
 toolbar-updates = Güncellemeleri denetle
+
+## Window controls (the app draws its own title bar)
+window-minimize = Simge durumuna küçült
+window-maximize = Ekranı kapla
+window-restore = Geri yükle
+window-close = Kapat
+
+## System tray
+tray-show = Freally Teleprompt'u göster
+tray-quit = Çık
+
+## About
+about-version = Sürüm { $version }
+about-tagline = İçerik üreticileri, sunucular ve sahne sanatçıları için yerel çalışan bir prompter. Tek bir karakter tabanlı motor; önizlemeyi, yansıtıcıyı ve ağ yansımasını aynı kelimede tutar.
+about-privacy = Yapay zekâ yok, hesap yok, telemetri yok. Metinleriniz cihazınızda kalır.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Tüm hakları saklıdır.
+about-website = Web sitesi
+about-source = Kaynak kodu
+about-close = Kapat
 
 ## Transport
 transport-play = Oynat
@@ -26,10 +46,8 @@ transport-seek = Metinde ilerle
 ## Editor
 editor-label = Metin
 editor-placeholder = Metninizi yazın veya yapıştırın. Duraklama için " -- ", 2 saniye beklemek için " --2 " kullanın.
-editor-unsaved = Kaydedilmemiş metin
 editor-caesura-hint = Duraklama için -- yazın
 editor-est-time = Okuma süresi { $time }
-editor-preview = Önizleme
 editor-speed = Hız (saniyedeki karakter)
 editor-speed-bpm = Hız (BPM)
 editor-bpm-mode = BPM modu (şarkı)
@@ -70,11 +88,24 @@ teleprompter-empty = Henüz metin yüklenmedi. Metinler'den birini açın ya da 
 
 ## Settings
 settings-title = Ayarlar
+settings-search-placeholder = Ayarlarda ara…
+settings-search-none = Eşleşen ayar yok.
+settings-changed = Açıldığından beri değişti
+settings-ok = Tamam
+settings-cat-general = Genel
+settings-cat-reading = Okuma
+settings-cat-appearance = Görünüm
+settings-cat-projector = Yansıtıcı
+settings-cat-network = Ağ
 settings-language = Dil
 settings-language-auto = Sistemimle aynı
 settings-theme = Tema
 settings-theme-dark = Koyu
 settings-theme-light = Açık
+settings-window-section = Pencere
+settings-minimize-to-tray = Sistem tepsisine küçült
+settings-minimize-to-tray-note = Küçült düğmesi pencereyi görev çubuğuna göndermek yerine gizler. Geri getirmek için tepsi simgesine tıklayın. Simge yalnızca pencere gizliyken vardır; pencereyi geri getirdiğinizde kaybolur.
+settings-lan-off-hint = Yansıtma kapalı. Bağlantı ve QR kodu almak için açıp Uygula'ya basın.
 settings-section-reading = Okuma
 settings-speed = Okuma hızı — saniyede { $value } karakter
 settings-font-size = Yazı boyutu — { $value } px

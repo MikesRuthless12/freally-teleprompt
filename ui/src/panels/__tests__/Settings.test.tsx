@@ -15,6 +15,8 @@ vi.mock("../../api/commands", () => ({
   settingsSet: (next: Settings) => settingsSet(next),
   lanMirrorStatus: () => Promise.resolve({ running: false, url: null, error: null }),
   lanMirrorOpen: () => Promise.resolve(),
+  // Applying reconciles the tray, whose menu labels are localised here.
+  traySync: () => Promise.resolve(),
 }));
 
 const BASE: Settings = {
@@ -33,6 +35,7 @@ const BASE: Settings = {
     lineHeight: 1.5,
     guidePct: 12,
   },
+  minimizeToTray: false,
   lanEnabled: false,
   lanAllInterfaces: false,
   lanPort: 7346,
@@ -73,8 +76,25 @@ describe("SettingsDialog — the draft/apply contract", () => {
 
   it("keeps EULA acceptance in the payload — the backend ignores it, but we never blank it", () => {
     renderDialog(true);
+    // An edit first: Apply on an unchanged draft deliberately writes nothing
+    // (see the next test), so without one there would be no payload to inspect.
+    fireEvent.change(themeSelect(), { target: { value: "light" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
     expect(settingsSet.mock.calls[0][0].acceptedEulaVersion).toBe("2026-07-21");
+  });
+
+  /**
+   * Apply is disabled — and refuses — when nothing has changed. A settings write
+   * is not free: it re-validates, re-broadcasts to every surface, and restarts
+   * the LAN mirror. Doing all that because someone pressed a button twice would
+   * be a visible hitch for no reason.
+   */
+  it("writes nothing when the draft is unchanged", () => {
+    renderDialog(true);
+    const applyButton = screen.getByRole("button", { name: "Apply" });
+    expect(applyButton).toBeDisabled();
+    fireEvent.click(applyButton);
+    expect(settingsSet).not.toHaveBeenCalled();
   });
 
   /**

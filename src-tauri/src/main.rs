@@ -19,6 +19,7 @@ mod projector;
 mod scripts;
 mod settings;
 mod teleprompter;
+mod tray;
 mod tts;
 
 use tauri::Manager;
@@ -26,6 +27,7 @@ use tauri::Manager;
 use lanmirror::LanMirrorState;
 use settings::SettingsStore;
 use teleprompter::TeleprompterState;
+use tray::TrayState;
 
 fn main() {
     // `--crash-notice <pid>`: we are the tiny helper a dying app spawned, not
@@ -53,6 +55,7 @@ fn main() {
         .manage(SettingsStore::load(SettingsStore::default_path()))
         .manage(TeleprompterState::new())
         .manage(LanMirrorState::default())
+        .manage(TrayState::default())
         // Seed the engine from the persisted preferences, so the app opens at
         // the user's own speed, font, and pause length rather than the built-in
         // defaults, and start the LAN mirror if it was left on. `settings_set`
@@ -96,6 +99,8 @@ fn main() {
             projector::projector_close,
             lanmirror::lan_mirror_status,
             lanmirror::lan_mirror_open,
+            tray::tray_sync,
+            tray::window_minimize,
             tts::tts_speak,
             tts::tts_stop,
             bugreport::bug_report_pending,

@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Сценарії
 toolbar-projector = Відкрити проєктор
 toolbar-settings = Налаштування
+toolbar-about = Про програму
 toolbar-bug-report = Повідомити про проблему
 toolbar-updates = Перевірити оновлення
+
+## Window controls (the app draws its own title bar)
+window-minimize = Згорнути
+window-maximize = Розгорнути
+window-restore = Відновити
+window-close = Закрити
+
+## System tray
+tray-show = Показати Freally Teleprompt
+tray-quit = Вийти
+
+## About
+about-version = Версія { $version }
+about-tagline = Локальний телесуфлер для авторів, доповідачів і виконавців. Один посимвольний рушій тримає попередній перегляд, проєктор і мережеву трансляцію на тому самому слові.
+about-privacy = Жодного ШІ, облікових записів і телеметрії. Ваші сценарії лишаються на вашому пристрої.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Усі права захищено.
+about-website = Сайт
+about-source = Вихідний код
+about-close = Закрити
 
 ## Transport
 transport-play = Пуск
@@ -26,10 +46,8 @@ transport-seek = Перемотування тексту
 ## Editor
 editor-label = Сценарій
 editor-placeholder = Введіть або вставте свій сценарій. Використовуйте " -- " для паузи або " --2 ", щоб зупинитися на 2 секунди.
-editor-unsaved = Незбережений сценарій
 editor-caesura-hint = Введіть -- для паузи
 editor-est-time = Час читання { $time }
-editor-preview = Перегляд
 editor-speed = Швидкість (символів за секунду)
 editor-speed-bpm = Швидкість (BPM)
 editor-bpm-mode = Режим BPM (спів)
@@ -70,11 +88,24 @@ teleprompter-empty = Сценарій ще не завантажено. Відк
 
 ## Settings
 settings-title = Налаштування
+settings-search-placeholder = Пошук налаштувань…
+settings-search-none = Немає відповідних налаштувань.
+settings-changed = Змінено після відкриття
+settings-ok = Гаразд
+settings-cat-general = Загальні
+settings-cat-reading = Читання
+settings-cat-appearance = Вигляд
+settings-cat-projector = Проєктор
+settings-cat-network = Мережа
 settings-language = Мова
 settings-language-auto = Як у системі
 settings-theme = Тема
 settings-theme-dark = Темна
 settings-theme-light = Світла
+settings-window-section = Вікно
+settings-minimize-to-tray = Згортати в системний лоток
+settings-minimize-to-tray-note = Кнопка «Згорнути» ховає вікно замість того, щоб надіслати його на панель задач. Клацніть піктограму в лотку, щоб повернути вікно. Піктограма існує лише поки вікно приховане — після відновлення вона зникає.
+settings-lan-off-hint = Трансляцію вимкнено. Увімкніть її та натисніть «Застосувати», щоб отримати посилання та QR-код.
 settings-section-reading = Читання
 settings-speed = Швидкість читання — { $value } символів за секунду
 settings-font-size = Розмір шрифту — { $value } px

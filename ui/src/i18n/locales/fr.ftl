@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Scripts
 toolbar-projector = Ouvrir le projecteur
 toolbar-settings = Paramètres
+toolbar-about = À propos
 toolbar-bug-report = Signaler un problème
 toolbar-updates = Rechercher des mises à jour
+
+## Window controls (the app draws its own title bar)
+window-minimize = Réduire
+window-maximize = Agrandir
+window-restore = Restaurer
+window-close = Fermer
+
+## System tray
+tray-show = Afficher Freally Teleprompt
+tray-quit = Quitter
+
+## About
+about-version = Version { $version }
+about-tagline = Un prompteur local pour créateurs, conférenciers et artistes. Un même moteur fondé sur les caractères garde l'aperçu, le projecteur et la diffusion réseau sur le même mot.
+about-privacy = Pas d'IA, pas de compte, pas de télémétrie. Vos scripts restent sur votre appareil.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Tous droits réservés.
+about-website = Site web
+about-source = Code source
+about-close = Fermer
 
 ## Transport
 transport-play = Lecture
@@ -26,10 +46,8 @@ transport-seek = Se déplacer dans le script
 ## Editor
 editor-label = Script
 editor-placeholder = Saisissez ou collez votre script. Utilisez " -- " pour une pause, ou " --2 " pour marquer 2 secondes.
-editor-unsaved = Script non enregistré
 editor-caesura-hint = Tapez -- pour une pause
 editor-est-time = Temps de lecture { $time }
-editor-preview = Aperçu
 editor-speed = Vitesse (caractères par seconde)
 editor-speed-bpm = Vitesse (BPM)
 editor-bpm-mode = Mode BPM (chant)
@@ -70,11 +88,24 @@ teleprompter-empty = Aucun script chargé. Ouvrez-en un depuis Scripts, ou comme
 
 ## Settings
 settings-title = Paramètres
+settings-search-placeholder = Rechercher dans les paramètres…
+settings-search-none = Aucun paramètre correspondant.
+settings-changed = Modifié depuis l'ouverture
+settings-ok = OK
+settings-cat-general = Général
+settings-cat-reading = Lecture
+settings-cat-appearance = Apparence
+settings-cat-projector = Projecteur
+settings-cat-network = Réseau
 settings-language = Langue
 settings-language-auto = Comme mon système
 settings-theme = Thème
 settings-theme-dark = Sombre
 settings-theme-light = Clair
+settings-window-section = Fenêtre
+settings-minimize-to-tray = Réduire dans la zone de notification
+settings-minimize-to-tray-note = Le bouton Réduire masque la fenêtre au lieu de l'envoyer dans la barre des tâches. Cliquez sur l'icône de la zone de notification pour la faire revenir. L'icône n'existe que tant que la fenêtre est masquée : la restaurer la fait disparaître.
+settings-lan-off-hint = La diffusion est désactivée. Activez-la puis appuyez sur Appliquer pour obtenir un lien et un QR code.
 settings-section-reading = Lecture
 settings-speed = Vitesse de lecture — { $value } caractères par seconde
 settings-font-size = Taille de police — { $value } px

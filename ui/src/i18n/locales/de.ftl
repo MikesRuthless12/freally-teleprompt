@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Skripte
 toolbar-projector = Projektor öffnen
 toolbar-settings = Einstellungen
+toolbar-about = Über
 toolbar-bug-report = Problem melden
 toolbar-updates = Nach Updates suchen
+
+## Window controls (the app draws its own title bar)
+window-minimize = Minimieren
+window-maximize = Maximieren
+window-restore = Wiederherstellen
+window-close = Schließen
+
+## System tray
+tray-show = Freally Teleprompt anzeigen
+tray-quit = Beenden
+
+## About
+about-version = Version { $version }
+about-tagline = Ein lokal arbeitender Teleprompter für Kreative, Vortragende und Bühnenprofis. Eine zeichenbasierte Engine hält Vorschau, Projektor und Netzwerkspiegel auf demselben Wort.
+about-privacy = Keine KI, kein Konto, keine Telemetrie. Deine Skripte bleiben auf deinem Gerät.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Alle Rechte vorbehalten.
+about-website = Website
+about-source = Quellcode
+about-close = Schließen
 
 ## Transport
 transport-play = Start
@@ -26,10 +46,8 @@ transport-seek = Im Skript navigieren
 ## Editor
 editor-label = Skript
 editor-placeholder = Tippe oder füge dein Skript ein. Verwende " -- " für eine Pause oder " --2 " für 2 Sekunden.
-editor-unsaved = Nicht gespeichertes Skript
 editor-caesura-hint = Für eine Pause -- eingeben
 editor-est-time = Lesezeit { $time }
-editor-preview = Vorschau
 editor-speed = Tempo (Zeichen pro Sekunde)
 editor-speed-bpm = Tempo (BPM)
 editor-bpm-mode = BPM-Modus (Gesang)
@@ -70,11 +88,24 @@ teleprompter-empty = Noch kein Skript geladen. Öffne eines unter „Skripte“ 
 
 ## Settings
 settings-title = Einstellungen
+settings-search-placeholder = Einstellungen durchsuchen…
+settings-search-none = Keine passenden Einstellungen.
+settings-changed = Seit dem Öffnen geändert
+settings-ok = OK
+settings-cat-general = Allgemein
+settings-cat-reading = Lesen
+settings-cat-appearance = Darstellung
+settings-cat-projector = Projektor
+settings-cat-network = Netzwerk
 settings-language = Sprache
 settings-language-auto = Wie mein System
 settings-theme = Design
 settings-theme-dark = Dunkel
 settings-theme-light = Hell
+settings-window-section = Fenster
+settings-minimize-to-tray = In den Infobereich minimieren
+settings-minimize-to-tray-note = Die Schaltfläche „Minimieren“ blendet das Fenster aus, statt es in die Taskleiste zu legen. Ein Klick auf das Symbol im Infobereich holt es zurück. Das Symbol existiert nur, solange das Fenster ausgeblendet ist — beim Wiederherstellen verschwindet es wieder.
+settings-lan-off-hint = Die Spiegelung ist aus. Schalte sie ein und drücke Anwenden, um Link und QR-Code zu erhalten.
 settings-section-reading = Lesen
 settings-speed = Lesetempo — { $value } Zeichen pro Sekunde
 settings-font-size = Schriftgröße — { $value } px

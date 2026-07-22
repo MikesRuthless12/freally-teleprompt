@@ -38,6 +38,9 @@ export type Settings = {
   mirror: boolean;
   /** Reading appearance (FT-15). */
   look: Look;
+  /** Minimise to the system tray instead of the taskbar. Off by default; while
+   * it is off no tray icon exists at all. */
+  minimizeToTray: boolean;
   /** Serve the read-only LAN mirror (FT-12). Off by default. */
   lanEnabled: boolean;
   /** Bind the mirror to every interface instead of loopback only. */

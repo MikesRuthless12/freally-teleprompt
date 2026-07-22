@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Scenariusze
 toolbar-projector = Otwórz projektor
 toolbar-settings = Ustawienia
+toolbar-about = O programie
 toolbar-bug-report = Zgłoś problem
 toolbar-updates = Sprawdź aktualizacje
+
+## Window controls (the app draws its own title bar)
+window-minimize = Minimalizuj
+window-maximize = Maksymalizuj
+window-restore = Przywróć
+window-close = Zamknij
+
+## System tray
+tray-show = Pokaż Freally Teleprompt
+tray-quit = Zakończ
+
+## About
+about-version = Wersja { $version }
+about-tagline = Działający lokalnie prompter dla twórców, prelegentów i wykonawców. Jeden silnik oparty na znakach utrzymuje podgląd, projektor i odbicie sieciowe na tym samym słowie.
+about-privacy = Bez AI, bez konta, bez telemetrii. Twoje scenariusze zostają na Twoim urządzeniu.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Wszelkie prawa zastrzeżone.
+about-website = Strona
+about-source = Kod źródłowy
+about-close = Zamknij
 
 ## Transport
 transport-play = Odtwórz
@@ -26,10 +46,8 @@ transport-seek = Przewijaj scenariusz
 ## Editor
 editor-label = Scenariusz
 editor-placeholder = Wpisz lub wklej swój scenariusz. Użyj " -- ", aby zrobić pauzę, albo " --2 ", aby zatrzymać się na 2 sekundy.
-editor-unsaved = Niezapisany scenariusz
 editor-caesura-hint = Wpisz --, aby dodać pauzę
 editor-est-time = Czas czytania { $time }
-editor-preview = Podgląd
 editor-speed = Tempo (znaki na sekundę)
 editor-speed-bpm = Prędkość (BPM)
 editor-bpm-mode = Tryb BPM (śpiew)
@@ -70,11 +88,24 @@ teleprompter-empty = Nie wczytano jeszcze scenariusza. Otwórz go w Scenariuszac
 
 ## Settings
 settings-title = Ustawienia
+settings-search-placeholder = Szukaj ustawień…
+settings-search-none = Brak pasujących ustawień.
+settings-changed = Zmienione od otwarcia
+settings-ok = OK
+settings-cat-general = Ogólne
+settings-cat-reading = Czytanie
+settings-cat-appearance = Wygląd
+settings-cat-projector = Projektor
+settings-cat-network = Sieć
 settings-language = Język
 settings-language-auto = Taki jak w systemie
 settings-theme = Motyw
 settings-theme-dark = Ciemny
 settings-theme-light = Jasny
+settings-window-section = Okno
+settings-minimize-to-tray = Minimalizuj do zasobnika systemowego
+settings-minimize-to-tray-note = Przycisk minimalizacji ukrywa okno zamiast wysyłać je na pasek zadań. Kliknij ikonę w zasobniku, aby je przywrócić. Ikona istnieje tylko wtedy, gdy okno jest ukryte — po przywróceniu znika.
+settings-lan-off-hint = Odbicie jest wyłączone. Włącz je i naciśnij Zastosuj, aby otrzymać odnośnik i kod QR.
 settings-section-reading = Czytanie
 settings-speed = Szybkość czytania — { $value } znaków na sekundę
 settings-font-size = Rozmiar czcionki — { $value } px

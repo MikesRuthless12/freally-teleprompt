@@ -59,6 +59,20 @@ a real transport, and the prompter reading itself aloud.
 
 ### Changed
 
+- **The app draws its own window.** No OS title bar: a centred title, with
+  Settings, About, and minimise / maximise-restore / close on the right — the
+  same arrangement Freally Player uses, so the suite's windows read alike. The
+  bar is draggable, double-click still maximises, and the window is still
+  resizable from every edge and corner.
+- **Settings is now a proper settings dialog**, in the same shape as Freally
+  Capture's: a category sidebar (General, Reading, Appearance, Projector,
+  Network) with a search box, and an **OK / Cancel / Apply** footer. Apply is
+  dead until something actually changes, and a dot marks the categories you have
+  edited but not yet applied.
+- **Minimize to the system tray** (Settings → General). Off by default. With it
+  on, minimising hides the window and puts an icon in the tray; restoring brings
+  the window back **and takes the icon away** — the app is in the taskbar or in
+  the tray, never both. The tray menu is translated like the rest of the app.
 - **The app icon is now the full artwork at every size.** `0.100.0` swapped in a
   cropped, glyph-only "F" for icons of 48px and below, on the grounds that the
   wordmark in the artwork is unreadable that small. One consistent mark turned

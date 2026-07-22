@@ -100,6 +100,24 @@ export const lanMirrorStatus = (): Promise<MirrorStatus> => invoke("lan_mirror_s
  */
 export const lanMirrorOpen = (): Promise<void> => invoke("lan_mirror_open");
 
+// -- the system tray + window -------------------------------------------------
+
+/**
+ * Create or destroy the tray icon to match `minimizeToTray`.
+ *
+ * The menu labels are passed in because Rust has no Fluent catalogs — the 18
+ * locales live here. That also means the menu re-localises when the language
+ * changes, which a Rust-side copy never would.
+ */
+export const traySync = (showLabel: string, quitLabel: string): Promise<void> =>
+  invoke("tray_sync", { showLabel, quitLabel });
+
+/**
+ * Minimise the main window — to the tray if the user asked for that, otherwise
+ * to the taskbar. Rust decides, because Rust owns the setting.
+ */
+export const windowMinimize = (): Promise<void> => invoke("window_minimize");
+
 // -- read-aloud (FT-16) ------------------------------------------------------
 
 /**

@@ -1,7 +1,8 @@
 name: Linux prerequisites
 description: >
-  The apt packages every Linux job needs — Tauri v2's webview/gtk stack, plus
-  the speech-dispatcher headers the FT-16 read-aloud fallback shells out to.
+  The apt packages every Linux job needs — Tauri v2's webview/gtk stack, the
+  speech-dispatcher headers the FT-16 read-aloud fallback shells out to, and
+  the appindicator library the system-tray icon links against.
   Shared by ci.yml and release.yml so the list can never drift between them.
 runs:
   using: composite
@@ -12,4 +13,5 @@ runs:
         sudo apt-get update
         sudo apt-get install -y \
           pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev patchelf \
-          libxdo-dev libssl-dev
+          libxdo-dev libssl-dev \
+          libayatana-appindicator3-dev

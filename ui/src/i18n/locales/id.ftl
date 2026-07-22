@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Naskah
 toolbar-projector = Buka proyektor
 toolbar-settings = Pengaturan
+toolbar-about = Tentang
 toolbar-bug-report = Laporkan masalah
 toolbar-updates = Periksa pembaruan
+
+## Window controls (the app draws its own title bar)
+window-minimize = Perkecil
+window-maximize = Perbesar
+window-restore = Pulihkan
+window-close = Tutup
+
+## System tray
+tray-show = Tampilkan Freally Teleprompt
+tray-quit = Keluar
+
+## About
+about-version = Versi { $version }
+about-tagline = Teleprompter lokal untuk kreator, pembicara, dan penampil. Satu mesin berbasis karakter menjaga pratinjau, proyektor, dan cermin jaringan tetap pada kata yang sama.
+about-privacy = Tanpa AI, tanpa akun, tanpa telemetri. Naskah Anda tetap di perangkat Anda.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Hak cipta dilindungi.
+about-website = Situs web
+about-source = Kode sumber
+about-close = Tutup
 
 ## Transport
 transport-play = Putar
@@ -26,10 +46,8 @@ transport-seek = Telusuri naskah
 ## Editor
 editor-label = Naskah
 editor-placeholder = Ketik atau tempel naskah Anda. Gunakan " -- " untuk jeda, atau " --2 " untuk berhenti 2 detik.
-editor-unsaved = Naskah belum disimpan
 editor-caesura-hint = Ketik -- untuk jeda
 editor-est-time = Waktu baca { $time }
-editor-preview = Pratinjau
 editor-speed = Kecepatan (karakter per detik)
 editor-speed-bpm = Kecepatan (BPM)
 editor-bpm-mode = Mode BPM (menyanyi)
@@ -70,11 +88,24 @@ teleprompter-empty = Belum ada naskah dimuat. Buka satu dari Naskah, atau mulai 
 
 ## Settings
 settings-title = Pengaturan
+settings-search-placeholder = Cari pengaturan…
+settings-search-none = Tidak ada pengaturan yang cocok.
+settings-changed = Berubah sejak dibuka
+settings-ok = OK
+settings-cat-general = Umum
+settings-cat-reading = Membaca
+settings-cat-appearance = Tampilan
+settings-cat-projector = Proyektor
+settings-cat-network = Jaringan
 settings-language = Bahasa
 settings-language-auto = Sama seperti sistem saya
 settings-theme = Tema
 settings-theme-dark = Gelap
 settings-theme-light = Terang
+settings-window-section = Jendela
+settings-minimize-to-tray = Perkecil ke baki sistem
+settings-minimize-to-tray-note = Tombol perkecil menyembunyikan jendela alih-alih mengirimnya ke bilah tugas. Klik ikon baki sistem untuk memunculkannya kembali. Ikon hanya ada selama jendela tersembunyi — memulihkannya menghilangkan ikon itu lagi.
+settings-lan-off-hint = Cermin mati. Nyalakan lalu tekan Terapkan untuk mendapat tautan dan kode QR.
 settings-section-reading = Membaca
 settings-speed = Kecepatan baca — { $value } karakter per detik
 settings-font-size = Ukuran font — { $value } px

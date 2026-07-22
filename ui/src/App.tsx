@@ -8,17 +8,20 @@ import {
   teleprompterControl,
   teleprompterSetScript,
   teleprompterSetSpeed,
+  traySync,
 } from "./api/commands";
 import type { EulaStatus, Settings } from "./api/types";
 import { applySettingsToDocument, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor } from "./components/CaesuraEditor";
 import { BUTTON } from "./components/styles";
+import { ResizeEdges, TitleBar } from "./components/TitleBar";
 import { Transport } from "./components/Transport";
 import { parseCaesuras, timeAtOffset, visibleChars } from "./lib/caesura";
 import { BPM_MAX, BPM_MIN, bpmFromSpeed, clampBpm, speedFromBpm } from "./lib/speed";
 import { fmtTime } from "./lib/time";
 import { readAloud, stopReading } from "./lib/tts";
 import { useTeleprompter } from "./lib/useTeleprompter";
+import { AboutDialog } from "./panels/About";
 import { BugReportDialog } from "./panels/BugReport";
 import { EulaGate } from "./panels/EulaGate";
 import { ProjectorSetup } from "./panels/ProjectorSetup";
@@ -57,6 +60,7 @@ export default function App() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [projectorOpen, setProjectorOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   // The script currently open in the library (FT-10), or null for an unsaved
   // scratch script. Autosave only runs when there is somewhere to save TO.
   const [currentScript, setCurrentScript] = useState<string | null>(null);
@@ -94,6 +98,16 @@ export default function App() {
       .then(setEula)
       .catch(() => setEula(null));
   }, []);
+
+  // Keep the tray in step with BOTH the setting and the language. Its menu is
+  // the one piece of app text Rust owns, and Rust has no Fluent catalogs — so
+  // the labels are resolved here and pushed down. Depending on `t` as well as
+  // `settings` is what makes the menu re-localise when the language changes;
+  // Rust could never notice that on its own.
+  useEffect(() => {
+    if (!settings) return;
+    void traySync(t("tray-show"), t("tray-quit")).catch(() => undefined);
+  }, [settings, t]);
 
   // Did the last run crash? The report is a local file the panic hook wrote;
   // reading it sends nothing. If there is one, it opens on top of the app —
@@ -289,32 +303,43 @@ export default function App() {
   // The app is unusable until the current EULA version is accepted (FT-05).
   // Nothing renders until we know, and a failed query fails CLOSED — a legal
   // gate that opens when it breaks is not a gate.
-  if (eula === undefined) return null;
+  //
+  // The title bar and resize edges wrap ALL of these, including the gate and the
+  // failure state: the window has no OS chrome, so without them a user who
+  // cannot get past the gate would have no way to move, resize, or close the
+  // app at all.
+  const chrome = (children: React.ReactNode, withActions = false) => (
+    <div className="bg-havoc-bg text-havoc-text flex h-full w-full flex-col">
+      <TitleBar
+        onSettings={withActions ? () => setSettingsOpen(true) : undefined}
+        onAbout={withActions ? () => setAboutOpen(true) : undefined}
+      />
+      {children}
+      <ResizeEdges />
+    </div>
+  );
+
+  if (eula === undefined) return chrome(<div className="flex-1" />);
   if (eula === null) {
-    return (
-      <div className="bg-havoc-bg text-havoc-text flex h-full w-full items-center justify-center p-6">
+    return chrome(
+      <div className="flex flex-1 items-center justify-center p-6">
         <p role="alert" className="m-0 text-center text-sm">
           {t("startup-failed")}
         </p>
-      </div>
+      </div>,
     );
   }
   if (!eula.accepted) {
-    return <EulaGate status={eula} onAccepted={() => setEula({ ...eula, accepted: true })} />;
+    return chrome(
+      <EulaGate status={eula} onAccepted={() => setEula({ ...eula, accepted: true })} />,
+    );
   }
 
   const playing = readAloudMode ? speaking : state.playing;
 
-  return (
-    <div className="bg-havoc-bg text-havoc-text flex h-full w-full flex-col">
+  return chrome(
+    <>
       <header className="flex items-center gap-2 border-b border-white/10 bg-white/[0.03] px-3 py-2">
-        <span className="from-havoc-accent to-havoc-accent-2 bg-gradient-to-r bg-clip-text text-sm font-bold tracking-wide text-transparent">
-          {t("app-name")}
-        </span>
-        <span className="text-havoc-muted max-w-48 truncate text-[11px]">
-          {currentScript ?? t("editor-unsaved")}
-        </span>
-        <div className="flex-1" />
         <button type="button" className={BUTTON} onClick={() => setLibraryOpen(true)}>
           {t("toolbar-library")}
         </button>
@@ -327,13 +352,14 @@ export default function App() {
         <button type="button" className={BUTTON} onClick={() => setManualUpdates(true)}>
           {t("toolbar-updates")}
         </button>
-        <button type="button" className={BUTTON} onClick={() => setSettingsOpen(true)}>
-          {t("toolbar-settings")}
-        </button>
+        <div className="flex-1" />
       </header>
 
       <main className="grid min-h-0 flex-1 gap-3 p-3 md:grid-cols-2">
         <section className="flex min-h-0 flex-col gap-2">
+          {/* Just the field label. The open script's name is NOT shown here —
+              the Scripts dialog marks it, which is where you go to change it
+              anyway; on the main surface it was one more thing to read. */}
           <label id="script-label" className="text-havoc-muted text-[11px]">
             {t("editor-label")}
           </label>
@@ -439,8 +465,9 @@ export default function App() {
           </label>
         </section>
 
+        {/* No "Preview" caption: a black scrolling script beside an editor does
+            not need to be labelled as the preview. */}
         <section className="flex min-h-0 flex-col gap-2">
-          <span className="text-havoc-muted text-[11px]">{t("editor-preview")}</span>
           <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-white/10">
             <TeleprompterScroller
               state={state}
@@ -498,6 +525,9 @@ export default function App() {
       {(manualUpdates || autoUpdateDue) && (
         <UpdatesDialog manual={manualUpdates} stacked={bugOpen} onClose={closeUpdates} />
       )}
-    </div>
+
+      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
+    </>,
+    true,
   );
 }

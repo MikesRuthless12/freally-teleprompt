@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Guiones
 toolbar-projector = Abrir proyector
 toolbar-settings = Ajustes
+toolbar-about = Acerca de
 toolbar-bug-report = Informar de un problema
 toolbar-updates = Buscar actualizaciones
+
+## Window controls (the app draws its own title bar)
+window-minimize = Minimizar
+window-maximize = Maximizar
+window-restore = Restaurar
+window-close = Cerrar
+
+## System tray
+tray-show = Mostrar Freally Teleprompt
+tray-quit = Salir
+
+## About
+about-version = Versión { $version }
+about-tagline = Un teleprompter local para creadores, ponentes e intérpretes. Un mismo motor basado en caracteres mantiene la vista previa, el proyector y la copia en red sobre la misma palabra.
+about-privacy = Sin IA, sin cuenta, sin telemetría. Tus guiones se quedan en tu dispositivo.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Todos los derechos reservados.
+about-website = Sitio web
+about-source = Código fuente
+about-close = Cerrar
 
 ## Transport
 transport-play = Reproducir
@@ -26,10 +46,8 @@ transport-seek = Desplazarse por el guion
 ## Editor
 editor-label = Guion
 editor-placeholder = Escribe o pega tu guion. Usa " -- " para una pausa, o " --2 " para detenerte 2 segundos.
-editor-unsaved = Guion sin guardar
 editor-caesura-hint = Escribe -- para una pausa
 editor-est-time = Tiempo de lectura { $time }
-editor-preview = Vista previa
 editor-speed = Velocidad (caracteres por segundo)
 editor-speed-bpm = Velocidad (BPM)
 editor-bpm-mode = Modo BPM (canto)
@@ -70,11 +88,24 @@ teleprompter-empty = Aún no hay guion cargado. Abre uno desde Guiones o empieza
 
 ## Settings
 settings-title = Ajustes
+settings-search-placeholder = Buscar ajustes…
+settings-search-none = No hay ajustes que coincidan.
+settings-changed = Cambiado desde que se abrió
+settings-ok = Aceptar
+settings-cat-general = General
+settings-cat-reading = Lectura
+settings-cat-appearance = Apariencia
+settings-cat-projector = Proyector
+settings-cat-network = Red
 settings-language = Idioma
 settings-language-auto = Igual que mi sistema
 settings-theme = Tema
 settings-theme-dark = Oscuro
 settings-theme-light = Claro
+settings-window-section = Ventana
+settings-minimize-to-tray = Minimizar al área de notificación
+settings-minimize-to-tray-note = El botón de minimizar oculta la ventana en lugar de enviarla a la barra de tareas. Haz clic en el icono del área de notificación para recuperarla. El icono solo existe mientras la ventana está oculta: al restaurarla desaparece.
+settings-lan-off-hint = La copia está desactivada. Actívala y pulsa Aplicar para obtener un enlace y un código QR.
 settings-section-reading = Lectura
 settings-speed = Velocidad de lectura — { $value } caracteres por segundo
 settings-font-size = Tamaño de fuente — { $value } px

@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Scripts
 toolbar-projector = Projector openen
 toolbar-settings = Instellingen
+toolbar-about = Over
 toolbar-bug-report = Een probleem melden
 toolbar-updates = Controleren op updates
+
+## Window controls (the app draws its own title bar)
+window-minimize = Minimaliseren
+window-maximize = Maximaliseren
+window-restore = Herstellen
+window-close = Sluiten
+
+## System tray
+tray-show = Freally Teleprompt tonen
+tray-quit = Afsluiten
+
+## About
+about-version = Versie { $version }
+about-tagline = Een lokale autocue voor makers, sprekers en performers. Eén op tekens gebaseerde engine houdt de voorvertoning, de projector en de netwerkspiegel op hetzelfde woord.
+about-privacy = Geen AI, geen account, geen telemetrie. Je scripts blijven op je eigen apparaat.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Alle rechten voorbehouden.
+about-website = Website
+about-source = Broncode
+about-close = Sluiten
 
 ## Transport
 transport-play = Afspelen
@@ -26,10 +46,8 @@ transport-seek = Door het script bladeren
 ## Editor
 editor-label = Script
 editor-placeholder = Typ of plak je script. Gebruik " -- " voor een pauze, of " --2 " om 2 seconden te wachten.
-editor-unsaved = Niet-opgeslagen script
 editor-caesura-hint = Typ -- voor een pauze
 editor-est-time = Leestijd { $time }
-editor-preview = Voorbeeld
 editor-speed = Snelheid (tekens per seconde)
 editor-speed-bpm = Snelheid (BPM)
 editor-bpm-mode = BPM-modus (zang)
@@ -70,11 +88,24 @@ teleprompter-empty = Nog geen script geladen. Open er een bij Scripts, of begin 
 
 ## Settings
 settings-title = Instellingen
+settings-search-placeholder = Instellingen zoeken…
+settings-search-none = Geen overeenkomende instellingen.
+settings-changed = Gewijzigd sinds openen
+settings-ok = OK
+settings-cat-general = Algemeen
+settings-cat-reading = Lezen
+settings-cat-appearance = Weergave
+settings-cat-projector = Projector
+settings-cat-network = Netwerk
 settings-language = Taal
 settings-language-auto = Hetzelfde als mijn systeem
 settings-theme = Thema
 settings-theme-dark = Donker
 settings-theme-light = Licht
+settings-window-section = Venster
+settings-minimize-to-tray = Minimaliseren naar het systeemvak
+settings-minimize-to-tray-note = De minimaliseerknop verbergt het venster in plaats van het naar de taakbalk te sturen. Klik op het pictogram in het systeemvak om het terug te halen. Het pictogram bestaat alleen zolang het venster verborgen is — bij herstellen verdwijnt het weer.
+settings-lan-off-hint = De spiegeling staat uit. Zet hem aan en druk op Toepassen voor een link en een QR-code.
 settings-section-reading = Lezen
 settings-speed = Leessnelheid — { $value } tekens per seconde
 settings-font-size = Tekengrootte — { $value } px

@@ -219,6 +219,13 @@ body {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
+/* The Settings sidebar's hover state. `hover:bg-white/5` emits its OWN
+   selector, so overriding the bare `.bg-white/5` above does nothing for it —
+   exactly the trap `theme-lint` exists to catch. */
+:root[data-theme="light"] .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
 :root[data-theme="light"] .bg-white\/10 {
   background-color: rgba(0, 0, 0, 0.09);
 }

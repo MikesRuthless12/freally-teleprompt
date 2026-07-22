@@ -97,6 +97,10 @@ pub struct Settings {
     /// height, and where the reading guide sits.
     #[serde(default)]
     pub look: Look,
+    /// Minimise to the system tray instead of the taskbar. Off by default, and
+    /// while it is off no tray icon is created at all.
+    #[serde(default)]
+    pub minimize_to_tray: bool,
     /// Serve the read-only LAN mirror (FT-12). **Off by default**: while it is
     /// off no socket is opened at all.
     #[serde(default)]
@@ -137,6 +141,7 @@ impl Default for Settings {
             countdown_secs: 0.0,
             mirror: false,
             look: Look::default(),
+            minimize_to_tray: false,
             lan_enabled: false,
             lan_all_interfaces: false,
             lan_port: default_lan_port(),

@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = النصوص
 toolbar-projector = فتح جهاز العرض
 toolbar-settings = الإعدادات
+toolbar-about = حول
 toolbar-bug-report = الإبلاغ عن مشكلة
 toolbar-updates = التحقق من التحديثات
+
+## Window controls (the app draws its own title bar)
+window-minimize = تصغير
+window-maximize = تكبير
+window-restore = استعادة
+window-close = إغلاق
+
+## System tray
+tray-show = إظهار Freally Teleprompt
+tray-quit = إنهاء
+
+## About
+about-version = الإصدار { $version }
+about-tagline = ملقّن نصوص يعمل محليًا لصنّاع المحتوى والمحاضرين والمؤدّين. محرّك واحد قائم على الأحرف يُبقي المعاينة وجهاز العرض والمزامنة الشبكية على الكلمة نفسها.
+about-privacy = بلا ذكاء اصطناعي، وبلا حساب، وبلا تتبّع. تبقى نصوصك على جهازك.
+about-copyright = © 2026 Mike Weaver — Havoc Software. جميع الحقوق محفوظة.
+about-website = الموقع
+about-source = الشيفرة المصدرية
+about-close = إغلاق
 
 ## Transport
 transport-play = تشغيل
@@ -26,10 +46,8 @@ transport-seek = التنقل داخل النص
 ## Editor
 editor-label = النص
 editor-placeholder = اكتب نصك أو الصقه هنا. استخدم " -- " لإضافة وقفة، أو " --2 " للتوقف مدة ثانيتين.
-editor-unsaved = نص غير محفوظ
 editor-caesura-hint = اكتب -- لإضافة وقفة
 editor-est-time = زمن القراءة { $time }
-editor-preview = معاينة
 editor-speed = السرعة (حرف في الثانية)
 editor-speed-bpm = السرعة (BPM)
 editor-bpm-mode = وضع BPM (غناء)
@@ -70,11 +88,24 @@ teleprompter-empty = لم يُحمَّل أي نص بعد. افتح واحدًا
 
 ## Settings
 settings-title = الإعدادات
+settings-search-placeholder = بحث في الإعدادات…
+settings-search-none = لا توجد إعدادات مطابقة.
+settings-changed = تغيّر منذ الفتح
+settings-ok = موافق
+settings-cat-general = عام
+settings-cat-reading = القراءة
+settings-cat-appearance = المظهر
+settings-cat-projector = جهاز العرض
+settings-cat-network = الشبكة
 settings-language = اللغة
 settings-language-auto = مثل نظامي
 settings-theme = السمة
 settings-theme-dark = داكن
 settings-theme-light = فاتح
+settings-window-section = النافذة
+settings-minimize-to-tray = التصغير إلى شريط النظام
+settings-minimize-to-tray-note = يُخفي زر التصغير النافذة بدل إرسالها إلى شريط المهام. انقر أيقونة شريط النظام لإعادتها. لا توجد الأيقونة إلا ما دامت النافذة مخفية، وتختفي بمجرد استعادتها.
+settings-lan-off-hint = المزامنة مُعطّلة. فعِّلها ثم اضغط «تطبيق» للحصول على رابط ورمز QR.
 settings-section-reading = القراءة
 settings-speed = سرعة القراءة — { $value } حرفًا في الثانية
 settings-font-size = حجم الخط — { $value } بكسل

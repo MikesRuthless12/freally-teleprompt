@@ -67,5 +67,9 @@ windows-sys = { version = "0.60", features = [
     "Win32_System_Threading",
 ] }
 
-tauri = { version = "2", features = [] }
+# `tray-icon` is what lets "minimize to system tray" put the window somewhere.
+# On Linux it links against libayatana-appindicator3 — see
+# `.github/actions/linux-deps`, which every Linux job shares so the requirement
+# cannot drift between CI and the release build.
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-build = "2"

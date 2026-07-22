@@ -9,8 +9,28 @@ app-name = Freally Teleprompt
 toolbar-library = Сценарии
 toolbar-projector = Открыть проектор
 toolbar-settings = Настройки
+toolbar-about = О программе
 toolbar-bug-report = Сообщить о проблеме
 toolbar-updates = Проверить обновления
+
+## Window controls (the app draws its own title bar)
+window-minimize = Свернуть
+window-maximize = Развернуть
+window-restore = Восстановить
+window-close = Закрыть
+
+## System tray
+tray-show = Показать Freally Teleprompt
+tray-quit = Выход
+
+## About
+about-version = Версия { $version }
+about-tagline = Локальный телесуфлёр для авторов, докладчиков и артистов. Один посимвольный движок держит предпросмотр, проектор и сетевую трансляцию на одном и том же слове.
+about-privacy = Никакого ИИ, аккаунтов и телеметрии. Ваши сценарии остаются на вашем устройстве.
+about-copyright = © 2026 Mike Weaver — Havoc Software. Все права защищены.
+about-website = Сайт
+about-source = Исходный код
+about-close = Закрыть
 
 ## Transport
 transport-play = Пуск
@@ -26,10 +46,8 @@ transport-seek = Перемотка по тексту
 ## Editor
 editor-label = Сценарий
 editor-placeholder = Введите или вставьте свой сценарий. Используйте " -- " для паузы или " --2 ", чтобы остановиться на 2 секунды.
-editor-unsaved = Несохранённый сценарий
 editor-caesura-hint = Введите -- для паузы
 editor-est-time = Время чтения { $time }
-editor-preview = Предпросмотр
 editor-speed = Скорость (символов в секунду)
 editor-speed-bpm = Скорость (BPM)
 editor-bpm-mode = Режим BPM (пение)
@@ -70,11 +88,24 @@ teleprompter-empty = Сценарий ещё не загружен. Открой
 
 ## Settings
 settings-title = Настройки
+settings-search-placeholder = Поиск настроек…
+settings-search-none = Нет подходящих настроек.
+settings-changed = Изменено с момента открытия
+settings-ok = ОК
+settings-cat-general = Общие
+settings-cat-reading = Чтение
+settings-cat-appearance = Внешний вид
+settings-cat-projector = Проектор
+settings-cat-network = Сеть
 settings-language = Язык
 settings-language-auto = Как в системе
 settings-theme = Тема
 settings-theme-dark = Тёмная
 settings-theme-light = Светлая
+settings-window-section = Окно
+settings-minimize-to-tray = Сворачивать в системный лоток
+settings-minimize-to-tray-note = Кнопка «Свернуть» скрывает окно вместо того, чтобы отправить его на панель задач. Щёлкните значок в лотке, чтобы вернуть окно. Значок существует только пока окно скрыто — после восстановления он исчезает.
+settings-lan-off-hint = Трансляция выключена. Включите её и нажмите «Применить», чтобы получить ссылку и QR-код.
 settings-section-reading = Чтение
 settings-speed = Скорость чтения — { $value } символов в секунду
 settings-font-size = Размер шрифта — { $value } px

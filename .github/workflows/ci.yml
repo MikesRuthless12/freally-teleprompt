@@ -173,7 +173,7 @@ jobs:
           sudo apt-get update
           # x11-utils supplies xwininfo, which the script's failure diagnostics
           # use to say WHY there is no window rather than only that there isn't.
-          sudo apt-get install -y xvfb imagemagick xdotool x11-utils
+          sudo apt-get install -y xvfb imagemagick xdotool x11-utils openbox
           # `setsid` detaches Xvfb from this step's process group. Without it the
           # runner tears the group down when the step ends, and the display would
           # be gone by the time the next step tries to paint on it.
@@ -181,6 +181,15 @@ jobs:
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
           # Give the X server a moment to accept connections.
           sleep 3
+          # A window manager. On a bare X server the app's GTK toplevel never
+          # got mapped — the only window X ever knew about was GTK's 10x10
+          # LEADER window (the one that carries WM_CLASS), which is why the
+          # screenshot was a uniformly black frame while the process sat there
+          # perfectly healthy. Nothing about the app requires a WM in normal use;
+          # a headless X server with no window manager at all is the unusual
+          # environment here, not the app.
+          setsid openbox >/dev/null 2>&1 &
+          sleep 2
       - name: Launch the app and screenshot it running
         run: node scripts/app-screenshot.mjs
       - uses: actions/upload-artifact@v4

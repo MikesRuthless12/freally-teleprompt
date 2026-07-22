@@ -227,6 +227,10 @@ function childEnv() {
     // local HTML with no network content, and never for a shipped app. It is a
     // property of the screenshot harness, not of Freally Teleprompt.
     WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: "1",
+    // Be explicit about the display backend. There is no Wayland compositor on
+    // a CI runner, and letting GDK work that out for itself is one more thing
+    // that can go quietly differently between a runner and a desktop.
+    GDK_BACKEND: "x11",
   };
 }
 

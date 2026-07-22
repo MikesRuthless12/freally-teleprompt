@@ -63,7 +63,9 @@ const LOCALES = [
 const VISIBLE_KEYS: { key: string; at: (dialog: Locator) => Locator }[] = [
   { key: "settings-title", at: (d) => d.locator("#settings-title") },
   { key: "settings-cat-general", at: (d) => d.getByRole("tab").nth(0) },
-  { key: "settings-cat-reading", at: (d) => d.getByRole("tab").nth(1) },
+  // Index 1 is Editor (FT-20), which sits between General and Reading.
+  { key: "settings-cat-editor", at: (d) => d.getByRole("tab").nth(1) },
+  { key: "settings-cat-reading", at: (d) => d.getByRole("tab").nth(2) },
   {
     key: "settings-language",
     at: (d) => d.locator('label:has(> [data-testid="settings-language"]) > span'),

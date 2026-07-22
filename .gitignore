@@ -64,6 +64,11 @@ ui/test-results/
 # committed once already.
 /e2e/
 
+# Downloaded Tatoeba corpus exports (scripts/build-dicts.mjs). ~100 MB of source
+# data that the committed tables in ui/src/dict/ are generated FROM; re-fetched
+# on demand and never needed to build or run the app.
+.dict-cache/
+
 # The per-OS "app actually running" screenshots (scripts/app-screenshot.mjs).
 # CI uploads them as build artifacts; locally they are just a look-and-see.
 artifacts/

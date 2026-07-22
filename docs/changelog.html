@@ -110,6 +110,54 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>0.300.0</h2>
+        <p class="date">22 July 2026 — offline autocomplete</p>
+
+        <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
+          The editor finishes your words as you type, in any of the 18 languages — from word lists
+          that live inside the app.
+        </p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Suggestions as you type.</strong> Start a word and the rest of it appears dimmed
+            ahead of the cursor. Press <strong>Tab</strong> to take it, <strong>Esc</strong> to
+            dismiss it, or just keep typing to ignore it. Finish a word and press space and it will
+            offer to complete a whole common phrase.
+          </li>
+          <li>
+            <strong>Its own language setting.</strong> A new <strong>Editor</strong> pane in
+            Settings turns suggestions on or off and picks which language they come from — separate
+            from the app's own language, because writing a script in one language while running the
+            app in another is completely normal.
+          </li>
+          <li>
+            <strong>All 18 languages, offline.</strong> About 464,000 words and 345,000 phrases ship
+            inside the app. Only the language you are using is loaded.
+          </li>
+        </ul>
+
+        <h3>Changed</h3>
+        <ul>
+          <li>
+            <strong>The language list starts with English, then runs alphabetically by each
+            language's own name</strong> — Deutsch, Español, Français, and so on — and stays in that
+            order whichever language the app is in.
+          </li>
+        </ul>
+
+        <h3>Privacy</h3>
+        <ul>
+          <li>
+            <strong>Autocomplete never touches the network.</strong> It is a straight lookup against
+            word lists inside the installer — no model, no service, no telemetry. Nothing you type
+            leaves your machine, and it works with the computer offline.
+          </li>
+        </ul>
+      </article>
+
+      <article class="release">
         <h2>0.200.0</h2>
         <p class="date">21 July 2026 — the standalone teleprompter</p>
 
@@ -254,7 +302,7 @@
       <div class="empty-state">
         <h2>Installers are not published yet</h2>
         <p>
-          0.200.0 is a development milestone — the release pipeline lands in a later phase. When
+          0.300.0 is a development milestone — the release pipeline lands in a later phase. When
           the first installers are cut they will appear here for Windows, macOS, and Linux — free,
           local-first, no account. Meanwhile, the
           <a href="documentation.html">documentation</a> describes what the app does.

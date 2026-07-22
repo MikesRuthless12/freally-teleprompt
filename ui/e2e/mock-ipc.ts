@@ -36,6 +36,11 @@ export type MockState = {
   language?: string;
   /** The reading appearance the engine reports (FT-15). */
   look?: Partial<Look>;
+  /** Ghost-text autocomplete (FT-20); on by default, as the app ships. */
+  autocomplete?: boolean;
+  /** Which table the editor completes against (FT-20); `"auto"` follows the UI
+   * language. Set it explicitly to test a script written in another language. */
+  autocompleteLanguage?: string;
   /** The library listing `scripts_list` returns (FT-10). */
   scripts?: { name: string; bytes: number; modifiedMs: number }[];
   /** Which script is open (`recentScripts[0]`). */
@@ -132,6 +137,8 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       lanEnabled: state.mirror !== undefined,
       lanAllInterfaces: false,
       lanPort: 7346,
+      autocomplete: state.autocomplete ?? true,
+      autocompleteLanguage: state.autocompleteLanguage ?? "auto",
       recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
     },

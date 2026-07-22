@@ -1,7 +1,7 @@
 {
   "name": "freally-teleprompt-workspace",
   "private": true,
-  "version": "0.200.0",
+  "version": "0.300.0",
   "description": "Freally Teleprompt — npm workspace root (React/Vite UI + Tauri CLI).",
   "license": "SEE LICENSE IN LICENSE",
   "workspaces": [
@@ -19,6 +19,7 @@
     "test:e2e": "npm run test:e2e --workspace ui",
     "i18n:lint": "npm run i18n:lint --workspace ui",
     "theme:lint": "npm run theme:lint --workspace ui",
+    "dict:lint": "npm run dict:lint --workspace ui",
     "ci:local": "node scripts/ci-local.mjs"
   },
   "devDependencies": {

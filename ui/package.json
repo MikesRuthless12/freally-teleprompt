@@ -1,7 +1,7 @@
 {
   "name": "@freally-teleprompt/ui",
   "private": true,
-  "version": "0.200.0",
+  "version": "0.300.0",
   "type": "module",
   "description": "Freally Teleprompt — the React + TypeScript UI (Vite, Havoc dark).",
   "license": "SEE LICENSE IN LICENSE",
@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "i18n:lint": "node scripts/i18n-lint.mjs",
-    "theme:lint": "node scripts/theme-lint.mjs"
+    "theme:lint": "node scripts/theme-lint.mjs",
+    "dict:lint": "node scripts/dict-lint.mjs"
   },
   "//browserslist": [
     "The webviews Tauri actually embeds — WebView2 (Chromium) on Windows,",

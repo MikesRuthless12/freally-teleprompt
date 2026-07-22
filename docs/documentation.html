@@ -423,7 +423,7 @@
           <h2>Getting started</h2>
           <p class="section-intro">Freally Teleprompt is a standalone, cross-platform teleprompter for creators, streamers, podcasters, rappers, singers, presenters, and actors. It runs on <strong>Windows, macOS, and Linux</strong>, opens as a single window — script library, editor, preview, and projector controls — and needs no account. One <strong>character-based scroll engine</strong> drives the preview, the talent projector, and the LAN mirror together, so they never drift, even at different font sizes.</p>
 
-          <div class="warn"><strong>Status:</strong> active development. Freally Teleprompt ships along a phased roadmap — <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site) and <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, LAN mirror, transport, chars/sec &amp; BPM, appearance, read-aloud) are <strong>done</strong>; <strong>0.300.0</strong> (dictionary autocomplete) and <strong>1.0.0</strong> (polish, signing, and release) are next. <strong>Autocomplete is not in the app yet</strong> — the section below describes what 0.300.0 will do. Download builds from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
+          <div class="warn"><strong>Status:</strong> active development. Freally Teleprompt ships along a phased roadmap — <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site), <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, LAN mirror, transport, chars/sec &amp; BPM, appearance, read-aloud) and <strong>0.300.0</strong> (offline dictionary autocomplete) are <strong>done</strong>; <strong>1.0.0</strong> (polish, signing, and release) is next. Download builds from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
 
           <h3>Install &amp; first run</h3>
           <ol class="steps">
@@ -552,14 +552,15 @@
         <!-- Autocomplete -->
         <section id="autocomplete">
           <h2>Autocomplete</h2>
-          <div class="warn"><strong>Not shipped yet — this is what 0.300.0 will do.</strong> Nothing in this section works in 0.200.0.</div>
-          <p class="section-intro">As you write, Freally Teleprompt will offer light-gray <strong>ghost-text</strong> suggestions from a per-language dictionary. It's instant, offline, and always on — zero-config, needing no key and no download.</p>
+          <p class="section-intro">As you write, Freally Teleprompt offers dimmed <strong>ghost-text</strong> suggestions from a per-language dictionary. It's instant, offline, and on by default — zero-config, needing no key and no download.</p>
 
           <ol class="steps">
-            <li><span>Keep typing in the editor; relevant <strong>word and phrase</strong> suggestions appear inline in light gray, usually within a single keystroke.</span></li>
-            <li><span>Press <kbd>Tab</kbd> to <strong>accept</strong> a suggestion — it commits and turns to normal text color. Press <kbd>Esc</kbd> to <strong>dismiss</strong> it and keep typing.</span></li>
-            <li><span>Suggestions are <strong>per-language</strong>: switching the language swaps the dictionary tables. Each of the <strong>18 languages</strong> ships its own word and phrase tables, loaded only for the language you're writing in.</span></li>
+            <li><span>Keep typing in the editor; relevant <strong>word and phrase</strong> suggestions appear inline, dimmed, within a single keystroke. Finish a word and press space and it will offer to complete a whole common phrase.</span></li>
+            <li><span>Press <kbd>Tab</kbd> to <strong>accept</strong> a suggestion — it commits and turns to normal text color. Press <kbd>Esc</kbd> to <strong>dismiss</strong> it, or simply keep typing to ignore it.</span></li>
+            <li><span>Suggestions are <strong>per-language</strong>. Each of the <strong>18 languages</strong> ships its own word and phrase tables — about 464,000 words and 345,000 phrases in total — and only the language you're writing in is loaded.</span></li>
+            <li><span>Turn it on or off, and choose which language it suggests from, under <strong>Settings → Editor</strong>. The suggestion language is <strong>separate from the app's language</strong>, so you can run the app in English and write your script in Polish.</span></li>
           </ol>
+          <div class="tip"><strong>Where the words come from:</strong> the tables are built from the <a href="https://tatoeba.org" style="color:var(--accent)">Tatoeba</a> sentence corpus (CC BY 2.0 FR) and ship inside the installer. The <code>NOTICE</code> file included with the app records the full attribution.</div>
           <div class="tip"><strong>Why a dictionary, not AI:</strong> for autocomplete a dictionary is the right tool — instant (well under a millisecond), deterministic, predictable, and entirely offline. It can't invent something you didn't ask for, and it needs no model, no download, and no network at all.</div>
         </section>
 

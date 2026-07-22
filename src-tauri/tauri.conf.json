@@ -3,7 +3,7 @@
   "productName": "Freally Teleprompt",
   "identifier": "com.freally.teleprompt",
   "mainBinaryName": "freally-teleprompt",
-  "version": "0.200.0",
+  "version": "0.300.0",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -50,7 +50,7 @@
     "publisher": "Havoc Software",
     "copyright": "© 2026 Mike Weaver — All Rights Reserved",
     "licenseFile": "../LICENSE",
-    "resources": { "../THIRD-PARTY.md": "THIRD-PARTY.md" },
+    "resources": { "../THIRD-PARTY.md": "THIRD-PARTY.md", "../NOTICE": "NOTICE" },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -66,6 +66,14 @@ fn default_lan_port() -> u16 {
     DEFAULT_LAN_PORT
 }
 
+fn default_autocomplete() -> bool {
+    true
+}
+
+fn default_autocomplete_language() -> String {
+    AUTO_LANGUAGE.to_string()
+}
+
 /// Every persisted preference. `#[serde(default)]` on each field means an older
 /// settings file missing a newly-added key loads with that key's default rather
 /// than failing to parse — settings written by any past version stay readable.
@@ -113,6 +121,19 @@ pub struct Settings {
     /// The mirror's TCP port.
     #[serde(default = "default_lan_port")]
     pub lan_port: u16,
+    /// Offer ghost-text autocomplete while editing a script (FT-20/FT-21). On by
+    /// default: it is a prefix lookup against tables bundled in the installer,
+    /// so it costs no network and cannot leak what the operator is writing.
+    #[serde(default = "default_autocomplete")]
+    pub autocomplete: bool,
+    /// Which language's table the editor completes against: a BCP-47 tag, or
+    /// `"auto"` to follow the UI language.
+    ///
+    /// Separate from `language` on purpose — an operator often runs the app in
+    /// one language and writes the script in another, and completing English
+    /// prose against a Japanese table suggests nothing at all.
+    #[serde(default = "default_autocomplete_language")]
+    pub autocomplete_language: String,
     /// Recently-opened scripts (FT-10), most recent first; the first entry is
     /// the script currently open.
     ///
@@ -145,6 +166,8 @@ impl Default for Settings {
             lan_enabled: false,
             lan_all_interfaces: false,
             lan_port: default_lan_port(),
+            autocomplete: default_autocomplete(),
+            autocomplete_language: default_autocomplete_language(),
             recent_scripts: Vec::new(),
             accepted_eula_version: None,
         }
@@ -181,6 +204,13 @@ impl Settings {
         // ports below 1024 need privileges we do not have and should not want.
         if self.lan_port < 1024 {
             self.lan_port = default_lan_port();
+        }
+        // Same rule as `language`: a blank tag is meaningless, and the UI's
+        // "auto" sentinel is a word precisely so an empty string never has to
+        // mean anything. An unshipped-but-non-blank tag is kept and resolved in
+        // the UI, which falls back to the UI language when it ships no table.
+        if self.autocomplete_language.trim().is_empty() {
+            self.autocomplete_language = default_autocomplete_language();
         }
         // A recents list is a record, but it is still read back off disk: cap it
         // and drop anything that is no longer a legal script name, so a

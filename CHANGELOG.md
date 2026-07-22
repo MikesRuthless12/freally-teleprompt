@@ -7,6 +7,38 @@ project uses a phase-based version ladder up to 1.0.0 (`0.100.0` → `0.200.0` �
 `0.300.0` → `1.0.0`). Every phase updates this file and `docs/changelog.html`
 together — they are two renderings of the same history.
 
+## [0.300.0] — 2026-07-22
+
+Offline autocomplete in the script editor: it suggests the rest of the word as
+you type, in any of the 18 languages, from word lists that ship inside the app.
+
+### Added
+
+- **Ghost-text autocomplete** (FT-20, FT-21) — start a word and the rest of it
+  appears dimmed ahead of the cursor. **Tab** accepts it, **Esc** dismisses it,
+  and typing straight past it ignores it. It completes whole common phrases too,
+  once you finish a word and press space.
+- **Autocomplete settings** — a new **Editor** pane with an on/off switch and its
+  own **suggestion language**, separate from the app's language, because writing
+  a script in one language while running the app in another is normal.
+- **Word and phrase tables for all 18 languages** (FT-22) — roughly 464,000 words
+  and 345,000 phrases in total, bundled in the installer. Only the language you
+  are actually using is loaded, so this costs the app about 0.5 MB of memory at a
+  time rather than all 12 MB.
+
+### Changed
+
+- **The language picker now starts with English and then runs alphabetically by
+  each language's own name** — Deutsch, Español, Français, and so on — and stays
+  in that order whichever language the app is in. It previously followed the
+  English names, so the order shifted depending on what you had selected.
+
+### Privacy
+
+- **Autocomplete never touches the network.** It is a lookup against tables
+  inside the installer — no model, no service, no telemetry. Nothing you type is
+  sent anywhere, and the feature works with the machine offline.
+
 ## [0.200.0] — 2026-07-21
 
 The standalone teleprompter: scripts you can keep, a projector for the talent,

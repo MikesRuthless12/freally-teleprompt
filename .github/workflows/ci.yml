@@ -83,6 +83,10 @@ jobs:
       # Dark mode looks perfect without one, so this is invisible in review and
       # renders white-on-white for anyone running the light theme.
       - run: npm run theme:lint
+      # Every shipped language has a word AND phrase table that parses and
+      # survives suggest.ts's indexing (FT-22). A table that is missing, empty,
+      # or all single characters loads perfectly and suggests nothing.
+      - run: npm run dict:lint
       # `npm run build` runs `tsc --noEmit` first, so no separate typecheck.
       - run: npm run test:ui
       - run: npm run build

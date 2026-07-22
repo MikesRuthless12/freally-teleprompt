@@ -59,6 +59,31 @@ export const LOCALES: readonly Locale[] = [
 export const SOURCE_LOCALE: LocaleCode = "en";
 
 /**
+ * The order every language picker shows: English first, then the other
+ * seventeen alphabetically BY THEIR OWN NATIVE NAME. This is a display order
+ * only — `LOCALES` above stays in the shared Havoc order, which the sibling apps
+ * also ship and which other code indexes.
+ *
+ * Collated with a FIXED locale, deliberately never the active one. Collation is
+ * language-specific, so `localeCompare` under the running UI language quietly
+ * reorders the list — Turkish alone moves entries, because it collates a
+ * dotless i apart from i. A picker whose order depends on which language happens
+ * to be selected is one the user must re-scan on every visit, and the entry they
+ * want has moved. Pinning the collator makes the order identical in all 18.
+ *
+ * English is pinned to the top rather than sorted in because it is the source
+ * catalog and the fallback every other locale resolves to, so it is the entry a
+ * user reaches for when they cannot read the current one.
+ */
+const PICKER_COLLATOR = new Intl.Collator("en");
+export const PICKER_LOCALES: readonly Locale[] = [
+  ...LOCALES.filter((l) => l.code === "en"),
+  ...LOCALES.filter((l) => l.code !== "en").sort((a, b) =>
+    PICKER_COLLATOR.compare(a.native, b.native),
+  ),
+];
+
+/**
  * Persisted in `Settings.language` to mean "follow the operating system".
  * A real BCP-47 tag there means the user chose it explicitly and we honour it.
  * The Rust `validate()` rejects an empty tag, so the sentinel is a word.
@@ -128,4 +153,18 @@ export function detectLocale(preferred: readonly string[]): LocaleCode {
 export function resolveLocale(setting: string, preferred: readonly string[]): LocaleCode {
   if (!setting || setting === AUTO_LOCALE) return detectLocale(preferred);
   return matchShipped(setting) ?? detectLocale(preferred);
+}
+
+/**
+ * Resolve `Settings.autocompleteLanguage` (FT-20) to the table the editor
+ * completes against. `"auto"` follows the UI language.
+ *
+ * An unshipped tag falls back to the UI language rather than to English: it is
+ * the same reasoning as `resolveLocale`'s OS fallback — someone writing Ukrainian
+ * in a Ukrainian app should not silently start being offered English words
+ * because a hand-edited settings file named a locale we ship no table for.
+ */
+export function resolveAutocompleteLocale(setting: string, uiLocale: LocaleCode): LocaleCode {
+  if (!setting || setting === AUTO_LOCALE) return uiLocale;
+  return matchShipped(setting) ?? uiLocale;
 }

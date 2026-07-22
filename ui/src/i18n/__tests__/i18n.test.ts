@@ -8,6 +8,7 @@ import {
   LOCALES,
   localeDir,
   normalizeLocale,
+  PICKER_LOCALES,
   resolveLocale,
   SOURCE_LOCALE,
 } from "../locales";
@@ -65,6 +66,69 @@ describe("locale registry", () => {
       expect(locale.native.trim()).not.toBe("");
       expect(locale.native.toLowerCase()).not.toBe(locale.code.toLowerCase());
     }
+  });
+});
+
+/**
+ * The picker order is a product requirement, not a nicety: English first, then
+ * the rest alphabetically by their own native name, and IDENTICAL in all 18
+ * languages. The last part is the one that silently breaks — sorting with the
+ * active locale's collator looks right in English and quietly reorders the list
+ * everywhere else, so the assertion below compares against the *pinned* order.
+ */
+describe("language picker order", () => {
+  it("lists English first", () => {
+    expect(PICKER_LOCALES[0].code).toBe("en");
+  });
+
+  it("holds every locale exactly once", () => {
+    expect(PICKER_LOCALES).toHaveLength(LOCALES.length);
+    expect(new Set(PICKER_LOCALES.map((l) => l.code)).size).toBe(LOCALES.length);
+  });
+
+  it("sorts the other seventeen by native name", () => {
+    expect(PICKER_LOCALES.map((l) => l.code)).toEqual([
+      "en",
+      "id", // Bahasa Indonesia
+      "de", // Deutsch
+      "es", // Español
+      "fr", // Français
+      "it", // Italiano
+      "nl", // Nederlands
+      "pl", // Polski
+      "pt-BR", // Português (Brasil)
+      "vi", // Tiếng Việt  — before Türkçe: "i" collates before "ü"
+      "tr", // Türkçe
+      "ru", // Русский      — Cyrillic follows Latin
+      "uk", // Українська
+      "ar", // العربية
+      "hi", // हिन्दी
+      "ko", // 한국어
+      "ja", // 日本語
+      "zh-CN", // 简体中文
+    ]);
+  });
+
+  // Proves the pinned collator is load-bearing rather than decoration. If this
+  // ever stops failing to match, collation has become locale-independent and the
+  // pinning could go — but until then, sorting with the ACTIVE locale is a real
+  // bug: under Arabic it lifts العربية to second place, and under Japanese it
+  // lifts 日本語 and 简体中文 above Cyrillic. The user's entry moves when they
+  // switch language, which is exactly what the pinning exists to prevent.
+  it("would reorder if the active locale did the collating", () => {
+    const pinned = PICKER_LOCALES.map((l) => l.code);
+    const orderUnder = (code: string) => {
+      const collator = new Intl.Collator(code);
+      return [
+        "en",
+        ...LOCALES.filter((l) => l.code !== "en")
+          .slice()
+          .sort((a, b) => collator.compare(a.native, b.native))
+          .map((l) => l.code),
+      ];
+    };
+    expect(orderUnder("ar")).not.toEqual(pinned);
+    expect(orderUnder("ja")).not.toEqual(pinned);
   });
 });
 

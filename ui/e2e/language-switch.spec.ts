@@ -115,6 +115,29 @@ test.describe("switching language from Settings", () => {
       await expect(page.locator("html")).toHaveAttribute("lang", code);
       await expect(page.locator("html")).toHaveAttribute("dir", RTL.has(code) ? "rtl" : "ltr");
 
+      // No field label may wrap. Every one of them sits beside a full-width
+      // control, so a label with no `shrink-0` gets squeezed — and CJK breaks
+      // between ANY two characters, so Korean's 언어 stacked as 언/어 while
+      // every Latin and Cyrillic locale looked perfect. A wrapped line box is
+      // measurable, which beats hoping someone notices it in a screenshot.
+      // Measured with a Range over the text, NOT `el.getClientRects()`: these
+      // spans are flex items, so they are blockified and report exactly one
+      // border box however many lines the text inside them occupies. A Range
+      // returns one rect per line box, which is the thing actually being asked.
+      const wrapped = await dialog.evaluate((root) =>
+        [...root.querySelectorAll("label > span")]
+          .filter((el) => {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return range.getClientRects().length > 1;
+          })
+          .map((el) => el.textContent ?? ""),
+      );
+      expect(
+        wrapped,
+        `these labels wrapped onto more than one line: ${wrapped.join(", ")}`,
+      ).toEqual([]);
+
       await page.screenshot({ path: `e2e/screenshots/settings-${code}.png` });
     });
   }

@@ -49,6 +49,12 @@ export type MockState = {
   displays?: { index: number; name: string; width: number; height: number; primary: boolean }[];
   /** The LAN mirror's reported state (FT-12). */
   mirror?: { running: boolean; url: string | null; error: string | null };
+  /** Voice control on/off (FT-31); off by default, as the app ships. */
+  voiceEnabled?: boolean;
+  /** Listening mode (FT-31): push-to-talk (default) or always. */
+  voiceMode?: "push_to_talk" | "always";
+  /** The trained commands `voice_summary` reports (FT-31). */
+  voiceCommands?: { id: string; takes: number }[];
   /**
    * The Tauri window label this page believes it is (FT-12). `main.tsx` routes
    * on it, so `"projector"` renders the talent surface instead of the operator
@@ -139,6 +145,8 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       lanPort: 7346,
       autocomplete: state.autocomplete ?? true,
       autocompleteLanguage: state.autocompleteLanguage ?? "auto",
+      voiceEnabled: state.voiceEnabled ?? false,
+      voiceMode: state.voiceMode ?? "push_to_talk",
       recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
     },
@@ -162,6 +170,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     scripts: state.scripts ?? [],
     displays: state.displays ?? [],
     mirrorStatus: state.mirror ?? { running: false, url: null, error: null },
+    voiceCommands: state.voiceCommands ?? [],
     windowLabel: state.windowLabel ?? null,
   };
 
@@ -176,11 +185,31 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     // It models only what the UI observes — never the caesura timing, which has
     // its own tests on both sides of the IPC boundary.
     const engine = { ...data.teleprompter };
-    const listeners: ((event: { event: string; payload: unknown }) => void)[] = [];
+    // Event subscribers, keyed by event name. `teleprompter` carries the engine
+    // snapshot; `voice:command` / `voice:listening` are pushed by tests via
+    // `window.__emitTauri` to stand in for the recogniser (FT-31).
+    type Handler = (event: { event: string; payload: unknown }) => void;
+    const listeners: Record<string, Handler[]> = {};
     const emit = () => {
       const snapshot = { ...engine };
-      for (const handler of listeners) handler({ event: "teleprompter", payload: snapshot });
+      for (const handler of listeners.teleprompter ?? []) {
+        handler({ event: "teleprompter", payload: snapshot });
+      }
     };
+    // Let a spec fire any backend event: e.g. a recognised voice command.
+    (window as unknown as Record<string, unknown>).__emitTauri = (
+      event: string,
+      payload: unknown,
+    ) => {
+      for (const handler of listeners[event] ?? []) handler({ event, payload });
+    };
+
+    // The trained voice model this mock pretends to hold (FT-31).
+    const voiceCommands = data.voiceCommands.map((c) => ({ ...c }));
+    const voiceSummary = () => ({
+      commands: voiceCommands.map((c) => ({ ...c })),
+      listening: false,
+    });
 
     const responses: Record<string, unknown> = {
       settings_get: data.settings,
@@ -210,8 +239,9 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
         // because `transformCallback` below is the identity — so the handler
         // arriving here IS the subscriber's function.
         if (cmd === "plugin:event|listen") {
-          if (args.event === "teleprompter" && typeof args.handler === "function") {
-            listeners.push(args.handler as (event: { event: string; payload: unknown }) => void);
+          const event = String(args.event);
+          if (typeof args.handler === "function") {
+            (listeners[event] ??= []).push(args.handler as Handler);
           }
           return Promise.resolve(0);
         }
@@ -257,6 +287,29 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
           case "settings_set":
             Object.assign(data.settings, args.next ?? {});
             return Promise.resolve({ ...data.settings });
+          // Voice model (FT-31): recording is audio-free here — the mock just
+          // updates the take counts so the pane reflects what the UI asked for.
+          case "voice_summary":
+            return Promise.resolve(voiceSummary());
+          case "voice_enroll_capture": {
+            const id = String(args.commandId ?? "");
+            const found = voiceCommands.find((c) => c.id === id);
+            if (found) found.takes += 1;
+            else voiceCommands.push({ id, takes: 1 });
+            return Promise.resolve(voiceSummary());
+          }
+          case "voice_forget_command": {
+            const id = String(args.commandId ?? "");
+            const at = voiceCommands.findIndex((c) => c.id === id);
+            if (at >= 0) voiceCommands.splice(at, 1);
+            return Promise.resolve(voiceSummary());
+          }
+          case "voice_clear_model":
+            voiceCommands.length = 0;
+            return Promise.resolve(voiceSummary());
+          case "voice_start_listening":
+          case "voice_stop_listening":
+            return Promise.resolve(null);
           default:
             break;
         }

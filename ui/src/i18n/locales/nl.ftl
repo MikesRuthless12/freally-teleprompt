@@ -181,3 +181,21 @@ updates-checking = Controleren op updates…
 
 ## Startup
 startup-failed = Freally Teleprompt kon niet starten.
+
+## Voice control (FT-31)
+settings-cat-voice = Stem
+settings-voice-enabled = De prompter met mijn stem bedienen
+settings-voice-note = Opdrachten draaien op dit apparaat en worden vergeleken met korte opnamen van je eigen stem. Geen model en geen netwerk — de microfoon gaat alleen open tijdens het luisteren, en niets van wat je zegt wordt ooit in een bestand opgeslagen.
+settings-voice-mode = Wanneer luisteren
+settings-voice-mode-ptt = Alleen terwijl ik de knop ingedrukt houd
+settings-voice-mode-always = Altijd, zolang ingeschakeld
+settings-voice-commands = Jouw opdrachten
+settings-voice-commands-note = Neem elke opdracht twee of drie keer met je eigen stem op. Meer opnamen maken het stabieler.
+settings-voice-record = Opnemen
+settings-voice-recording = Aan het luisteren…
+settings-voice-forget = Vergeten
+settings-voice-takes = { $count } opgenomen
+settings-voice-untrained = Niet opgenomen
+voice-cmd-next = Volgende pauze
+voice-listening = Aan het luisteren
+voice-hold-to-talk = Ingedrukt houden om te spreken

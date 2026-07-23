@@ -1,0 +1,42 @@
+# freally-voice — Track A of Freally Teleprompt's Phase 3 voice control (FT-30).
+#
+# A standalone, reusable, MODEL-FREE voice-command recogniser. The user records
+# their own command phrases a few times each; at runtime a spoken utterance is
+# matched against those templates by classic DSP alone — MFCC feature extraction
+# plus Dynamic Time Warping. There is NO statistical model, NO trained weights,
+# NO third-party engine, and NO network. It is speaker-dependent by construction,
+# which is the whole point: the user enrols their own voice once.
+#
+# The microphone backend (cpal) and the Tauri wiring live in the host app (FT-31)
+# so this crate stays dependency-free and re-usable by every Havoc app (FT-36).
+[package]
+name = "freally-voice"
+description = "Model-free, speaker-dependent voice-command recognition (MFCC + DTW) — no model, no network."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+# A trained model is persisted as FEATURE VECTORS (never audio), so the host app
+# can save and reload the user's templates without ever writing a microphone
+# recording to disk — the FT-31 "audio never touches disk" guarantee, upheld at
+# the source. serde is already in the workspace graph (MIT/Apache-2.0).
+serde = { workspace = true }
+# The cross-platform microphone backend (FT-31), behind a feature so the pure
+# DSP core stays dependency-free and the crate is reusable without pulling in
+# platform audio when a host only wants offline processing. cpal is
+# Apache-2.0/MIT and links the OS's own audio API (WASAPI/CoreAudio/ALSA) — no
+# bundled engine, no network.
+cpal = { version = "0.15", optional = true }
+
+[features]
+# Provides `CpalSource`, a live-microphone `AudioSource`. Off by default.
+capture-cpal = ["dep:cpal"]
+
+[dev-dependencies]
+# Only the model-serialisation round-trip test needs a concrete format.
+serde_json = { workspace = true }

@@ -21,6 +21,7 @@ mod settings;
 mod teleprompter;
 mod tray;
 mod tts;
+mod voice;
 
 use tauri::Manager;
 
@@ -56,6 +57,9 @@ fn main() {
         .manage(TeleprompterState::new())
         .manage(LanMirrorState::default())
         .manage(TrayState::default())
+        // The trained voice-command model (features only) loads here; no
+        // microphone is opened until the user starts listening (FT-31).
+        .manage(voice::VoiceState::load())
         // Seed the engine from the persisted preferences, so the app opens at
         // the user's own speed, font, and pause length rather than the built-in
         // defaults, and start the LAN mirror if it was left on. `settings_set`
@@ -102,6 +106,12 @@ fn main() {
             tray::window_minimize,
             tts::tts_speak,
             tts::tts_stop,
+            voice::voice_summary,
+            voice::voice_enroll_capture,
+            voice::voice_forget_command,
+            voice::voice_clear_model,
+            voice::voice_start_listening,
+            voice::voice_stop_listening,
             bugreport::bug_report_pending,
             bugreport::bug_report_build,
             bugreport::bug_report_clear_crash,

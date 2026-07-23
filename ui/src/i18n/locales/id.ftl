@@ -181,3 +181,21 @@ updates-checking = Memeriksa pembaruan…
 
 ## Startup
 startup-failed = Freally Teleprompt tidak dapat dijalankan.
+
+## Voice control (FT-31)
+settings-cat-voice = Suara
+settings-voice-enabled = Kendalikan prompter dengan suara saya
+settings-voice-note = Perintah berjalan di perangkat ini dan dicocokkan dengan rekaman singkat suara Anda sendiri. Tanpa model dan tanpa jaringan — mikrofon hanya terbuka saat mendengarkan, dan tidak ada yang Anda ucapkan pernah disimpan ke sebuah berkas.
+settings-voice-mode = Kapan mendengarkan
+settings-voice-mode-ptt = Hanya saat saya menahan tombol
+settings-voice-mode-always = Selalu, selama diaktifkan
+settings-voice-commands = Perintah Anda
+settings-voice-commands-note = Rekam setiap perintah dengan suara Anda sendiri dua atau tiga kali. Lebih banyak rekaman membuatnya lebih stabil.
+settings-voice-record = Rekam
+settings-voice-recording = Mendengarkan…
+settings-voice-forget = Lupakan
+settings-voice-takes = { $count } terekam
+settings-voice-untrained = Belum direkam
+voice-cmd-next = Jeda berikutnya
+voice-listening = Mendengarkan
+voice-hold-to-talk = Tahan untuk berbicara

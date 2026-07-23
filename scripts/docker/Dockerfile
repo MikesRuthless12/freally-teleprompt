@@ -16,11 +16,12 @@
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Tauri v2's Linux stack, plus the tray's appindicator — the same list
+# Tauri v2's Linux stack, plus the tray's appindicator and the ALSA runtime the
+# cpal-linked binary loads at startup (FT-31) — the same list
 # `.github/actions/linux-deps` installs, so the container matches CI.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev patchelf \
-      libxdo-dev libssl-dev libayatana-appindicator3-dev \
+      libxdo-dev libssl-dev libayatana-appindicator3-dev libasound2-dev \
   # A display, a window manager, and the tools to look at both.
       xvfb x11-utils xdotool imagemagick openbox procps \
   # Mesa's software rasteriser: no GPU and no DRI3 in a container either, so

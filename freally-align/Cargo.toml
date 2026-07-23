@@ -1,0 +1,21 @@
+# freally-align — the script alignment layer (FT-34), Track B's deterministic core.
+#
+# Turns a stream of noisy, recognised words into a visible-character offset in a
+# KNOWN script. There is no model, no audio, and no network here — it is pure
+# dynamic-programming word matching over the script the reader is holding. The
+# research on FT-34 is unambiguous that THIS layer, not the recogniser, is what
+# users judge, so it is built directly against the three complaints that dominate
+# every competitor's reviews (see the crate docs). Reusable by any Havoc app that
+# follows a script by voice.
+[package]
+name = "freally-align"
+description = "Deterministic script alignment: noisy recognised words -> a visible-character offset in a known script."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]

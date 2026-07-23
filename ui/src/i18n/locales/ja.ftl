@@ -181,3 +181,21 @@ updates-checking = 更新を確認しています…
 
 ## Startup
 startup-failed = Freally Teleprompt を起動できませんでした。
+
+## Voice control (FT-31)
+settings-cat-voice = 音声
+settings-voice-enabled = 音声でプロンプターを操作する
+settings-voice-note = コマンドはこのデバイス上で実行され、あなた自身の声の短い録音と照合されます。モデルもネットワークもありません — マイクは聞き取り中のみ開き、話した内容がファイルに保存されることは一切ありません。
+settings-voice-mode = 聞き取るタイミング
+settings-voice-mode-ptt = ボタンを押している間だけ
+settings-voice-mode-always = 有効な間は常に
+settings-voice-commands = あなたのコマンド
+settings-voice-commands-note = 各コマンドを自分の声で2〜3回録音してください。録音が多いほど安定します。
+settings-voice-record = 録音
+settings-voice-recording = 聞き取り中…
+settings-voice-forget = 削除
+settings-voice-takes = { $count } 件録音済み
+settings-voice-untrained = 未録音
+voice-cmd-next = 次の一時停止
+voice-listening = 聞き取り中
+voice-hold-to-talk = 押している間だけ話す

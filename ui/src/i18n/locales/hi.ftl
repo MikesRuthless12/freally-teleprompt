@@ -181,3 +181,21 @@ updates-checking = अपडेट जाँचे जा रहे हैं…
 
 ## Startup
 startup-failed = Freally Teleprompt शुरू नहीं हो सका।
+
+## Voice control (FT-31)
+settings-cat-voice = आवाज़
+settings-voice-enabled = अपनी आवाज़ से प्रॉम्प्टर नियंत्रित करें
+settings-voice-note = कमांड इसी डिवाइस पर चलते हैं और आपकी अपनी आवाज़ की छोटी रिकॉर्डिंग से मिलान किए जाते हैं। न कोई मॉडल, न कोई नेटवर्क — माइक्रोफ़ोन केवल सुनते समय ही खुलता है, और आप जो कहते हैं वह कभी किसी फ़ाइल में सहेजा नहीं जाता।
+settings-voice-mode = कब सुनना है
+settings-voice-mode-ptt = केवल जब मैं बटन दबाए रखूँ
+settings-voice-mode-always = हमेशा, जब सक्षम हो
+settings-voice-commands = आपके कमांड
+settings-voice-commands-note = हर कमांड को अपनी आवाज़ में दो या तीन बार रिकॉर्ड करें। ज़्यादा रिकॉर्डिंग इसे अधिक स्थिर बनाती हैं।
+settings-voice-record = रिकॉर्ड करें
+settings-voice-recording = सुन रहा है…
+settings-voice-forget = भूल जाएँ
+settings-voice-takes = { $count } रिकॉर्ड किए गए
+settings-voice-untrained = रिकॉर्ड नहीं किया गया
+voice-cmd-next = अगला विराम
+voice-listening = सुन रहा है
+voice-hold-to-talk = बोलने के लिए दबाए रखें

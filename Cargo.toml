@@ -10,7 +10,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "src-tauri", # `freally-teleprompt` — Tauri v2 app crate (scroll engine, settings, EULA, i18n bridge)
+    "src-tauri",     # `freally-teleprompt` — Tauri v2 app crate (scroll engine, settings, EULA, i18n bridge)
+    "freally-voice", # `freally-voice` (FT-30) — model-free voice-command recognition (MFCC + DTW), no model/network
+    "freally-align", # `freally-align` (FT-34) — deterministic script alignment: recognised words -> visible-char offset
 ]
 
 # The crash reporter's fatal-panic gate is `cfg!(panic = "abort")`, and profiles

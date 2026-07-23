@@ -181,3 +181,21 @@ updates-checking = Verificando atualizações…
 
 ## Startup
 startup-failed = Não foi possível iniciar o Freally Teleprompt.
+
+## Voice control (FT-31)
+settings-cat-voice = Voz
+settings-voice-enabled = Controlar o teleprompter com a minha voz
+settings-voice-note = Os comandos são executados neste dispositivo e comparados com gravações curtas da sua própria voz. Sem modelo e sem rede — o microfone só abre durante a escuta, e nada do que você diz é salvo em um arquivo.
+settings-voice-mode = Quando escutar
+settings-voice-mode-ptt = Apenas enquanto eu seguro o botão
+settings-voice-mode-always = Sempre, quando ativado
+settings-voice-commands = Seus comandos
+settings-voice-commands-note = Grave cada comando com a sua própria voz duas ou três vezes. Mais gravações deixam tudo mais estável.
+settings-voice-record = Gravar
+settings-voice-recording = Escutando…
+settings-voice-forget = Esquecer
+settings-voice-takes = { $count } gravadas
+settings-voice-untrained = Não gravado
+voice-cmd-next = Próxima pausa
+voice-listening = Escutando
+voice-hold-to-talk = Segure para falar

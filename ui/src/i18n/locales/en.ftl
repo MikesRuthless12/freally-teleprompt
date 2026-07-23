@@ -146,6 +146,24 @@ mirror-qr-aria = QR code for the mirror link
 settings-cancel = Cancel
 settings-apply = Apply
 
+## Voice control (FT-31)
+settings-cat-voice = Voice
+settings-voice-enabled = Control the prompter with my voice
+settings-voice-note = Commands run on this device, matched against short recordings of your own voice. No model and no network — the microphone opens only while listening, and nothing you say is ever saved to a file.
+settings-voice-mode = When to listen
+settings-voice-mode-ptt = Only while I hold the button
+settings-voice-mode-always = Always, while enabled
+settings-voice-commands = Your commands
+settings-voice-commands-note = Record each command in your own voice two or three times. More recordings make it steadier.
+settings-voice-record = Record
+settings-voice-recording = Listening…
+settings-voice-forget = Forget
+settings-voice-takes = { $count } recorded
+settings-voice-untrained = Not recorded
+voice-cmd-next = Next pause
+voice-listening = Listening
+voice-hold-to-talk = Hold to talk
+
 ## First-run agreement
 eula-title = End User License Agreement
 eula-version = Version { $version }

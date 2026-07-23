@@ -28,6 +28,10 @@ getrandom = { workspace = true }
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Track A voice commands (FT-30/FT-31): the model-free recogniser plus its cpal
+# microphone backend. No model, no network — audio is matched against the user's
+# own recorded templates locally.
+freally-voice = { path = "../freally-voice", features = ["capture-cpal"] }
 
 # The crash-notice helper waits for the crashed process to leave the process
 # table before relaunching; the probe is the one thing with no portable std API.

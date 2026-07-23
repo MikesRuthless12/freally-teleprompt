@@ -18,7 +18,7 @@
 
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
@@ -72,6 +72,15 @@ fn default_autocomplete() -> bool {
 
 fn default_autocomplete_language() -> String {
     AUTO_LANGUAGE.to_string()
+}
+
+/// Push-to-talk is the safer default of the two voice modes: the mic attends to
+/// nothing until the operator deliberately holds the talk key.
+const VOICE_MODE_PUSH_TO_TALK: &str = "push_to_talk";
+const VOICE_MODE_ALWAYS: &str = "always";
+
+fn default_voice_mode() -> String {
+    VOICE_MODE_PUSH_TO_TALK.to_string()
 }
 
 /// Every persisted preference. `#[serde(default)]` on each field means an older
@@ -134,6 +143,15 @@ pub struct Settings {
     /// prose against a Japanese table suggests nothing at all.
     #[serde(default = "default_autocomplete_language")]
     pub autocomplete_language: String,
+    /// Hands-free voice commands (FT-31). **Off by default**: the microphone is
+    /// opened only when this is on and listening is started, audio never leaves
+    /// the device, and nothing is ever written to disk.
+    #[serde(default)]
+    pub voice_enabled: bool,
+    /// How the listener decides when to attend to the mic: `"push_to_talk"`
+    /// (only while the talk key is held) or `"always"` (continuously).
+    #[serde(default = "default_voice_mode")]
+    pub voice_mode: String,
     /// Recently-opened scripts (FT-10), most recent first; the first entry is
     /// the script currently open.
     ///
@@ -168,6 +186,8 @@ impl Default for Settings {
             lan_port: default_lan_port(),
             autocomplete: default_autocomplete(),
             autocomplete_language: default_autocomplete_language(),
+            voice_enabled: false,
+            voice_mode: default_voice_mode(),
             recent_scripts: Vec::new(),
             accepted_eula_version: None,
         }
@@ -212,6 +232,11 @@ impl Settings {
         if self.autocomplete_language.trim().is_empty() {
             self.autocomplete_language = default_autocomplete_language();
         }
+        // Only the two known voice modes; anything else (a hand-edited file, a UI
+        // from another version) falls back to the safe push-to-talk default.
+        if self.voice_mode != VOICE_MODE_PUSH_TO_TALK && self.voice_mode != VOICE_MODE_ALWAYS {
+            self.voice_mode = default_voice_mode();
+        }
         // A recents list is a record, but it is still read back off disk: cap it
         // and drop anything that is no longer a legal script name, so a
         // hand-edited file cannot smuggle a path into the library UI.
@@ -230,6 +255,35 @@ impl Settings {
 /// who upgrade.
 pub(crate) fn project_dirs() -> Option<directories::ProjectDirs> {
     directories::ProjectDirs::from("com", "Freally", "Freally Teleprompt")
+}
+
+/// Write `bytes` to `path` atomically: a sibling temp file, then a rename over
+/// the destination.
+///
+/// The rename is the point. `fs::rename` replaces an existing destination on
+/// Windows too (`MoveFileEx` with replace semantics), so a crash — or a rename
+/// that fails because a scanner has the temp open — leaves either the old file
+/// or the new one, never a half-written document.
+///
+/// An earlier version deleted the destination first, on the false premise that
+/// Windows refuses to rename onto an existing file. That delete was the ONLY
+/// thing making the write non-atomic: it opened a window with no file at all, so
+/// a crash left the user with nothing, and the next `load()` took the silent
+/// first-run branch — resetting every preference AND re-showing the EULA gate —
+/// with a perfectly good document sitting beside it in the `.tmp`. Do not
+/// reintroduce a delete-first.
+///
+/// (`scripts::write_in` keeps its own copy: it layers a size limit and
+/// per-script error messages on top. Consolidating that one is a separate cleanup.)
+pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut temp = path.as_os_str().to_owned();
+    temp.push(".tmp");
+    let temp = PathBuf::from(temp);
+    fs::write(&temp, bytes)?;
+    fs::rename(&temp, path)
 }
 
 /// The settings file, plus the in-memory copy every command reads.
@@ -354,23 +408,7 @@ impl SettingsStore {
     fn persist(&self) -> io::Result<()> {
         let text = serde_json::to_string_pretty(&*self.lock())
             .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
-        if let Some(parent) = self.path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let temp = self.path.with_extension("json.tmp");
-        fs::write(&temp, text)?;
-        // `fs::rename` replaces an existing destination on Windows too — std
-        // uses MoveFileEx with replace semantics, so this really is atomic.
-        //
-        // An earlier version deleted the destination first, on the false premise
-        // that Windows refuses to rename onto an existing file. That delete was
-        // the ONLY thing making this write non-atomic: it opened a window with
-        // no settings file at all, so a crash — or a rename that failed because
-        // a virus scanner had the temp file open — left the user with nothing.
-        // `load()` would then take the silent first-run branch and reset every
-        // preference AND re-show the EULA gate, with a perfectly good document
-        // sitting next to it in `settings.json.tmp`. Do not reintroduce it.
-        fs::rename(&temp, &self.path)
+        atomic_write(&self.path, text.as_bytes())
     }
 }
 
@@ -599,6 +637,29 @@ mod tests {
             );
         }
         assert_eq!(serde_json::from_str::<Settings>(&text).unwrap(), s);
+    }
+
+    /// Voice control is off by default, and an unknown voice mode falls back to
+    /// the safe push-to-talk default rather than being trusted.
+    #[test]
+    fn validate_normalises_voice_settings() {
+        assert!(!Settings::default().voice_enabled);
+        assert_eq!(Settings::default().voice_mode, VOICE_MODE_PUSH_TO_TALK);
+
+        let mut s = Settings {
+            voice_mode: "listen-to-everything".to_string(),
+            ..Settings::default()
+        };
+        s.validate();
+        assert_eq!(s.voice_mode, VOICE_MODE_PUSH_TO_TALK);
+
+        // A legitimate value is kept.
+        let mut always = Settings {
+            voice_mode: VOICE_MODE_ALWAYS.to_string(),
+            ..Settings::default()
+        };
+        always.validate();
+        assert_eq!(always.voice_mode, VOICE_MODE_ALWAYS);
     }
 
     /// A settings file from an older build is missing newer keys; it must load

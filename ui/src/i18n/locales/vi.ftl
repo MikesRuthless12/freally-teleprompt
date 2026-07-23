@@ -181,3 +181,21 @@ updates-checking = Đang kiểm tra bản cập nhật…
 
 ## Startup
 startup-failed = Không thể khởi động Freally Teleprompt.
+
+## Voice control (FT-31)
+settings-cat-voice = Giọng nói
+settings-voice-enabled = Điều khiển máy nhắc chữ bằng giọng nói của tôi
+settings-voice-note = Các lệnh chạy trên thiết bị này và được đối chiếu với các bản ghi ngắn giọng nói của chính bạn. Không có mô hình và không có mạng — micrô chỉ bật khi đang lắng nghe, và không có gì bạn nói được lưu vào tệp.
+settings-voice-mode = Khi nào lắng nghe
+settings-voice-mode-ptt = Chỉ khi tôi giữ nút
+settings-voice-mode-always = Luôn luôn, khi được bật
+settings-voice-commands = Lệnh của bạn
+settings-voice-commands-note = Ghi âm mỗi lệnh bằng giọng nói của chính bạn hai hoặc ba lần. Càng nhiều bản ghi thì càng ổn định.
+settings-voice-record = Ghi âm
+settings-voice-recording = Đang nghe…
+settings-voice-forget = Quên
+settings-voice-takes = Đã ghi { $count }
+settings-voice-untrained = Chưa ghi
+voice-cmd-next = Chỗ dừng tiếp theo
+voice-listening = Đang nghe
+voice-hold-to-talk = Giữ để nói

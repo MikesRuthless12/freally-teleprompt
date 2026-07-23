@@ -181,3 +181,21 @@ updates-checking = 업데이트를 확인하는 중…
 
 ## Startup
 startup-failed = Freally Teleprompt를 시작할 수 없습니다.
+
+## Voice control (FT-31)
+settings-cat-voice = 음성
+settings-voice-enabled = 음성으로 프롬프터 제어
+settings-voice-note = 명령은 이 기기에서 실행되며 본인 목소리의 짧은 녹음과 대조됩니다. 모델도 네트워크도 없습니다 — 마이크는 듣는 동안에만 열리며, 말한 내용은 파일에 저장되지 않습니다.
+settings-voice-mode = 들을 시점
+settings-voice-mode-ptt = 버튼을 누르고 있는 동안에만
+settings-voice-mode-always = 사용하는 동안 항상
+settings-voice-commands = 내 명령
+settings-voice-commands-note = 각 명령을 본인 목소리로 두세 번 녹음하세요. 녹음이 많을수록 더 안정적입니다.
+settings-voice-record = 녹음
+settings-voice-recording = 듣는 중…
+settings-voice-forget = 삭제
+settings-voice-takes = { $count }개 녹음됨
+settings-voice-untrained = 녹음 안 됨
+voice-cmd-next = 다음 일시정지
+voice-listening = 듣는 중
+voice-hold-to-talk = 누른 채로 말하기

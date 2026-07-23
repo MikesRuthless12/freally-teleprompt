@@ -17,6 +17,11 @@ vi.mock("../../api/commands", () => ({
   lanMirrorOpen: () => Promise.resolve(),
   // Applying reconciles the tray, whose menu labels are localised here.
   traySync: () => Promise.resolve(),
+  // The Voice pane reads the trained model on open (FT-31); no command is trained.
+  voiceSummary: () => Promise.resolve({ commands: [], listening: false }),
+  voiceEnrollCapture: (id: string) =>
+    Promise.resolve({ commands: [{ id, takes: 1 }], listening: false }),
+  voiceForgetCommand: () => Promise.resolve({ commands: [], listening: false }),
 }));
 
 const BASE: Settings = {
@@ -41,6 +46,8 @@ const BASE: Settings = {
   lanPort: 7346,
   autocomplete: true,
   autocompleteLanguage: "auto",
+  voiceEnabled: false,
+  voiceMode: "push_to_talk",
   recentScripts: [],
   acceptedEulaVersion: "2026-07-21",
 };

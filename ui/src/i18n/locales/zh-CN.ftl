@@ -181,3 +181,21 @@ updates-checking = 正在检查更新…
 
 ## Startup
 startup-failed = Freally Teleprompt 无法启动。
+
+## Voice control (FT-31)
+settings-cat-voice = 语音
+settings-voice-enabled = 用我的声音控制提词器
+settings-voice-note = 命令在本设备上运行，并与你本人声音的简短录音进行匹配。没有模型，也没有网络——麦克风仅在聆听时开启，你所说的内容绝不会保存到文件。
+settings-voice-mode = 何时聆听
+settings-voice-mode-ptt = 仅在我按住按钮时
+settings-voice-mode-always = 启用时始终聆听
+settings-voice-commands = 你的命令
+settings-voice-commands-note = 用你自己的声音把每条命令录制两到三次。录音越多，识别越稳定。
+settings-voice-record = 录制
+settings-voice-recording = 正在聆听…
+settings-voice-forget = 忘记
+settings-voice-takes = 已录制 { $count } 条
+settings-voice-untrained = 未录制
+voice-cmd-next = 下一个停顿
+voice-listening = 正在聆听
+voice-hold-to-talk = 按住说话

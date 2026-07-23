@@ -9,8 +9,12 @@ import {
   teleprompterSetScript,
   teleprompterSetSpeed,
   traySync,
+  voiceStartListening,
+  voiceStopListening,
 } from "./api/commands";
+import { onVoiceCommand, onVoiceListening } from "./api/events";
 import type { EulaStatus, Settings } from "./api/types";
+import { voiceCommandToControl } from "./lib/voice";
 import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
 import { applySettingsToDocument, getLocale, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor } from "./components/CaesuraEditor";
@@ -172,6 +176,48 @@ export default function App() {
     () => timeAtOffset(totalChars, state.speed > 0 ? state.speed : 1, caesuras),
     [totalChars, state.speed, caesuras],
   );
+
+  // -- voice commands (FT-31) ------------------------------------------------
+  // The recogniser runs in Rust and pushes results as events. A trained
+  // command's id IS its transport action; "nextMarker" seeks to the next caesura,
+  // computed here from the live script. Off by default — nothing opens the mic
+  // until the operator enables it in Settings.
+  const [micLive, setMicLive] = useState(false);
+
+  // The dispatcher closes over the latest caesuras/offset/control. It lives in a
+  // ref, synced in an effect (never assigned during render — eslint's
+  // react-hooks/refs), so the subscription below can subscribe exactly once
+  // rather than tearing down and re-attaching on every keystroke.
+  const voiceDispatch = useRef<(id: string) => void>(() => {});
+  useEffect(() => {
+    voiceDispatch.current = (id: string) => {
+      const command = voiceCommandToControl(id, { caesuras, offset: state.offset });
+      if (command) control(command.action, command.value);
+    };
+  });
+
+  useEffect(() => {
+    const command = onVoiceCommand((e) => voiceDispatch.current(e.commandId));
+    const listening = onVoiceListening(setMicLive);
+    return () => {
+      void command.then((un) => un()).catch(() => undefined);
+      void listening.then((un) => un()).catch(() => undefined);
+    };
+  }, []);
+
+  // Voice is on only past the gate and when the operator enabled it. Always-mode
+  // keeps the mic open the whole time; push-to-talk (the hold button below) opens
+  // it only while held — so the mic is never open unattended.
+  const voiceOn = (settings?.voiceEnabled ?? false) && eula?.accepted === true;
+  const alwaysListening = voiceOn && settings?.voiceMode === "always";
+  useEffect(() => {
+    if (alwaysListening) void voiceStartListening().catch(() => undefined);
+    // Release on teardown — this covers turning voice off in ANY mode, including
+    // a push-to-talk session whose hold button unmounts mid-press (its pointerup
+    // would then never fire). Depending on `voiceOn` is what makes disabling
+    // voice while the talk button is held actually stop the mic.
+    return () => void voiceStopListening().catch(() => undefined);
+  }, [alwaysListening, voiceOn]);
 
   // -- speed: chars/sec or BPM (FT-14) ---------------------------------------
   // An operator-local DISPLAY toggle over the same authoritative chars/sec.
@@ -354,6 +400,32 @@ export default function App() {
           {t("toolbar-updates")}
         </button>
         <div className="flex-1" />
+        {/* Push-to-talk: the mic opens only while this is held (FT-31). */}
+        {voiceOn && settings?.voiceMode === "push_to_talk" && (
+          <button
+            type="button"
+            data-testid="voice-hold-to-talk"
+            className={BUTTON}
+            onPointerDown={() => void voiceStartListening().catch(() => undefined)}
+            onPointerUp={() => void voiceStopListening().catch(() => undefined)}
+            onPointerLeave={() => void voiceStopListening().catch(() => undefined)}
+            onPointerCancel={() => void voiceStopListening().catch(() => undefined)}
+          >
+            {t("voice-hold-to-talk")}
+          </button>
+        )}
+        {/* Whenever the mic is actually open — always-listening or a held talk
+            button — the operator can see it. */}
+        {micLive && (
+          <span
+            data-testid="voice-mic-live"
+            role="status"
+            className="flex items-center gap-1.5 text-[11px] text-red-300"
+          >
+            <span className="h-2 w-2 rounded-full bg-red-400" aria-hidden="true" />
+            {t("voice-listening")}
+          </span>
+        )}
       </header>
 
       <main className="grid min-h-0 flex-1 gap-3 p-3 md:grid-cols-2">

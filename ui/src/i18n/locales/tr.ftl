@@ -181,3 +181,21 @@ updates-checking = Güncellemeler denetleniyor…
 
 ## Startup
 startup-failed = Freally Teleprompt başlatılamadı.
+
+## Voice control (FT-31)
+settings-cat-voice = Ses
+settings-voice-enabled = Prompter'ı sesimle kontrol et
+settings-voice-note = Komutlar bu cihazda çalışır ve kendi sesinizin kısa kayıtlarıyla eşleştirilir. Model yok, ağ yok — mikrofon yalnızca dinleme sırasında açılır ve söyledikleriniz hiçbir zaman bir dosyaya kaydedilmez.
+settings-voice-mode = Ne zaman dinlensin
+settings-voice-mode-ptt = Yalnızca düğmeyi basılı tuttuğumda
+settings-voice-mode-always = Etkinken her zaman
+settings-voice-commands = Komutlarınız
+settings-voice-commands-note = Her komutu kendi sesinizle iki ya da üç kez kaydedin. Daha fazla kayıt, tanımayı kararlı hale getirir.
+settings-voice-record = Kaydet
+settings-voice-recording = Dinleniyor…
+settings-voice-forget = Unut
+settings-voice-takes = { $count } kaydedildi
+settings-voice-untrained = Kaydedilmedi
+voice-cmd-next = Sonraki duraklama
+voice-listening = Dinleniyor
+voice-hold-to-talk = Konuşmak için basılı tutun

@@ -20,7 +20,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
-use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -71,20 +70,14 @@ fn save_model(path: &Path, model: &VoiceModel) -> std::io::Result<()> {
     crate::settings::atomic_write(path, text.as_bytes())
 }
 
-/// A running listening session (either mode). Push-to-talk is expressed by the
-/// UI simply starting and stopping this session as the talk button is held and
-/// released, so the microphone is open only while it is actually attended — the
-/// backend needs no separate gate.
-struct ListenSession {
-    stop: Arc<AtomicBool>,
-    handle: JoinHandle<()>,
-}
-
 /// The managed voice state: the trained model, its file, and any live session.
 pub struct VoiceState {
     model: Mutex<VoiceModel>,
     path: PathBuf,
-    session: Mutex<Option<ListenSession>>,
+    /// The listening thread. Push-to-talk is expressed by the UI starting and
+    /// stopping it as the talk button is held, so the mic is open only while it
+    /// is actually attended — the backend needs no separate gate.
+    session: crate::session::BackgroundSession,
     /// True while the microphone is open (a capture or a listening session).
     mic_live: Arc<AtomicBool>,
 }
@@ -96,17 +89,13 @@ impl VoiceState {
         Self {
             model: Mutex::new(load_model(&path)),
             path,
-            session: Mutex::new(None),
+            session: crate::session::BackgroundSession::default(),
             mic_live: Arc::new(AtomicBool::new(false)),
         }
     }
 
     fn model(&self) -> std::sync::MutexGuard<'_, VoiceModel> {
         self.model.lock().unwrap_or_else(PoisonError::into_inner)
-    }
-
-    fn session(&self) -> std::sync::MutexGuard<'_, Option<ListenSession>> {
-        self.session.lock().unwrap_or_else(PoisonError::into_inner)
     }
 }
 
@@ -290,29 +279,18 @@ pub fn voice_clear_model(state: State<'_, VoiceState>) -> Result<VoiceSummary, S
 /// talk button in push-to-talk mode — so the mic is open only while attended.
 #[tauri::command]
 pub fn voice_start_listening(app: AppHandle, state: State<'_, VoiceState>) -> Result<(), String> {
-    let mut session = state.session();
-    if session.is_some() {
-        return Ok(());
-    }
-    let stop = Arc::new(AtomicBool::new(false));
     let model = state.model().clone();
     let mic_live = state.mic_live.clone();
-    let handle = {
-        let stop = stop.clone();
-        std::thread::spawn(move || run_listener(app, model, stop, mic_live))
-    };
-    *session = Some(ListenSession { stop, handle });
+    state
+        .session
+        .start(move |stop| std::thread::spawn(move || run_listener(app, model, stop, mic_live)));
     Ok(())
 }
 
 /// Stop listening and release the microphone.
 #[tauri::command]
 pub fn voice_stop_listening(state: State<'_, VoiceState>) {
-    let session = state.session().take();
-    if let Some(session) = session {
-        session.stop.store(true, Ordering::Relaxed);
-        let _ = session.handle.join();
-    }
+    state.session.stop();
 }
 
 #[cfg(test)]

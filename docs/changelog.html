@@ -110,6 +110,51 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>In development</h2>
+        <p class="date">Phase 3 — hands-free voice control</p>
+
+        <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
+          Run the prompter by voice, with commands you train in your own voice. Merged and in the
+          app, not yet cut as a downloadable release.
+        </p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Voice commands.</strong> Train <strong>play</strong>, <strong>pause</strong>,
+            <strong>faster</strong>, <strong>slower</strong>, <strong>next pause</strong> and
+            <strong>back to top</strong> in your own voice — a few takes each — and drive the
+            prompter hands-free. A red <strong>● Listening</strong> indicator shows whenever the
+            microphone is open, and you choose <strong>push-to-talk</strong> or
+            <strong>always-listening</strong>. Off by default. Model-free — matched against your own
+            recordings on your machine.
+          </li>
+          <li>
+            <strong>Follow my reading.</strong> An opt-in mode that scrolls the script to keep up as
+            you read it aloud, recognising the script's own words on your device with a bundled
+            Apache-2.0 Vosk model. It <strong>steps aside to manual</strong> the moment it loses your
+            place — so it never scrolls somewhere wrong — and drives only the operator preview, never
+            the projector. Off by default, and greyed out where the model isn't installed.
+          </li>
+        </ul>
+
+        <h3>Privacy</h3>
+        <ul>
+          <li>
+            <strong>Voice commands never touch the network or disk.</strong> They are matched by
+            classic signal processing against your own recordings, on your machine — no model, no
+            training data, no service. Audio is processed in memory only; nothing you say is written
+            to a file.
+          </li>
+        </ul>
+
+        <p style="margin: 8px 0 0; color: var(--muted); line-height: 1.6">
+          Not yet released: the Vosk model ships with the release installer (a later phase), so until
+          then voice-following reports itself unavailable.
+        </p>
+      </article>
+
+      <article class="release">
         <h2>0.300.0</h2>
         <p class="date">22 July 2026 — offline autocomplete</p>
 

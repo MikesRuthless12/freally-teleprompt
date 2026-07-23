@@ -4,11 +4,12 @@ import {
   lanMirrorOpen,
   lanMirrorStatus,
   settingsSet,
+  speechCapability,
   voiceEnrollCapture,
   voiceForgetCommand,
   voiceSummary,
 } from "../api/commands";
-import type { Look, MirrorStatus, Settings, VoiceSummary } from "../api/types";
+import type { Look, MirrorStatus, Settings, SpeechCapability, VoiceSummary } from "../api/types";
 import { ModalShell } from "../components/ModalShell";
 import { QrSvg } from "../components/QrSvg";
 import { BUTTON, DIALOG_TITLE, ERROR_LINE, FIELD, PRIMARY } from "../components/styles";
@@ -48,7 +49,7 @@ const CATEGORY_FIELDS: Record<CategoryId, Array<keyof Settings>> = {
   appearance: ["look"],
   projector: ["mirror"],
   network: ["lanEnabled", "lanAllInterfaces", "lanPort"],
-  voice: ["voiceEnabled", "voiceMode"],
+  voice: ["voiceEnabled", "voiceMode", "voiceFollowEnabled"],
 };
 
 /** The i18n keys each category's controls are labelled with — what the search
@@ -200,6 +201,16 @@ export function SettingsDialog({
       voiceSummary()
         .then(setVoice)
         .catch(() => setVoice(null));
+  }, [open]);
+
+  // Voice-following availability (FT-35) — live, not a draft field. Gates the
+  // toggle: the Vosk engine must be built in AND its model installed.
+  const [speechCap, setSpeechCap] = useState<SpeechCapability | null>(null);
+  useEffect(() => {
+    if (open)
+      speechCapability()
+        .then(setSpeechCap)
+        .catch(() => setSpeechCap(null));
   }, [open]);
 
   const trainCommand = (id: string) => {
@@ -692,6 +703,24 @@ export function SettingsDialog({
                       <option value="always">{t("settings-voice-mode-always")}</option>
                     </select>
                   </label>
+
+                  <label className="flex items-center gap-2 text-[11px]">
+                    <input
+                      type="checkbox"
+                      data-testid="settings-voice-follow"
+                      disabled={!speechCap?.available}
+                      checked={draft.voiceFollowEnabled}
+                      onChange={(e) => patch({ voiceFollowEnabled: e.target.checked })}
+                    />
+                    {t("settings-voice-follow")}
+                  </label>
+                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
+                    {speechCap && !speechCap.available
+                      ? speechCap.engine === "vosk"
+                        ? t("settings-voice-follow-unavailable-model")
+                        : t("settings-voice-follow-unavailable-build")
+                      : t("settings-voice-follow-note")}
+                  </p>
                 </Section>
 
                 <Section title={t("settings-voice-commands")}>

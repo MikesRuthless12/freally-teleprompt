@@ -55,6 +55,10 @@ export type MockState = {
   voiceMode?: "push_to_talk" | "always";
   /** The trained commands `voice_summary` reports (FT-31). */
   voiceCommands?: { id: string; takes: number }[];
+  /** Voice-following on/off (FT-35); off by default. */
+  voiceFollowEnabled?: boolean;
+  /** What `speech_capability` reports (FT-35); unavailable by default. */
+  speechCapability?: { available: boolean; engine: string; detail: string };
   /**
    * The Tauri window label this page believes it is (FT-12). `main.tsx` routes
    * on it, so `"projector"` renders the talent surface instead of the operator
@@ -147,6 +151,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       autocompleteLanguage: state.autocompleteLanguage ?? "auto",
       voiceEnabled: state.voiceEnabled ?? false,
       voiceMode: state.voiceMode ?? "push_to_talk",
+      voiceFollowEnabled: state.voiceFollowEnabled ?? false,
       recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
     },
@@ -171,6 +176,11 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     displays: state.displays ?? [],
     mirrorStatus: state.mirror ?? { running: false, url: null, error: null },
     voiceCommands: state.voiceCommands ?? [],
+    speechCapability: state.speechCapability ?? {
+      available: false,
+      engine: "none",
+      detail: "voice-following is not available in this build",
+    },
     windowLabel: state.windowLabel ?? null,
   };
 
@@ -309,6 +319,12 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             return Promise.resolve(voiceSummary());
           case "voice_start_listening":
           case "voice_stop_listening":
+            return Promise.resolve(null);
+          // Voice-following (FT-35).
+          case "speech_capability":
+            return Promise.resolve(data.speechCapability);
+          case "voice_follow_start":
+          case "voice_follow_stop":
             return Promise.resolve(null);
           default:
             break;

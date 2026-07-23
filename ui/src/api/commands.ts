@@ -8,6 +8,7 @@ import type {
   MirrorStatus,
   ScriptInfo,
   Settings,
+  SpeechCapability,
   TeleprompterAction,
   TeleprompterState,
   VoiceSummary,
@@ -168,6 +169,19 @@ export const voiceStartListening = (): Promise<void> => invoke("voice_start_list
 
 /** Stop listening and release the microphone. */
 export const voiceStopListening = (): Promise<void> => invoke("voice_stop_listening");
+
+// -- voice-following (FT-35) -------------------------------------------------
+
+/** Whether voice-following can run: the Vosk engine must be built in AND its
+ * model installed. The UI greys the toggle out and shows `detail` otherwise. */
+export const speechCapability = (): Promise<SpeechCapability> => invoke("speech_capability");
+
+/** Start following the reader's voice. Rejects with the capability reason when
+ * voice-following is unavailable. */
+export const voiceFollowStart = (): Promise<void> => invoke("voice_follow_start");
+
+/** Stop following and release the microphone. */
+export const voiceFollowStop = (): Promise<void> => invoke("voice_follow_stop");
 
 /** The scrubbed crash report from the previous run, or `null` after a clean one. */
 export const bugReportPending = (): Promise<string | null> => invoke("bug_report_pending");

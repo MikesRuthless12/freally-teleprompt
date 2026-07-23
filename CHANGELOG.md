@@ -7,6 +7,36 @@ project uses a phase-based version ladder up to 1.0.0 (`0.100.0` → `0.200.0` �
 `0.300.0` → `1.0.0`). Every phase updates this file and `docs/changelog.html`
 together — they are two renderings of the same history.
 
+## [Unreleased]
+
+Phase 3 — hands-free voice control. Merged to `main`, not yet cut as a release.
+
+### Added
+
+- **Voice commands** (FT-30, FT-31) — train **play, pause, faster, slower, next
+  pause, back to top** in your own voice (a few takes each) and drive the
+  prompter hands-free. A visible **● Listening** indicator shows whenever the
+  microphone is open; choose **push-to-talk** (mic open only while you hold a
+  button) or **always-listening**. **Off by default.** Model-free: matched by
+  classic signal processing against your own recordings, on-device.
+- **Voice-following** (FT-32, FT-34, FT-35) — an **opt-in** mode that scrolls the
+  script to keep up as you read it aloud, recognising the script's own words with
+  a bundled Apache-2.0 Vosk model. It **steps aside to manual** the moment it
+  loses your place (so it never scrolls somewhere wrong) and drives only the
+  operator preview, never the projector. **Off by default**, and greyed out with
+  a reason where the model isn't installed. The deterministic alignment layer
+  that decides where in the script you are is fully owned and unit-tested.
+
+### Privacy
+
+- **No network, ever.** Voice commands never touch the network or disk — audio is
+  matched in memory against your own recordings, and nothing you say is written
+  to a file. Voice-following runs the recogniser entirely on-device; the model
+  ships in the installer and downloads nothing at runtime.
+
+_Not yet released: the Vosk model ships with the release installer (a later
+phase); until then voice-following reports itself unavailable._
+
 ## [0.300.0] — 2026-07-22
 
 Offline autocomplete in the script editor: it suggests the rest of the word as

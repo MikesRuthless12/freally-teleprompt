@@ -5,14 +5,23 @@ import {
   eulaStatus as fetchEulaStatus,
   scriptsSave,
   settingsGet,
+  speechCapability,
   teleprompterControl,
   teleprompterSetScript,
   teleprompterSetSpeed,
   traySync,
+  voiceFollowStart,
+  voiceFollowStop,
   voiceStartListening,
   voiceStopListening,
 } from "./api/commands";
-import { onVoiceCommand, onVoiceListening } from "./api/events";
+import {
+  onVoiceCommand,
+  onVoiceError,
+  onVoiceListening,
+  onVoiceOffset,
+  onVoiceTracking,
+} from "./api/events";
 import type { EulaStatus, Settings } from "./api/types";
 import { voiceCommandToControl } from "./lib/voice";
 import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
@@ -219,6 +228,51 @@ export default function App() {
     return () => void voiceStopListening().catch(() => undefined);
   }, [alwaysListening, voiceOn]);
 
+  // -- voice-following (FT-35) -----------------------------------------------
+  // An opt-in mode that scrolls the reading surface to follow the reader's own
+  // voice, driving the SAME `overrideOffset` seam read-aloud uses — so the
+  // projector and shared scroll state are untouched. It degrades to normal
+  // scrolling the instant confidence drops, and only runs where the Vosk model
+  // is installed, which the capability check gates.
+  const [speechAvailable, setSpeechAvailable] = useState(false);
+  const [followOffset, setFollowOffset] = useState<number | null>(null);
+  const [followTracking, setFollowTracking] = useState(false);
+  // A voice error (mic could not open, model could not load) — surfaced so a
+  // failed session does not leave a toggle "on" over a silently dead engine.
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    speechCapability()
+      .then((cap) => setSpeechAvailable(cap.available))
+      .catch(() => setSpeechAvailable(false));
+    const offset = onVoiceOffset(setFollowOffset);
+    const tracking = onVoiceTracking(setFollowTracking);
+    const error = onVoiceError(setVoiceError);
+    return () => {
+      void offset.then((un) => un()).catch(() => undefined);
+      void tracking.then((un) => un()).catch(() => undefined);
+      void error.then((un) => un()).catch(() => undefined);
+    };
+  }, []);
+
+  // A surfaced voice error clears itself after a few seconds.
+  useEffect(() => {
+    if (!voiceError) return;
+    const id = window.setTimeout(() => setVoiceError(null), 6000);
+    return () => window.clearTimeout(id);
+  }, [voiceError]);
+
+  const following =
+    (settings?.voiceFollowEnabled ?? false) && speechAvailable && eula?.accepted === true;
+  useEffect(() => {
+    if (!following) {
+      void voiceFollowStop().catch(() => undefined);
+      return;
+    }
+    void voiceFollowStart().catch(() => undefined);
+    return () => void voiceFollowStop().catch(() => undefined);
+  }, [following]);
+
   // -- speed: chars/sec or BPM (FT-14) ---------------------------------------
   // An operator-local DISPLAY toggle over the same authoritative chars/sec.
   const [bpmMode, setBpmMode] = useState(false);
@@ -382,6 +436,16 @@ export default function App() {
     );
   }
 
+  // Read-aloud wins the override seam; then voice-following. When following, the
+  // override holds at the aligner's offset even as confidence drops: the aligner
+  // holds position on low confidence (FT-34) rather than guessing, so this keeps
+  // the scroll where the reader last was instead of snapping back to shared
+  // state. The tracking indicator (below) shows whether it is confidently
+  // following or waiting to re-acquire your place.
+  let scrollOverride: number | undefined;
+  if (readAloudMode) scrollOverride = raOffset;
+  else if (following && followOffset !== null) scrollOverride = followOffset;
+
   const playing = readAloudMode ? speaking : state.playing;
 
   return chrome(
@@ -414,16 +478,42 @@ export default function App() {
             {t("voice-hold-to-talk")}
           </button>
         )}
-        {/* Whenever the mic is actually open — always-listening or a held talk
-            button — the operator can see it. */}
-        {micLive && (
+        {/* While voice-following, the indicator shows whether it is tracking
+            (green) or has degraded to manual and is trying to re-acquire (grey).
+            Otherwise, whenever the mic is open for commands, the live indicator. */}
+        {following ? (
           <span
-            data-testid="voice-mic-live"
+            data-testid="voice-following"
             role="status"
-            className="flex items-center gap-1.5 text-[11px] text-red-300"
+            className={`flex items-center gap-1.5 text-[11px] ${
+              followTracking ? "text-emerald-300" : "text-havoc-muted"
+            }`}
           >
-            <span className="h-2 w-2 rounded-full bg-red-400" aria-hidden="true" />
-            {t("voice-listening")}
+            <span
+              className={`h-2 w-2 rounded-full ${
+                followTracking ? "bg-emerald-400" : "bg-havoc-muted"
+              }`}
+              aria-hidden="true"
+            />
+            {followTracking ? t("voice-following") : t("voice-following-acquiring")}
+          </span>
+        ) : (
+          micLive && (
+            <span
+              data-testid="voice-mic-live"
+              role="status"
+              className="flex items-center gap-1.5 text-[11px] text-red-300"
+            >
+              <span className="h-2 w-2 rounded-full bg-red-400" aria-hidden="true" />
+              {t("voice-listening")}
+            </span>
+          )
+        )}
+        {/* A voice mic/model failure, surfaced (the backend message) so a failed
+            session isn't silently dead behind an "on" toggle. */}
+        {voiceError && (
+          <span role="alert" data-testid="voice-error" className="text-[11px] text-red-300">
+            {voiceError}
           </span>
         )}
       </header>
@@ -554,17 +644,13 @@ export default function App() {
             not need to be labelled as the preview. */}
         <section className="flex min-h-0 flex-col gap-2">
           <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-white/10">
-            <TeleprompterScroller
-              state={state}
-              onSeek={seek}
-              overrideOffset={readAloudMode ? raOffset : undefined}
-            />
+            <TeleprompterScroller state={state} onSeek={seek} overrideOffset={scrollOverride} />
           </div>
           <TeleprompterSeekBar
             state={state}
             caesuras={caesuras}
             onSeek={seek}
-            overrideOffset={readAloudMode ? raOffset : undefined}
+            overrideOffset={scrollOverride}
           />
         </section>
       </main>

@@ -32,6 +32,20 @@ tauri-plugin-process = "2"
 # microphone backend. No model, no network — audio is matched against the user's
 # own recorded templates locally.
 freally-voice = { path = "../freally-voice", features = ["capture-cpal"] }
+# Track B voice-following (FT-32/33/35): the recogniser (`freally-speech`, always
+# present for its capability check) and the alignment layer (`freally-align`,
+# pulled in only with the `vosk` feature, since it is used only by the follow
+# loop). The Vosk engine links a native library, so it lives behind the
+# off-by-default `vosk` feature — CI and the standard build need no libvosk.
+freally-speech = { path = "../freally-speech" }
+freally-align = { path = "../freally-align", optional = true }
+
+[features]
+# Turn on the Vosk-backed voice-following engine. OFF by default: enable it only
+# where the native `libvosk` library and a model are present (a release build,
+# FT-52). Without it the app builds cleanly and reports voice-following
+# unavailable rather than failing.
+vosk = ["freally-speech/vosk", "dep:freally-align"]
 
 # The crash-notice helper waits for the crashed process to leave the process
 # table before relaunching; the probe is the one thing with no portable std API.

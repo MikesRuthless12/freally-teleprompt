@@ -169,3 +169,57 @@ test.describe("FT-31 voice commands — listening and the transport binding", ()
     await expect(page.getByTestId("voice-mic-live")).toHaveCount(0);
   });
 });
+
+test.describe("FT-35 voice-following", () => {
+  const READY = { available: true, engine: "vosk", detail: "ready" };
+
+  test("the toggle is disabled and explained when the model is unavailable", async ({ page }) => {
+    await mockTauri(page); // default: voice-following unavailable
+    await page.goto("/");
+    const dialog = await openVoicePane(page);
+
+    await expect(dialog.getByTestId("settings-voice-follow")).toBeDisabled();
+    await expect(dialog).toContainText(/not available in this build/i);
+  });
+
+  test("with the engine available, enabling it rides the draft and starts following", async ({
+    page,
+  }) => {
+    await mockTauri(page, { speechCapability: READY });
+    await page.goto("/");
+    const dialog = await openVoicePane(page);
+
+    const toggle = dialog.getByTestId("settings-voice-follow");
+    await expect(toggle).toBeEnabled();
+    await toggle.check();
+    await dialog.getByTestId("settings-apply").click();
+
+    expect((await lastCall(page, "settings_set"))?.next).toMatchObject({
+      voiceFollowEnabled: true,
+    });
+    // Applying makes the shell start the follow engine.
+    await expect
+      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "voice_follow_start"))
+      .toBe(true);
+  });
+
+  test("the indicator tracks confidence and degrades to manual on a low-confidence signal", async ({
+    page,
+  }) => {
+    await mockTauri(page, { voiceFollowEnabled: true, speechCapability: READY });
+    await page.goto("/");
+    await waitForShell(page);
+
+    // Following is active on load (enabled + available), so the engine starts.
+    await expect
+      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "voice_follow_start"))
+      .toBe(true);
+
+    const indicator = page.getByTestId("voice-following");
+    await emit(page, "voice:tracking", true);
+    await expect(indicator).toContainText(/following/i);
+    // Confidence drops → it steps aside (the visible half of reverting to manual).
+    await emit(page, "voice:tracking", false);
+    await expect(indicator).toContainText(/finding your place/i);
+  });
+});

@@ -59,6 +59,19 @@ retained, and only in a model the host chooses to save. See the suite-wide FT-31
 guarantee: the microphone is live only while listening, audio never leaves the
 device, and no recording is written to disk.
 
+## Per-OS capability (for suite reuse)
+
+Standalone and reusable by any Havoc app — nothing here depends on Teleprompt.
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| DSP core (VAD · MFCC · DTW · recogniser · segmenter · resampler) | ✅ | ✅ | ✅ |
+| Live capture (`capture-cpal`) | WASAPI | CoreAudio | ALSA — needs `libasound2` |
+
+The pure recognition core runs everywhere with **no system dependency**; only the
+`capture-cpal` feature links the OS audio API through cpal. Depend on the crate
+with `default-features = false` for the core alone.
+
 ## Status
 
 The deterministic core (VAD · MFCC · DTW · recogniser) is complete and unit-

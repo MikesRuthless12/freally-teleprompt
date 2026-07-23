@@ -22,6 +22,9 @@ vi.mock("../../api/commands", () => ({
   voiceEnrollCapture: (id: string) =>
     Promise.resolve({ commands: [{ id, takes: 1 }], listening: false }),
   voiceForgetCommand: () => Promise.resolve({ commands: [], listening: false }),
+  // Voice-following availability (FT-35); unavailable in this environment.
+  speechCapability: () =>
+    Promise.resolve({ available: false, engine: "none", detail: "not available" }),
 }));
 
 const BASE: Settings = {
@@ -48,6 +51,7 @@ const BASE: Settings = {
   autocompleteLanguage: "auto",
   voiceEnabled: false,
   voiceMode: "push_to_talk",
+  voiceFollowEnabled: false,
   recentScripts: [],
   acceptedEulaVersion: "2026-07-21",
 };

@@ -1,0 +1,35 @@
+# freally-speech — Track B's speech recogniser (FT-32).
+#
+# Turns a live audio stream into word hypotheses with timings, for the FT-34
+# alignment layer to follow. It is backed by Vosk (Apache-2.0 code AND Apache-2.0
+# English weights — both permissive, recorded in NOTICE when the model ships in
+# FT-33), driven in DYNAMIC-GRAMMAR mode over a sliding window of the upcoming
+# script lines. Constraining the vocabulary to what the reader is about to say is
+# the single biggest accuracy lever, and it is only possible because we know the
+# script — that window builder is the owned, model-free IP in this crate.
+#
+# Vosk links a native library (libvosk) and needs a model on disk, so it lives
+# behind an off-by-default feature: the grammar/capability core builds and tests
+# with no native dependency, and the FFI compiles only where libvosk is present.
+[package]
+name = "freally-speech"
+description = "Script-constrained speech recognition (Vosk, dynamic grammar) -> word hypotheses with timings."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+# The Vosk binding, and the crate's only dependency — optional, because the FFI
+# needs libvosk + a model, so only the `vosk` feature (which the host app enables
+# once the model ships, FT-33) pulls it in. Vosk's code is Apache-2.0. The pure
+# grammar/capability core has no dependencies at all.
+vosk = { version = "0.3", optional = true }
+
+[features]
+# Provides `VoskRecognizer`. Off by default so the pure core builds without the
+# native library.
+vosk = ["dep:vosk"]

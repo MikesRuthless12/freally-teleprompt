@@ -35,8 +35,35 @@ alongside the tables so the derivation can be re-run and re-audited.
 
 CC BY 2.0 FR permits commercial use and redistribution, and imposes no
 share-alike or non-commercial term. It is deliberately the ONLY data licence
-here: each additional source would be another obligation to honour in every
-release and to re-verify whenever the tables are rebuilt.
+here for the autocomplete tables: each additional source would be another
+obligation to honour in every release and to re-verify whenever they are rebuilt.
+
+
+Voice-following speech recognition (FT-32 / FT-33 / FT-35)
+---------------------------------------------------------
+
+Included ONLY in builds that ship voice-following (the `vosk` Cargo feature plus
+the bundled model). The Track A voice COMMANDS (FT-30/FT-31) use neither and are
+always model-free; this section applies to the opt-in voice-FOLLOWING engine.
+
+Vosk has two separately-licensed parts, and both are recorded here because they
+routinely differ elsewhere — a clean code licence over non-commercial weights is
+the trap Track B was written to avoid:
+
+  * ENGINE (code) — Vosk API / bindings, https://github.com/alphacep/vosk-api
+    LICENCE — Apache License 2.0
+    Reached via the `vosk` Rust crate (Apache-2.0), which links the native
+    `libvosk` library.
+
+  * MODEL (weights) — the small English model, https://alphacephei.com/vosk/models
+    LICENCE — Apache License 2.0 (the mainline `vosk-model-small-en-*` weights)
+
+Apache-2.0 permits commercial use and redistribution with attribution and no
+share-alike term, for both the code and the weights. The model is CPU-only and
+downloads nothing at runtime — it ships inside the installer or not at all; there
+is no silent fetch. Re-verify BOTH licences at the source before shipping a model
+for any new language: a permissively-licensed engine does not make its models
+permissive.
 
 
 Sources deliberately NOT used

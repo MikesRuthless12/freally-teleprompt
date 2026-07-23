@@ -3,10 +3,11 @@
 > **Look confident. Stay on script.** — a local-first teleprompter that reads at a real human
 > pace (characters per second **or BPM**), marks your pauses with inline caesura chips, and keeps the
 > operator preview, the talent projector, and LAN mirrors in step from one character-based engine.
+> It even takes **hands-free voice commands** you train in your own voice.
 >
 > **No AI, no accounts, no cloud, no subscription.**
 
-**Status: in development (0.100.0).** Freally Teleprompt is the standalone grow-out of the
+**Status: in development (0.300.0).** Freally Teleprompt is the standalone grow-out of the
 teleprompter that ships inside
 [Freally Capture](https://github.com/MikesRuthless12/freally-capture) (0.910.0's Teleprompter
 Rework). Platforms: **Windows / macOS / Linux** (Tauri v2 — Rust core + React/TypeScript UI).

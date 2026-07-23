@@ -163,6 +163,12 @@ settings-voice-untrained = Not recorded
 voice-cmd-next = Next pause
 voice-listening = Listening
 voice-hold-to-talk = Hold to talk
+settings-voice-follow = Follow my reading
+settings-voice-follow-note = When you speak, the script scrolls to keep up — it recognises the script's own words on this device. It steps aside the moment it loses your place, so it never fights you.
+settings-voice-follow-unavailable-build = Voice-following is not available in this build.
+settings-voice-follow-unavailable-model = The speech model is not installed yet, so voice-following can't run.
+voice-following = Following
+voice-following-acquiring = Finding your place…
 
 ## First-run agreement
 eula-title = End User License Agreement

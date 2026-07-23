@@ -17,7 +17,9 @@ mod eula;
 mod lanmirror;
 mod projector;
 mod scripts;
+mod session;
 mod settings;
+mod speech;
 mod teleprompter;
 mod tray;
 mod tts;
@@ -60,6 +62,9 @@ fn main() {
         // The trained voice-command model (features only) loads here; no
         // microphone is opened until the user starts listening (FT-31).
         .manage(voice::VoiceState::load())
+        // Voice-following (FT-35) — no engine runs until the operator opts in and
+        // the Vosk model is present.
+        .manage(speech::FollowState::default())
         // Seed the engine from the persisted preferences, so the app opens at
         // the user's own speed, font, and pause length rather than the built-in
         // defaults, and start the LAN mirror if it was left on. `settings_set`
@@ -112,6 +117,9 @@ fn main() {
             voice::voice_clear_model,
             voice::voice_start_listening,
             voice::voice_stop_listening,
+            speech::speech_capability,
+            speech::voice_follow_start,
+            speech::voice_follow_stop,
             bugreport::bug_report_pending,
             bugreport::bug_report_build,
             bugreport::bug_report_clear_crash,

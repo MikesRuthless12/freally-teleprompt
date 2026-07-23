@@ -409,6 +409,7 @@
           <a href="#projector">Talent projector</a>
           <a href="#read-aloud">Read aloud</a>
           <a href="#autocomplete">Autocomplete</a>
+          <a href="#voice-control">Voice control</a>
           <a href="#settings">Appearance, languages &amp; settings</a>
           <a href="#problems">Problems &amp; updates</a>
           <a href="#privacy">Privacy</a>
@@ -562,6 +563,23 @@
           </ol>
           <div class="tip"><strong>Where the words come from:</strong> the tables are built from the <a href="https://tatoeba.org" style="color:var(--accent)">Tatoeba</a> sentence corpus (CC BY 2.0 FR) and ship inside the installer. The <code>NOTICE</code> file included with the app records the full attribution.</div>
           <div class="tip"><strong>Why a dictionary, not AI:</strong> for autocomplete a dictionary is the right tool — instant (well under a millisecond), deterministic, predictable, and entirely offline. It can't invent something you didn't ask for, and it needs no model, no download, and no network at all.</div>
+        </section>
+
+        <!-- Voice control -->
+        <section id="voice-control">
+          <h2>Voice control</h2>
+          <p class="section-intro">Run the prompter hands-free by voice. You train a small set of commands in <strong>your own voice</strong>, and the app matches what you say against your own recordings — <strong>on this device, with no model and no network</strong>. It is <strong>off by default</strong>.</p>
+
+          <ol class="steps">
+            <li><span>Open <strong>Settings → Voice</strong> and tick <strong>"Control the prompter with my voice."</strong> Choose when it listens: <strong>only while you hold a button</strong> (push-to-talk) or <strong>always</strong>, while enabled.</span></li>
+            <li><span>Under <strong>Your commands</strong>, press <strong>Record</strong> next to a command — <strong>Play</strong>, <strong>Pause</strong>, <strong>Faster</strong>, <strong>Slower</strong>, <strong>Next pause</strong>, or <strong>Back to top</strong> — and say your word. Record each one <strong>two or three times</strong>; more takes make it steadier. Any word can stand for any command.</span></li>
+            <li><span>On the prompter, a red <strong>● Listening</strong> indicator shows whenever the microphone is open. In push-to-talk mode, hold <strong>Hold to talk</strong> and speak; in always mode it listens continuously while enabled. Say a trained word and the prompter obeys.</span></li>
+            <li><span>A word it does not clearly recognise is <strong>ignored, never guessed</strong> — a prompter that jumped on a mishear would be worse than one that waited.</span></li>
+          </ol>
+          <div class="warn"><strong>Note:</strong> voice commands need a microphone, and recognition is speaker-dependent — train your commands on the machine and in the voice you will present with. Test them before you go live.</div>
+          <div class="tip"><strong>Private by construction:</strong> commands are matched by classic signal processing against your own recordings — <strong>no model, no training data, no network</strong>. The microphone is open only while listening, audio is processed in memory, and <strong>nothing you say is ever written to a file</strong>.</div>
+
+          <p style="margin: 14px 0 0; color: var(--muted); line-height: 1.6"><strong>Coming — follow my reading.</strong> A separate <strong>Follow my reading</strong> option scrolls the script to keep up as you read it aloud, recognising the script's own words on your device. It steps aside to manual scrolling the moment it loses your place, so it never scrolls somewhere wrong, and it drives only the operator preview — never the projector. It is opt-in and needs a speech model installed; where the model isn't present the option is greyed out with a note.</p>
         </section>
 
         <!-- Appearance, languages & settings -->

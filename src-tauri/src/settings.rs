@@ -152,6 +152,11 @@ pub struct Settings {
     /// (only while the talk key is held) or `"always"` (continuously).
     #[serde(default = "default_voice_mode")]
     pub voice_mode: String,
+    /// Voice-*following* (FT-35): auto-scroll by recognising the script's own
+    /// words. Off by default, and only usable when the Vosk model is present —
+    /// the UI greys it out otherwise. Separate from `voice_enabled` (commands).
+    #[serde(default)]
+    pub voice_follow_enabled: bool,
     /// Recently-opened scripts (FT-10), most recent first; the first entry is
     /// the script currently open.
     ///
@@ -188,6 +193,7 @@ impl Default for Settings {
             autocomplete_language: default_autocomplete_language(),
             voice_enabled: false,
             voice_mode: default_voice_mode(),
+            voice_follow_enabled: false,
             recent_scripts: Vec::new(),
             accepted_eula_version: None,
         }

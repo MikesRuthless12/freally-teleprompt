@@ -60,6 +60,11 @@ export type Settings = {
   /** When the app listens: `"push_to_talk"` (only while the talk button is held)
    * or `"always"` (continuously while enabled). */
   voiceMode: "push_to_talk" | "always";
+  /** Voice-following (FT-35): auto-scroll by recognising the script's own words.
+   * Off by default; only usable when the Vosk model is present (see
+   * `speechCapability`). A normal preference — the Settings draft must round-trip
+   * it. */
+  voiceFollowEnabled: boolean;
   /**
    * Recently-opened scripts (FT-10), most recent first; `[0]` is the script
    * currently open. Read-only from the UI's point of view for the same reason
@@ -155,6 +160,16 @@ export type VoiceCommandEvent = {
   commandId: string;
   /** Match confidence in `[0, 1]`. */
   confidence: number;
+};
+
+/** Mirror of `speech::SpeechCapabilityDto` — whether voice-following can run. */
+export type SpeechCapability = {
+  /** Usable right now: the Vosk engine is built in AND its model is installed. */
+  available: boolean;
+  /** The engine name (`"vosk"`, or `"none"` when not built in). */
+  engine: string;
+  /** A human-readable reason, shown when unavailable. */
+  detail: string;
 };
 
 /** Mirror of `scripts::ScriptInfo` — one entry in the library (FT-10). */

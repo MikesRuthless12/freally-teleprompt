@@ -6,6 +6,6 @@
 # profile "minimal" + no targets keeps CI installs small; the release workflow
 # adds each job's cross-compile target explicitly (rustup target add).
 [toolchain]
-channel = "1.96.1"
+channel = "1.97.1"
 components = ["rustfmt", "clippy"]
 profile = "minimal"

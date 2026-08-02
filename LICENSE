@@ -1,5 +1,5 @@
 Freally Teleprompt — Proprietary, Source-Available License
-© 2026 Mike Weaver (Havoc Software). All Rights Reserved.
+© 2026 Mike Weaver. All Rights Reserved.
 
 Project started: June 30th, 2026.
 
@@ -22,7 +22,7 @@ the projector and LAN sync surfaces, the writing aids, the Tauri/web UI, assets,
 components listed in THIRD-PARTY-NOTICES.md, which remain under their own
 licenses.
 
-"Licensor" means Mike Weaver <mythodikalone@gmail.com> (Havoc Software).
+"Licensor" means Mike Weaver <mythodikalone@gmail.com>.
 
 "You" means the individual or entity exercising rights under this License.
 
@@ -104,6 +104,6 @@ stop using and delete all copies of the Software (source and binaries). Sections
 ================================================================================
 All rights not expressly granted are reserved by the Licensor. This License does
 not grant any rights to the Licensor's trademarks, names, or logos
-("Freally", "Freally Teleprompt", "Havoc Software", "Mythodikal").
+("Freally", "Freally Teleprompt", "Mythodikal").
 
 Questions or licensing requests: Mike Weaver <mythodikalone@gmail.com>.

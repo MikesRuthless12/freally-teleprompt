@@ -3,7 +3,7 @@
 > **Look confident. Stay on script.** — a local-first teleprompter that reads at a real human
 > pace (characters per second **or BPM**), marks your pauses with inline caesura chips, and keeps the
 > operator preview, the talent projector, and LAN mirrors in step from one character-based engine.
-> It even takes **hands-free voice commands** you train in your own voice.
+> You can even **write your script by speaking** — on-device, with nothing to train.
 >
 > **No AI, no accounts, no cloud, no subscription.**
 

@@ -27,7 +27,7 @@ tray-quit = Çık
 about-version = Sürüm { $version }
 about-tagline = İçerik üreticileri, sunucular ve sahne sanatçıları için yerel çalışan bir prompter. Tek bir karakter tabanlı motor; önizlemeyi, yansıtıcıyı ve ağ yansımasını aynı kelimede tutar.
 about-privacy = Yapay zekâ yok, hesap yok, telemetri yok. Metinleriniz cihazınızda kalır.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Tüm hakları saklıdır.
+about-copyright = © 2026 Mike Weaver. Tüm hakları saklıdır.
 about-website = Web sitesi
 about-source = Kaynak kodu
 about-close = Kapat
@@ -45,6 +45,8 @@ transport-seek = Metinde ilerle
 
 ## Editor
 editor-label = Metin
+editor-dictate = Dikte et
+editor-dictate-stop = Diktesi durdur
 editor-placeholder = Metninizi yazın veya yapıştırın. Duraklama için " -- ", 2 saniye beklemek için " --2 " kullanın.
 editor-caesura-hint = Duraklama için -- yazın
 editor-est-time = Okuma süresi { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt başlatılamadı.
 
 ## Voice control (FT-31)
 settings-cat-voice = Ses
-settings-voice-enabled = Prompter'ı sesimle kontrol et
-settings-voice-note = Komutlar bu cihazda çalışır ve kendi sesinizin kısa kayıtlarıyla eşleştirilir. Model yok, ağ yok — mikrofon yalnızca dinleme sırasında açılır ve söyledikleriniz hiçbir zaman bir dosyaya kaydedilmez.
-settings-voice-mode = Ne zaman dinlensin
-settings-voice-mode-ptt = Yalnızca düğmeyi basılı tuttuğumda
-settings-voice-mode-always = Etkinken her zaman
-settings-voice-commands = Komutlarınız
-settings-voice-commands-note = Her komutu kendi sesinizle iki ya da üç kez kaydedin. Daha fazla kayıt, tanımayı kararlı hale getirir.
-settings-voice-record = Kaydet
-settings-voice-recording = Dinleniyor…
-settings-voice-forget = Unut
-settings-voice-takes = { $count } kaydedildi
-settings-voice-untrained = Kaydedilmedi
-voice-cmd-next = Sonraki duraklama
-voice-listening = Dinleniyor
-voice-hold-to-talk = Konuşmak için basılı tutun
-settings-voice-follow = Okumamı takip et
-settings-voice-follow-note = Siz konuştukça metin sizinle birlikte kayar — metnin kendi sözcüklerini bu cihazda tanır. Yerinizi kaybettiği an kenara çekilir, böylece sizinle asla çekişmez.
-settings-voice-follow-unavailable-build = Sesle takip bu sürümde kullanılamıyor.
-settings-voice-follow-unavailable-model = Konuşma modeli henüz yüklü değil, bu yüzden sesle takip çalışamaz.
-voice-following = Takip ediyor
-voice-following-acquiring = Yeriniz bulunuyor…
+settings-dictation-enabled = Metnimi konuşarak yaz
+settings-dictation-note = Metnin üzerindeki kayıt düğmesine basın; söyledikleriniz metne yazılır. Tanıma bu cihazda yapılır — hesap yok, ağ yok ve söyledikleriniz hiçbir dosyaya kaydedilmez. Mikrofon yalnızca kayıt sırasında açıktır.
+settings-dictation-unavailable-model = Konuşma modeli kurulu değil, bu yüzden dikte çalışamaz.
+settings-dictation-unavailable-build = Bu sürümde dikte kullanılamıyor.

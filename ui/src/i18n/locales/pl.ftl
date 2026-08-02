@@ -27,7 +27,7 @@ tray-quit = Zakończ
 about-version = Wersja { $version }
 about-tagline = Działający lokalnie prompter dla twórców, prelegentów i wykonawców. Jeden silnik oparty na znakach utrzymuje podgląd, projektor i odbicie sieciowe na tym samym słowie.
 about-privacy = Bez AI, bez konta, bez telemetrii. Twoje scenariusze zostają na Twoim urządzeniu.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Wszelkie prawa zastrzeżone.
+about-copyright = © 2026 Mike Weaver. Wszelkie prawa zastrzeżone.
 about-website = Strona
 about-source = Kod źródłowy
 about-close = Zamknij
@@ -45,6 +45,8 @@ transport-seek = Przewijaj scenariusz
 
 ## Editor
 editor-label = Scenariusz
+editor-dictate = Dyktuj
+editor-dictate-stop = Zakończ dyktowanie
 editor-placeholder = Wpisz lub wklej swój scenariusz. Użyj " -- ", aby zrobić pauzę, albo " --2 ", aby zatrzymać się na 2 sekundy.
 editor-caesura-hint = Wpisz --, aby dodać pauzę
 editor-est-time = Czas czytania { $time }
@@ -203,24 +205,7 @@ startup-failed = Nie można uruchomić Freally Teleprompt.
 
 ## Voice control (FT-31)
 settings-cat-voice = Głos
-settings-voice-enabled = Steruj prompterem moim głosem
-settings-voice-note = Polecenia działają na tym urządzeniu i są porównywane z krótkimi nagraniami Twojego własnego głosu. Bez modelu i bez sieci — mikrofon otwiera się tylko podczas słuchania, a nic, co powiesz, nigdy nie jest zapisywane do pliku.
-settings-voice-mode = Kiedy słuchać
-settings-voice-mode-ptt = Tylko gdy przytrzymuję przycisk
-settings-voice-mode-always = Zawsze, gdy włączone
-settings-voice-commands = Twoje polecenia
-settings-voice-commands-note = Nagraj każde polecenie własnym głosem dwa lub trzy razy. Więcej nagrań zwiększa stabilność.
-settings-voice-record = Nagraj
-settings-voice-recording = Słucham…
-settings-voice-forget = Zapomnij
-settings-voice-takes = Nagrano: { $count }
-settings-voice-untrained = Nie nagrano
-voice-cmd-next = Następna pauza
-voice-listening = Słucham
-voice-hold-to-talk = Przytrzymaj, aby mówić
-settings-voice-follow = Podążaj za moim czytaniem
-settings-voice-follow-note = Gdy mówisz, scenariusz przewija się, aby nadążyć — rozpoznaje słowa samego scenariusza na tym urządzeniu. Usuwa się na bok w chwili, gdy zgubi Twoje miejsce, więc nigdy z Tobą nie walczy.
-settings-voice-follow-unavailable-build = Podążanie głosem nie jest dostępne w tej wersji.
-settings-voice-follow-unavailable-model = Model mowy nie jest jeszcze zainstalowany, więc podążanie głosem nie może działać.
-voice-following = Podąża
-voice-following-acquiring = Szukam Twojego miejsca…
+settings-dictation-enabled = Pisz scenariusz głosem
+settings-dictation-note = Naciśnij przycisk nagrywania nad scenariuszem, a to, co powiesz, zostanie w nim zapisane. Rozpoznawanie odbywa się na tym urządzeniu — bez konta, bez sieci, i nic z tego, co mówisz, nie trafia do pliku. Mikrofon jest otwarty tylko podczas nagrywania.
+settings-dictation-unavailable-model = Model mowy nie jest zainstalowany, więc dyktowanie nie zadziała.
+settings-dictation-unavailable-build = Dyktowanie nie jest dostępne w tej wersji.

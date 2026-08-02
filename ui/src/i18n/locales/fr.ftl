@@ -27,7 +27,7 @@ tray-quit = Quitter
 about-version = Version { $version }
 about-tagline = Un prompteur local pour créateurs, conférenciers et artistes. Un même moteur fondé sur les caractères garde l'aperçu, le projecteur et la diffusion réseau sur le même mot.
 about-privacy = Pas d'IA, pas de compte, pas de télémétrie. Vos scripts restent sur votre appareil.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Tous droits réservés.
+about-copyright = © 2026 Mike Weaver. Tous droits réservés.
 about-website = Site web
 about-source = Code source
 about-close = Fermer
@@ -45,6 +45,8 @@ transport-seek = Se déplacer dans le script
 
 ## Editor
 editor-label = Script
+editor-dictate = Dicter
+editor-dictate-stop = Arrêter la dictée
 editor-placeholder = Saisissez ou collez votre script. Utilisez " -- " pour une pause, ou " --2 " pour marquer 2 secondes.
 editor-caesura-hint = Tapez -- pour une pause
 editor-est-time = Temps de lecture { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt n'a pas pu démarrer.
 
 ## Voice control (FT-31)
 settings-cat-voice = Voix
-settings-voice-enabled = Contrôler le prompteur à la voix
-settings-voice-note = Les commandes s'exécutent sur cet appareil et sont comparées à de courts enregistrements de votre propre voix. Aucun modèle ni réseau — le microphone ne s'ouvre que pendant l'écoute, et rien de ce que vous dites n'est jamais enregistré dans un fichier.
-settings-voice-mode = Quand écouter
-settings-voice-mode-ptt = Seulement quand je maintiens le bouton
-settings-voice-mode-always = Toujours, une fois activé
-settings-voice-commands = Vos commandes
-settings-voice-commands-note = Enregistrez chaque commande avec votre propre voix deux ou trois fois. Plus d'enregistrements la rendent plus fiable.
-settings-voice-record = Enregistrer
-settings-voice-recording = Écoute…
-settings-voice-forget = Oublier
-settings-voice-takes = { $count } enregistrées
-settings-voice-untrained = Non enregistrée
-voice-cmd-next = Pause suivante
-voice-listening = Écoute
-voice-hold-to-talk = Maintenir pour parler
-settings-voice-follow = Suivre ma lecture
-settings-voice-follow-note = Quand vous parlez, le script défile pour vous suivre — il reconnaît les mots du script sur cet appareil. Il s'efface dès qu'il perd votre position, pour ne jamais vous gêner.
-settings-voice-follow-unavailable-build = Le suivi vocal n'est pas disponible dans cette version.
-settings-voice-follow-unavailable-model = Le modèle vocal n'est pas encore installé, le suivi vocal ne peut donc pas fonctionner.
-voice-following = Suivi
-voice-following-acquiring = Recherche de votre position…
+settings-dictation-enabled = Écrire mon texte en parlant
+settings-dictation-note = Appuyez sur le bouton d'enregistrement au-dessus du texte et ce que vous dites y est écrit. La reconnaissance a lieu sur cet appareil — sans compte, sans réseau, et rien de ce que vous dites n'est enregistré dans un fichier. Le microphone n'est ouvert que pendant l'enregistrement.
+settings-dictation-unavailable-model = Le modèle vocal n'est pas installé, la dictée ne peut donc pas fonctionner.
+settings-dictation-unavailable-build = La dictée n'est pas disponible dans cette version.

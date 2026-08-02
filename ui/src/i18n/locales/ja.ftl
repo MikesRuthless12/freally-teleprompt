@@ -27,7 +27,7 @@ tray-quit = 終了
 about-version = バージョン { $version }
 about-tagline = クリエイター・登壇者・演者のための、ローカルで動くテレプロンプターです。1 つの文字単位エンジンが、プレビュー・プロジェクター・ネットワークミラーを同じ単語に保ちます。
 about-privacy = AI なし、アカウントなし、テレメトリーなし。台本は端末の中だけに残ります。
-about-copyright = © 2026 Mike Weaver — Havoc Software. All rights reserved.
+about-copyright = © 2026 Mike Weaver. All rights reserved.
 about-website = ウェブサイト
 about-source = ソースコード
 about-close = 閉じる
@@ -45,6 +45,8 @@ transport-seek = 台本内を移動
 
 ## Editor
 editor-label = 台本
+editor-dictate = 音声入力
+editor-dictate-stop = 音声入力を停止
 editor-placeholder = 台本を入力するか貼り付けてください。" -- " で間が入り、" --2 " で 2 秒止まります。
 editor-caesura-hint = 一時停止するには -- と入力
 editor-est-time = 読了時間 { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt を起動できませんでした。
 
 ## Voice control (FT-31)
 settings-cat-voice = 音声
-settings-voice-enabled = 音声でプロンプターを操作する
-settings-voice-note = コマンドはこのデバイス上で実行され、あなた自身の声の短い録音と照合されます。モデルもネットワークもありません — マイクは聞き取り中のみ開き、話した内容がファイルに保存されることは一切ありません。
-settings-voice-mode = 聞き取るタイミング
-settings-voice-mode-ptt = ボタンを押している間だけ
-settings-voice-mode-always = 有効な間は常に
-settings-voice-commands = あなたのコマンド
-settings-voice-commands-note = 各コマンドを自分の声で2〜3回録音してください。録音が多いほど安定します。
-settings-voice-record = 録音
-settings-voice-recording = 聞き取り中…
-settings-voice-forget = 削除
-settings-voice-takes = { $count } 件録音済み
-settings-voice-untrained = 未録音
-voice-cmd-next = 次の一時停止
-voice-listening = 聞き取り中
-voice-hold-to-talk = 押している間だけ話す
-settings-voice-follow = 読み上げに追従する
-settings-voice-follow-note = あなたが話すと、台本がそれに合わせてスクロールします — このデバイス上で台本自身の言葉を認識します。あなたの位置を見失った瞬間に身を引くので、決して邪魔をしません。
-settings-voice-follow-unavailable-build = 音声追従はこのビルドでは利用できません。
-settings-voice-follow-unavailable-model = 音声モデルがまだインストールされていないため、音声追従を実行できません。
-voice-following = 追従中
-voice-following-acquiring = 位置を探しています…
+settings-dictation-enabled = 話して原稿を書く
+settings-dictation-note = 原稿の上にある録音ボタンを押すと、話した内容がそのまま書き込まれます。認識はこの端末で行われ、アカウントもネットワークも不要で、話した内容がファイルに保存されることはありません。マイクは録音中だけ開きます。
+settings-dictation-unavailable-model = 音声モデルが未インストールのため、音声入力を実行できません。
+settings-dictation-unavailable-build = このビルドでは音声入力を利用できません。

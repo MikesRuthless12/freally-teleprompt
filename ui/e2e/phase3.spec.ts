@@ -3,21 +3,32 @@ import { expect, test, type Page } from "@playwright/test";
 import { ipcCalls, lastCall, mockTauri } from "./mock-ipc";
 
 /**
- * Phase 3 coverage (SR-2) — every FT-31 voice-command behaviour Playwright can
- * reach. The recogniser, the microphone and DTW are hardware and live in Rust
- * unit tests + a human drill; what the UI owns is the CONTRACT around them:
+ * Dictation (FT-33) — every behaviour Playwright can reach.
  *
- *   - voice is off by default and opens no microphone until asked;
- *   - the Settings pane trains/forgets commands through the right IPC calls;
- *   - always-listening starts on enable, push-to-talk only while held;
- *   - a recognised command (a `voice:command` event) drives the transport;
- *   - the mic indicator follows the `voice:listening` event.
+ * The recogniser, the microphone and Vosk itself are hardware and native code:
+ * they live in `freally-speech`'s unit tests, in the `--features vosk` compile
+ * check, and in the drill in `freally-speech/tests/vosk_model.rs`. What the UI
+ * owns is the CONTRACT around them:
  *
- * So the assertions are on what reached the backend and on the two events the
+ *   - dictation is off by default and opens no microphone until asked;
+ *   - the Settings toggle is refused where the model is absent;
+ *   - the record button appears only when it can actually work;
+ *   - pressing it starts, pressing again stops, and it looks different;
+ *   - a recognised utterance (a `voice:dictation` event) reaches the script.
+ *
+ * So the assertions are on what reached the backend and on the events the
  * backend would emit — never on anything that needs a real microphone.
+ *
+ * ⚠️ This file used to cover FT-31 voice commands and FT-35 voice-following.
+ * Both features were removed from the app: commands required the operator to
+ * record every command in their own voice before anything worked at all, and
+ * dictation does the same jobs with nothing to train.
  */
 
 const SHOTS = "e2e/screenshots";
+
+/** A capability that says the engine and its model are both present. */
+const READY = { available: true, engine: "vosk", detail: "ready" };
 
 /** Fire a backend event the way the recogniser would (see mock-ipc `__emitTauri`). */
 async function emit(page: Page, event: string, payload: unknown) {
@@ -37,189 +48,152 @@ async function openVoicePane(page: Page) {
   return page.getByTestId("settings-dialog");
 }
 
-/** The app shell (and so the engine script + caesuras) is ready to drive. */
+/** The app shell (and so the engine script) is ready to drive. */
 async function waitForShell(page: Page) {
   await expect(page.getByTestId("caesura-editor")).toContainText("scrolls");
 }
 
-test.describe("FT-31 voice commands — the Settings pane", () => {
-  test("voice is off by default and opens no microphone", async ({ page }) => {
-    await mockTauri(page);
-    await page.goto("/");
-    await waitForShell(page);
-
-    const calls = await ipcCalls(page);
-    expect(calls.some((c) => c.cmd === "voice_start_listening")).toBe(false);
-    await expect(page.getByTestId("voice-mic-live")).toHaveCount(0);
-    await expect(page.getByTestId("voice-hold-to-talk")).toHaveCount(0);
-
-    const dialog = await openVoicePane(page);
-    await expect(dialog.getByTestId("settings-voice-enabled")).not.toBeChecked();
-    // The mode picker is inert until voice is on.
-    await expect(dialog.getByTestId("settings-voice-mode")).toBeDisabled();
-    await page.screenshot({ path: `${SHOTS}/voice-settings.png` });
-  });
-
-  test("enabling voice rides the applied draft, not a live write", async ({ page }) => {
-    await mockTauri(page);
-    await page.goto("/");
-    const dialog = await openVoicePane(page);
-
-    await dialog.getByTestId("settings-voice-enabled").check();
-    // Editing the draft alone must not touch the backend (draft/apply contract).
-    expect((await ipcCalls(page)).some((c) => c.cmd === "settings_set")).toBe(false);
-
-    await dialog.getByTestId("settings-voice-mode").selectOption("always");
-    await dialog.getByTestId("settings-apply").click();
-
-    const sent = await lastCall(page, "settings_set");
-    expect(sent?.next).toMatchObject({ voiceEnabled: true, voiceMode: "always" });
-  });
-
-  test("recording a command asks the backend to enrol exactly it", async ({ page }) => {
-    await mockTauri(page);
-    await page.goto("/");
-    const dialog = await openVoicePane(page);
-
-    await expect(dialog.getByTestId("voice-takes-play")).toHaveText(/not recorded/i);
-    await dialog.getByTestId("voice-train-play").click();
-
-    expect(await lastCall(page, "voice_enroll_capture")).toEqual({ commandId: "play" });
-    // The take count reflects the new recording the backend reported back.
-    await expect(dialog.getByTestId("voice-takes-play")).toHaveText(/1/);
-  });
-
-  test("forgetting a command asks the backend to drop exactly it", async ({ page }) => {
-    await mockTauri(page, { voiceCommands: [{ id: "pause", takes: 3 }] });
-    await page.goto("/");
-    const dialog = await openVoicePane(page);
-
-    await expect(dialog.getByTestId("voice-takes-pause")).toHaveText(/3/);
-    await dialog.getByTestId("voice-forget-pause").click();
-    expect(await lastCall(page, "voice_forget_command")).toEqual({ commandId: "pause" });
-  });
-});
-
-test.describe("FT-31 voice commands — listening and the transport binding", () => {
-  test("always-listening starts on launch when enabled", async ({ page }) => {
-    await mockTauri(page, { voiceEnabled: true, voiceMode: "always" });
-    await page.goto("/");
-    await waitForShell(page);
-
-    await expect
-      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "voice_start_listening"))
-      .toBe(true);
-    // Always-mode has no hold button — it listens continuously.
-    await expect(page.getByTestId("voice-hold-to-talk")).toHaveCount(0);
-  });
-
-  test("push-to-talk holds the mic only while the button is pressed", async ({ page }) => {
-    await mockTauri(page, { voiceEnabled: true, voiceMode: "push_to_talk" });
-    await page.goto("/");
-    await waitForShell(page);
-
-    // It did NOT open the mic on its own.
-    expect((await ipcCalls(page)).some((c) => c.cmd === "voice_start_listening")).toBe(false);
-    const hold = page.getByTestId("voice-hold-to-talk");
-    await expect(hold).toBeVisible();
-
-    await hold.dispatchEvent("pointerdown");
-    await expect
-      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "voice_start_listening"))
-      .toBe(true);
-
-    await hold.dispatchEvent("pointerup");
-    await expect
-      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "voice_stop_listening"))
-      .toBe(true);
-  });
-
-  test("a recognised command drives the shared transport", async ({ page }) => {
-    await mockTauri(page, { voiceEnabled: true, voiceMode: "always" });
-    await page.goto("/");
-    await waitForShell(page);
-
-    await emit(page, "voice:command", { commandId: "play", confidence: 0.9 });
-    await expect
-      .poll(async () => await lastCall(page, "teleprompter_control"))
-      .toMatchObject({ action: "play" });
-  });
-
-  test('"next pause" seeks forward to the next caesura', async ({ page }) => {
-    await mockTauri(page, { voiceEnabled: true, voiceMode: "always", offset: 0 });
-    await page.goto("/");
-    await waitForShell(page);
-
-    await emit(page, "voice:command", { commandId: "nextMarker", confidence: 0.9 });
-    await expect
-      .poll(async () => await lastCall(page, "teleprompter_control"))
-      .toMatchObject({ action: "seek" });
-    const seek = await lastCall(page, "teleprompter_control");
-    expect(Number(seek?.value)).toBeGreaterThan(0);
-  });
-
-  test("the mic indicator follows the listening event", async ({ page }) => {
-    await mockTauri(page, { voiceEnabled: true, voiceMode: "always" });
-    await page.goto("/");
-    await waitForShell(page);
-
-    await emit(page, "voice:listening", true);
-    await expect(page.getByTestId("voice-mic-live")).toBeVisible();
-    await emit(page, "voice:listening", false);
-    await expect(page.getByTestId("voice-mic-live")).toHaveCount(0);
-  });
-});
-
-test.describe("FT-35 voice-following", () => {
-  const READY = { available: true, engine: "vosk", detail: "ready" };
-
-  test("the toggle is disabled and explained when the model is unavailable", async ({ page }) => {
-    await mockTauri(page); // default: voice-following unavailable
-    await page.goto("/");
-    const dialog = await openVoicePane(page);
-
-    await expect(dialog.getByTestId("settings-voice-follow")).toBeDisabled();
-    await expect(dialog).toContainText(/not available in this build/i);
-  });
-
-  test("with the engine available, enabling it rides the draft and starts following", async ({
-    page,
-  }) => {
+test.describe("FT-33 dictation — the Settings pane", () => {
+  test("dictation is off by default and opens no microphone", async ({ page }) => {
     await mockTauri(page, { speechCapability: READY });
     await page.goto("/");
+    await waitForShell(page);
+
+    // Nothing asked for the microphone on its own.
+    expect((await ipcCalls(page)).some((c) => c.cmd === "dictation_start")).toBe(false);
+    // And no record button is offered until it is switched on.
+    await expect(page.getByTestId("dictate-toggle")).toHaveCount(0);
+
     const dialog = await openVoicePane(page);
-
-    const toggle = dialog.getByTestId("settings-voice-follow");
-    await expect(toggle).toBeEnabled();
-    await toggle.check();
-    await dialog.getByTestId("settings-apply").click();
-
-    expect((await lastCall(page, "settings_set"))?.next).toMatchObject({
-      voiceFollowEnabled: true,
-    });
-    // Applying makes the shell start the follow engine.
-    await expect
-      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "voice_follow_start"))
-      .toBe(true);
+    await expect(dialog.getByTestId("settings-dictation-enabled")).not.toBeChecked();
+    await dialog.screenshot({ path: `${SHOTS}/settings-voice.png` });
   });
 
-  test("the indicator tracks confidence and degrades to manual on a low-confidence signal", async ({
-    page,
-  }) => {
-    await mockTauri(page, { voiceFollowEnabled: true, speechCapability: READY });
+  test("the toggle is refused, with a reason, where the model is missing", async ({ page }) => {
+    await mockTauri(page, {
+      speechCapability: { available: false, engine: "vosk", detail: "no model" },
+    });
     await page.goto("/");
     await waitForShell(page);
 
-    // Following is active on load (enabled + available), so the engine starts.
+    const dialog = await openVoicePane(page);
+    // Disabled rather than hidden: the operator should be able to see the
+    // feature exists and read why it cannot run.
+    await expect(dialog.getByTestId("settings-dictation-enabled")).toBeDisabled();
+    await expect(dialog).toContainText("model");
+  });
+
+  test("enabling it rides the applied draft, not a live write", async ({ page }) => {
+    await mockTauri(page, { speechCapability: READY });
+    await page.goto("/");
+    await waitForShell(page);
+
+    const dialog = await openVoicePane(page);
+    await dialog.getByTestId("settings-dictation-enabled").check();
+    // Still nothing written — Settings defers to Apply.
+    expect((await ipcCalls(page)).some((c) => c.cmd === "settings_set")).toBe(false);
+
+    await dialog.getByTestId("settings-apply").click();
     await expect
-      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "voice_follow_start"))
+      .poll(async () => {
+        const sent = (await lastCall(page, "settings_set")) as
+          { next?: { dictationEnabled?: boolean } } | undefined;
+        return sent?.next?.dictationEnabled;
+      })
+      .toBe(true);
+  });
+});
+
+test.describe("FT-33 dictation — the record button", () => {
+  /** The app as the operator has it once dictation is switched on and usable. */
+  const ON = { dictationEnabled: true, speechCapability: READY };
+
+  test("the record button appears, and only where it can work", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+    await expect(page.getByTestId("dictate-toggle")).toBeVisible();
+
+    // Switched on, but the model is absent: the button must NOT be offered,
+    // because pressing it could only ever fail.
+    await mockTauri(page, {
+      dictationEnabled: true,
+      speechCapability: { available: false, engine: "vosk", detail: "no model" },
+    });
+    await page.goto("/");
+    await waitForShell(page);
+    await expect(page.getByTestId("dictate-toggle")).toHaveCount(0);
+  });
+
+  test("press to record, press again to stop", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    const record = page.getByTestId("dictate-toggle");
+    await expect(record).toHaveAttribute("aria-pressed", "false");
+
+    await record.click();
+    await expect
+      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "dictation_start"))
       .toBe(true);
 
-    const indicator = page.getByTestId("voice-following");
-    await emit(page, "voice:tracking", true);
-    await expect(indicator).toContainText(/following/i);
-    // Confidence drops → it steps aside (the visible half of reverting to manual).
-    await emit(page, "voice:tracking", false);
-    await expect(indicator).toContainText(/finding your place/i);
+    // The backend confirms it is running; only then does the button change.
+    await emit(page, "voice:dictating", true);
+    await expect(record).toHaveAttribute("aria-pressed", "true");
+
+    await record.click();
+    await expect
+      .poll(async () => (await ipcCalls(page)).some((c) => c.cmd === "dictation_stop"))
+      .toBe(true);
+
+    await emit(page, "voice:dictating", false);
+    await expect(record).toHaveAttribute("aria-pressed", "false");
+  });
+
+  /** The load-bearing one: what is said has to end up in the script. */
+  test("a recognised utterance is written into the script", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+    await emit(page, "voice:dictation", "hello from the microphone");
+
+    // It reached the ENGINE, not merely the textarea — that is what drives the
+    // preview, the projector and the LAN mirror.
+    await expect
+      .poll(async () => {
+        const sent = (await lastCall(page, "teleprompter_set_script")) as
+          { text?: string } | undefined;
+        return sent?.text ?? "";
+      })
+      .toContain("hello from the microphone");
+    await expect(page.getByTestId("caesura-editor")).toContainText("hello from the microphone");
+  });
+
+  /** Two utterances must not run together into one word. */
+  test("consecutive utterances are separated", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+    await emit(page, "voice:dictation", "first line");
+    await emit(page, "voice:dictation", "second line");
+
+    await expect(page.getByTestId("caesura-editor")).toContainText("first line second line");
+  });
+
+  /** A failed session must not leave the button looking live. */
+  test("a backend error is surfaced", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    await emit(page, "voice:error", "the microphone could not be opened");
+    await expect(page.getByTestId("voice-error")).toContainText("microphone could not be opened");
   });
 });

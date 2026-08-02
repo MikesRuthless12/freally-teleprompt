@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   bugReportPending,
+  dictationStart,
+  dictationStop,
   eulaStatus as fetchEulaStatus,
   onboardingSetSeen,
   scriptsSave,
@@ -11,24 +13,13 @@ import {
   teleprompterSetScript,
   teleprompterSetSpeed,
   traySync,
-  voiceFollowStart,
-  voiceFollowStop,
-  voiceStartListening,
-  voiceStopListening,
 } from "./api/commands";
-import {
-  onVoiceCommand,
-  onVoiceError,
-  onVoiceListening,
-  onVoiceOffset,
-  onVoiceTracking,
-} from "./api/events";
+import { onVoiceDictating, onVoiceDictation, onVoiceError } from "./api/events";
 import type { EulaStatus, Settings } from "./api/types";
-import { voiceCommandToControl } from "./lib/voice";
 import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
 import { applySettingsToDocument, getLocale, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor } from "./components/CaesuraEditor";
-import { BUTTON, ERROR_LINE } from "./components/styles";
+import { BUTTON, ERROR_LINE, PRIMARY } from "./components/styles";
 import { ResizeEdges, TitleBar } from "./components/TitleBar";
 import { Transport } from "./components/Transport";
 import { parseCaesuras, timeAtOffset, visibleChars } from "./lib/caesura";
@@ -246,71 +237,22 @@ export default function App() {
     [totalChars, state.speed, caesuras],
   );
 
-  // -- voice commands (FT-31) ------------------------------------------------
-  // The recogniser runs in Rust and pushes results as events. A trained
-  // command's id IS its transport action; "nextMarker" seeks to the next caesura,
-  // computed here from the live script. Off by default — nothing opens the mic
-  // until the operator enables it in Settings.
-  const [micLive, setMicLive] = useState(false);
-
-  // The dispatcher closes over the latest caesuras/offset/control. It lives in a
-  // ref, synced in an effect (never assigned during render — eslint's
-  // react-hooks/refs), so the subscription below can subscribe exactly once
-  // rather than tearing down and re-attaching on every keystroke.
-  const voiceDispatch = useRef<(id: string) => void>(() => {});
-  useEffect(() => {
-    voiceDispatch.current = (id: string) => {
-      const command = voiceCommandToControl(id, { caesuras, offset: state.offset });
-      if (command) control(command.action, command.value);
-    };
-  });
-
-  useEffect(() => {
-    const command = onVoiceCommand((e) => voiceDispatch.current(e.commandId));
-    const listening = onVoiceListening(setMicLive);
-    return () => {
-      void command.then((un) => un()).catch(() => undefined);
-      void listening.then((un) => un()).catch(() => undefined);
-    };
-  }, []);
-
-  // Voice is on only past the gate and when the operator enabled it. Always-mode
-  // keeps the mic open the whole time; push-to-talk (the hold button below) opens
-  // it only while held — so the mic is never open unattended.
-  const voiceOn = (settings?.voiceEnabled ?? false) && eula?.accepted === true;
-  const alwaysListening = voiceOn && settings?.voiceMode === "always";
-  useEffect(() => {
-    if (alwaysListening) void voiceStartListening().catch(() => undefined);
-    // Release on teardown — this covers turning voice off in ANY mode, including
-    // a push-to-talk session whose hold button unmounts mid-press (its pointerup
-    // would then never fire). Depending on `voiceOn` is what makes disabling
-    // voice while the talk button is held actually stop the mic.
-    return () => void voiceStopListening().catch(() => undefined);
-  }, [alwaysListening, voiceOn]);
-
-  // -- voice-following (FT-35) -----------------------------------------------
-  // An opt-in mode that scrolls the reading surface to follow the reader's own
-  // voice, driving the SAME `overrideOffset` seam read-aloud uses — so the
-  // projector and shared scroll state are untouched. It degrades to normal
-  // scrolling the instant confidence drops, and only runs where the Vosk model
-  // is installed, which the capability check gates.
+  // -- dictation (FT-33) -----------------------------------------------------
+  // Speak, and the words are written into the script. The recogniser runs in
+  // Rust behind the `vosk` feature and pushes completed utterances as events;
+  // `speechAvailable` is the capability check, so the record button is offered
+  // only where the model is actually present.
   const [speechAvailable, setSpeechAvailable] = useState(false);
-  const [followOffset, setFollowOffset] = useState<number | null>(null);
-  const [followTracking, setFollowTracking] = useState(false);
   // A voice error (mic could not open, model could not load) — surfaced so a
-  // failed session does not leave a toggle "on" over a silently dead engine.
+  // failed session does not leave a button showing "recording" over a dead engine.
   const [voiceError, setVoiceError] = useState<string | null>(null);
 
   useEffect(() => {
     speechCapability()
       .then((cap) => setSpeechAvailable(cap.available))
       .catch(() => setSpeechAvailable(false));
-    const offset = onVoiceOffset(setFollowOffset);
-    const tracking = onVoiceTracking(setFollowTracking);
     const error = onVoiceError(setVoiceError);
     return () => {
-      void offset.then((un) => un()).catch(() => undefined);
-      void tracking.then((un) => un()).catch(() => undefined);
       void error.then((un) => un()).catch(() => undefined);
     };
   }, []);
@@ -321,17 +263,6 @@ export default function App() {
     const id = window.setTimeout(() => setVoiceError(null), 6000);
     return () => window.clearTimeout(id);
   }, [voiceError]);
-
-  const following =
-    (settings?.voiceFollowEnabled ?? false) && speechAvailable && eula?.accepted === true;
-  useEffect(() => {
-    if (!following) {
-      void voiceFollowStop().catch(() => undefined);
-      return;
-    }
-    void voiceFollowStart().catch(() => undefined);
-    return () => void voiceFollowStop().catch(() => undefined);
-  }, [following]);
 
   // -- speed: chars/sec or BPM (FT-14) ---------------------------------------
   // An operator-local DISPLAY toggle over the same authoritative chars/sec.
@@ -449,6 +380,67 @@ export default function App() {
         .catch((err) => setSaveError(String(err)));
     }, AUTOSAVE_MS);
   };
+
+  // -- dictation -------------------------------------------------------------
+  // Each utterance is APPENDED: inserting at the caret would mean reaching into
+  // the chip-aware contenteditable, whereas appending goes through the same
+  // `onScriptChange` path as typing — so the engine, the projector and autosave
+  // all update exactly as they already do.
+  const [dictating, setDictating] = useState(false);
+
+  // Offered only when switched on AND the model is present AND the agreement is
+  // accepted. All three, because this opens a microphone.
+  const dictationOn =
+    (settings?.dictationEnabled ?? false) && speechAvailable && eula?.accepted === true;
+
+  // What dictation last wrote, so consecutive utterances chain.
+  //
+  // `state.script` is NOT safe to append to twice in a row: it round-trips
+  // through the engine, so two utterances arriving before that returns would
+  // both append to the same base and the first would be silently lost. Speak
+  // two short phrases quickly and the first one vanishes — which an e2e test
+  // caught, and which would have been maddening to diagnose in the field.
+  //
+  // While recording, dictation therefore owns the tail of the script and chains
+  // from its own last write. The trade is deliberate: text typed BY HAND
+  // mid-recording is not merged. Cleared whenever recording stops, so ordinary
+  // editing always resumes from the engine's truth.
+  const dictationBase = useRef<string | null>(null);
+  useEffect(() => {
+    if (!dictating) dictationBase.current = null;
+  }, [dictating]);
+
+  // Held in a ref and refreshed every render. The listener below is registered
+  // ONCE, so a closure over `state.script` would append to whatever the script
+  // was at mount and silently discard everything typed since.
+  const dictateInsert = useRef<(said: string) => void>(() => {});
+  useEffect(() => {
+    dictateInsert.current = (said: string) => {
+      const base = dictationBase.current ?? state.script;
+      const joiner = base.length === 0 || /\s$/.test(base) ? "" : " ";
+      const next = `${base}${joiner}${said}`;
+      dictationBase.current = next;
+      onScriptChange(next);
+    };
+  });
+
+  useEffect(() => {
+    const text = onVoiceDictation((said) => dictateInsert.current(said));
+    const running = onVoiceDictating(setDictating);
+    return () => {
+      void text.then((un) => un()).catch(() => undefined);
+      void running.then((un) => un()).catch(() => undefined);
+    };
+  }, []);
+
+  const toggleDictation = () => {
+    if (dictating) {
+      void dictationStop().catch(() => undefined);
+      return;
+    }
+    setVoiceError(null);
+    dictationStart().catch((err) => setVoiceError(String(err)));
+  };
   useEffect(
     () => () => {
       if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
@@ -496,15 +488,11 @@ export default function App() {
     );
   }
 
-  // Read-aloud wins the override seam; then voice-following. When following, the
-  // override holds at the aligner's offset even as confidence drops: the aligner
-  // holds position on low confidence (FT-34) rather than guessing, so this keeps
-  // the scroll where the reader last was instead of snapping back to shared
-  // state. The tracking indicator (below) shows whether it is confidently
-  // following or waiting to re-acquire your place.
-  let scrollOverride: number | undefined;
-  if (readAloudMode) scrollOverride = raOffset;
-  else if (following && followOffset !== null) scrollOverride = followOffset;
+  // Read-aloud is the only thing that overrides the shared scroll — it is a
+  // preview-local mode, so the projector and the LAN mirror stay on the shared
+  // state while it runs. Dictation never touches the scroll at all: it writes
+  // text, it does not read.
+  const scrollOverride: number | undefined = readAloudMode ? raOffset : undefined;
 
   const playing = readAloudMode ? speaking : state.playing;
 
@@ -524,53 +512,8 @@ export default function App() {
           {t("toolbar-updates")}
         </button>
         <div className="flex-1" />
-        {/* Push-to-talk: the mic opens only while this is held (FT-31). */}
-        {voiceOn && settings?.voiceMode === "push_to_talk" && (
-          <button
-            type="button"
-            data-testid="voice-hold-to-talk"
-            className={BUTTON}
-            onPointerDown={() => void voiceStartListening().catch(() => undefined)}
-            onPointerUp={() => void voiceStopListening().catch(() => undefined)}
-            onPointerLeave={() => void voiceStopListening().catch(() => undefined)}
-            onPointerCancel={() => void voiceStopListening().catch(() => undefined)}
-          >
-            {t("voice-hold-to-talk")}
-          </button>
-        )}
-        {/* While voice-following, the indicator shows whether it is tracking
-            (green) or has degraded to manual and is trying to re-acquire (grey).
-            Otherwise, whenever the mic is open for commands, the live indicator. */}
-        {following ? (
-          <span
-            data-testid="voice-following"
-            role="status"
-            className={`flex items-center gap-1.5 text-[11px] ${
-              followTracking ? "text-emerald-300" : "text-havoc-muted"
-            }`}
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                followTracking ? "bg-emerald-400" : "bg-havoc-muted"
-              }`}
-              aria-hidden="true"
-            />
-            {followTracking ? t("voice-following") : t("voice-following-acquiring")}
-          </span>
-        ) : (
-          micLive && (
-            <span
-              data-testid="voice-mic-live"
-              role="status"
-              className="flex items-center gap-1.5 text-[11px] text-red-300"
-            >
-              <span className="h-2 w-2 rounded-full bg-red-400" aria-hidden="true" />
-              {t("voice-listening")}
-            </span>
-          )
-        )}
         {/* A voice mic/model failure, surfaced (the backend message) so a failed
-            session isn't silently dead behind an "on" toggle. */}
+            session isn't silently dead behind a lit button. */}
         {voiceError && (
           <span role="alert" data-testid="voice-error" className="text-[11px] text-red-300">
             {voiceError}
@@ -583,9 +526,41 @@ export default function App() {
           {/* Just the field label. The open script's name is NOT shown here —
               the Scripts dialog marks it, which is where you go to change it
               anyway; on the main surface it was one more thing to read. */}
-          <label id="script-label" className="text-havoc-muted text-[11px]">
-            {t("editor-label")}
-          </label>
+          <div className="flex items-center gap-2">
+            <label id="script-label" className="text-havoc-muted text-[11px]">
+              {t("editor-label")}
+            </label>
+            <div className="flex-1" />
+            {/* Record / stop. Present whenever dictation is switched on in
+                Settings AND the model is actually installed — the capability
+                check means this is never a button that cannot work.
+
+                One button with two states rather than two buttons: it is the
+                same microphone either way, and a stop control that appears from
+                nowhere is harder to hit than one already under the pointer. */}
+            {dictationOn && (
+              <button
+                type="button"
+                data-testid="dictate-toggle"
+                className={dictating ? PRIMARY : BUTTON}
+                aria-pressed={dictating}
+                title={dictating ? t("editor-dictate-stop") : t("editor-dictate")}
+                onClick={toggleDictation}
+              >
+                <span
+                  aria-hidden="true"
+                  className={
+                    dictating
+                      ? "inline-block h-2.5 w-2.5 bg-current align-middle"
+                      : "inline-block h-2.5 w-2.5 rounded-full bg-red-500 align-middle"
+                  }
+                />
+                <span className="ml-1.5 align-middle">
+                  {dictating ? t("editor-dictate-stop") : t("editor-dictate")}
+                </span>
+              </button>
+            )}
+          </div>
           <CaesuraEditor
             value={state.script}
             onChange={onScriptChange}

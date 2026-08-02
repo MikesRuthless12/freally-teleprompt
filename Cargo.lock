@@ -990,7 +990,6 @@ version = "1.0.0"
 dependencies = [
  "chrono",
  "directories",
- "freally-align",
  "freally-speech",
  "freally-voice",
  "getrandom 0.3.4",

@@ -1,7 +1,5 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-import type { VoiceCommandEvent } from "./types";
-
 /**
  * Backend → UI events (FT-31 / FT-35). The recogniser and follower run on
  * background threads and push results here rather than being polled.
@@ -22,22 +20,13 @@ function listenSafe<T>(event: string, handler: (payload: T) => void): Promise<Un
   }
 }
 
-/** A recognised voice command — bind it to the transport (FT-31). */
-export const onVoiceCommand = (handler: (event: VoiceCommandEvent) => void): Promise<UnlistenFn> =>
-  listenSafe("voice:command", handler);
+/** A completed dictated utterance, already trimmed — insert it into the script. */
+export const onVoiceDictation = (handler: (text: string) => void): Promise<UnlistenFn> =>
+  listenSafe("voice:dictation", handler);
 
-/** Whether the microphone is open for commands — drives the live indicator (FT-31). */
-export const onVoiceListening = (handler: (live: boolean) => void): Promise<UnlistenFn> =>
-  listenSafe("voice:listening", handler);
-
-/** The reading position (visible-character offset) while voice-following (FT-35). */
-export const onVoiceOffset = (handler: (offset: number) => void): Promise<UnlistenFn> =>
-  listenSafe("voice:offset", handler);
-
-/** Whether the follower is confidently tracking the reader; drives the
- * degrade-to-manual fallback and the tracking indicator (FT-35). */
-export const onVoiceTracking = (handler: (tracking: boolean) => void): Promise<UnlistenFn> =>
-  listenSafe("voice:tracking", handler);
+/** Whether dictation is running; drives its indicator and the toggle's state. */
+export const onVoiceDictating = (handler: (on: boolean) => void): Promise<UnlistenFn> =>
+  listenSafe("voice:dictating", handler);
 
 /** A voice error (mic could not open, model could not load) — surface it so a
  * failed session does not leave a toggle showing "on" over a dead engine. */

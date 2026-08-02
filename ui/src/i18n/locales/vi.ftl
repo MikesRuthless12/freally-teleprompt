@@ -27,7 +27,7 @@ tray-quit = Thoát
 about-version = Phiên bản { $version }
 about-tagline = Máy nhắc chữ chạy cục bộ cho người sáng tạo, diễn giả và người biểu diễn. Một bộ máy dựa trên ký tự giữ cho bản xem trước, màn hình chiếu và bản phản chiếu qua mạng cùng ở một từ.
 about-privacy = Không AI, không tài khoản, không thu thập dữ liệu. Kịch bản của bạn ở lại trên máy bạn.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Bảo lưu mọi quyền.
+about-copyright = © 2026 Mike Weaver. Bảo lưu mọi quyền.
 about-website = Trang web
 about-source = Mã nguồn
 about-close = Đóng
@@ -45,6 +45,8 @@ transport-seek = Di chuyển trong kịch bản
 
 ## Editor
 editor-label = Kịch bản
+editor-dictate = Đọc chính tả
+editor-dictate-stop = Dừng đọc chính tả
 editor-placeholder = Nhập hoặc dán kịch bản của bạn. Dùng " -- " để tạo một khoảng dừng, hoặc " --2 " để dừng 2 giây.
 editor-caesura-hint = Nhập -- để tạm dừng
 editor-est-time = Thời gian đọc { $time }
@@ -203,24 +205,7 @@ startup-failed = Không thể khởi động Freally Teleprompt.
 
 ## Voice control (FT-31)
 settings-cat-voice = Giọng nói
-settings-voice-enabled = Điều khiển máy nhắc chữ bằng giọng nói của tôi
-settings-voice-note = Các lệnh chạy trên thiết bị này và được đối chiếu với các bản ghi ngắn giọng nói của chính bạn. Không có mô hình và không có mạng — micrô chỉ bật khi đang lắng nghe, và không có gì bạn nói được lưu vào tệp.
-settings-voice-mode = Khi nào lắng nghe
-settings-voice-mode-ptt = Chỉ khi tôi giữ nút
-settings-voice-mode-always = Luôn luôn, khi được bật
-settings-voice-commands = Lệnh của bạn
-settings-voice-commands-note = Ghi âm mỗi lệnh bằng giọng nói của chính bạn hai hoặc ba lần. Càng nhiều bản ghi thì càng ổn định.
-settings-voice-record = Ghi âm
-settings-voice-recording = Đang nghe…
-settings-voice-forget = Quên
-settings-voice-takes = Đã ghi { $count }
-settings-voice-untrained = Chưa ghi
-voice-cmd-next = Chỗ dừng tiếp theo
-voice-listening = Đang nghe
-voice-hold-to-talk = Giữ để nói
-settings-voice-follow = Theo dõi phần đọc của tôi
-settings-voice-follow-note = Khi bạn nói, kịch bản sẽ cuộn theo để bắt kịp — nó nhận ra chính những từ trong kịch bản ngay trên thiết bị này. Nó lùi sang một bên ngay khi mất dấu vị trí của bạn, nên không bao giờ cản trở bạn.
-settings-voice-follow-unavailable-build = Tính năng theo dõi bằng giọng nói không có trong bản dựng này.
-settings-voice-follow-unavailable-model = Mô hình giọng nói chưa được cài đặt, nên không thể chạy tính năng theo dõi bằng giọng nói.
-voice-following = Đang theo dõi
-voice-following-acquiring = Đang tìm vị trí của bạn…
+settings-dictation-enabled = Viết kịch bản bằng giọng nói
+settings-dictation-note = Nhấn nút ghi phía trên kịch bản và những gì bạn nói sẽ được viết vào đó. Việc nhận dạng diễn ra trên thiết bị này — không tài khoản, không mạng, và không có điều gì bạn nói được lưu vào tệp. Micrô chỉ mở trong lúc ghi.
+settings-dictation-unavailable-model = Chưa cài mô hình giọng nói nên không thể đọc chính tả.
+settings-dictation-unavailable-build = Bản dựng này không hỗ trợ đọc chính tả.

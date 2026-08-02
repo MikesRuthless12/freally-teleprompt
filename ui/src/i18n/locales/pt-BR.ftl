@@ -27,7 +27,7 @@ tray-quit = Sair
 about-version = Versão { $version }
 about-tagline = Um teleprompter local para criadores, palestrantes e artistas. Um mesmo motor baseado em caracteres mantém a prévia, o projetor e o espelho de rede na mesma palavra.
 about-privacy = Sem IA, sem conta, sem telemetria. Seus roteiros ficam no seu dispositivo.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Todos os direitos reservados.
+about-copyright = © 2026 Mike Weaver. Todos os direitos reservados.
 about-website = Site
 about-source = Código-fonte
 about-close = Fechar
@@ -45,6 +45,8 @@ transport-seek = Navegar pelo roteiro
 
 ## Editor
 editor-label = Roteiro
+editor-dictate = Ditar
+editor-dictate-stop = Parar de ditar
 editor-placeholder = Digite ou cole seu roteiro. Use " -- " para uma pausa, ou " --2 " para segurar por 2 segundos.
 editor-caesura-hint = Digite -- para uma pausa
 editor-est-time = Tempo de leitura { $time }
@@ -203,24 +205,7 @@ startup-failed = Não foi possível iniciar o Freally Teleprompt.
 
 ## Voice control (FT-31)
 settings-cat-voice = Voz
-settings-voice-enabled = Controlar o teleprompter com a minha voz
-settings-voice-note = Os comandos são executados neste dispositivo e comparados com gravações curtas da sua própria voz. Sem modelo e sem rede — o microfone só abre durante a escuta, e nada do que você diz é salvo em um arquivo.
-settings-voice-mode = Quando escutar
-settings-voice-mode-ptt = Apenas enquanto eu seguro o botão
-settings-voice-mode-always = Sempre, quando ativado
-settings-voice-commands = Seus comandos
-settings-voice-commands-note = Grave cada comando com a sua própria voz duas ou três vezes. Mais gravações deixam tudo mais estável.
-settings-voice-record = Gravar
-settings-voice-recording = Escutando…
-settings-voice-forget = Esquecer
-settings-voice-takes = { $count } gravadas
-settings-voice-untrained = Não gravado
-voice-cmd-next = Próxima pausa
-voice-listening = Escutando
-voice-hold-to-talk = Segure para falar
-settings-voice-follow = Seguir minha leitura
-settings-voice-follow-note = Quando você fala, o roteiro rola para acompanhar — ele reconhece as próprias palavras do roteiro neste dispositivo. Ele sai do caminho no instante em que perde o seu lugar, para nunca atrapalhar você.
-settings-voice-follow-unavailable-build = O acompanhamento por voz não está disponível nesta versão.
-settings-voice-follow-unavailable-model = O modelo de fala ainda não está instalado, então o acompanhamento por voz não pode funcionar.
-voice-following = Acompanhando
-voice-following-acquiring = Encontrando o seu lugar…
+settings-dictation-enabled = Escrever meu roteiro falando
+settings-dictation-note = Pressione o botão de gravar acima do roteiro e o que você disser será escrito nele. O reconhecimento acontece neste dispositivo — sem conta, sem rede, e nada do que você diz é salvo em arquivo. O microfone fica aberto apenas durante a gravação.
+settings-dictation-unavailable-model = O modelo de fala não está instalado, então o ditado não pode funcionar.
+settings-dictation-unavailable-build = O ditado não está disponível nesta versão.

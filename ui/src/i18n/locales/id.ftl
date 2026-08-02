@@ -27,7 +27,7 @@ tray-quit = Keluar
 about-version = Versi { $version }
 about-tagline = Teleprompter lokal untuk kreator, pembicara, dan penampil. Satu mesin berbasis karakter menjaga pratinjau, proyektor, dan cermin jaringan tetap pada kata yang sama.
 about-privacy = Tanpa AI, tanpa akun, tanpa telemetri. Naskah Anda tetap di perangkat Anda.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Hak cipta dilindungi.
+about-copyright = © 2026 Mike Weaver. Hak cipta dilindungi.
 about-website = Situs web
 about-source = Kode sumber
 about-close = Tutup
@@ -45,6 +45,8 @@ transport-seek = Telusuri naskah
 
 ## Editor
 editor-label = Naskah
+editor-dictate = Dikte
+editor-dictate-stop = Hentikan dikte
 editor-placeholder = Ketik atau tempel naskah Anda. Gunakan " -- " untuk jeda, atau " --2 " untuk berhenti 2 detik.
 editor-caesura-hint = Ketik -- untuk jeda
 editor-est-time = Waktu baca { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt tidak dapat dijalankan.
 
 ## Voice control (FT-31)
 settings-cat-voice = Suara
-settings-voice-enabled = Kendalikan prompter dengan suara saya
-settings-voice-note = Perintah berjalan di perangkat ini dan dicocokkan dengan rekaman singkat suara Anda sendiri. Tanpa model dan tanpa jaringan — mikrofon hanya terbuka saat mendengarkan, dan tidak ada yang Anda ucapkan pernah disimpan ke sebuah berkas.
-settings-voice-mode = Kapan mendengarkan
-settings-voice-mode-ptt = Hanya saat saya menahan tombol
-settings-voice-mode-always = Selalu, selama diaktifkan
-settings-voice-commands = Perintah Anda
-settings-voice-commands-note = Rekam setiap perintah dengan suara Anda sendiri dua atau tiga kali. Lebih banyak rekaman membuatnya lebih stabil.
-settings-voice-record = Rekam
-settings-voice-recording = Mendengarkan…
-settings-voice-forget = Lupakan
-settings-voice-takes = { $count } terekam
-settings-voice-untrained = Belum direkam
-voice-cmd-next = Jeda berikutnya
-voice-listening = Mendengarkan
-voice-hold-to-talk = Tahan untuk berbicara
-settings-voice-follow = Ikuti pembacaan saya
-settings-voice-follow-note = Saat Anda berbicara, naskah bergulir mengikuti — ia mengenali kata-kata naskah itu sendiri di perangkat ini. Ia menyingkir begitu kehilangan posisi Anda, jadi tidak pernah melawan Anda.
-settings-voice-follow-unavailable-build = Pengikutan suara tidak tersedia di versi ini.
-settings-voice-follow-unavailable-model = Model ucapan belum terpasang, jadi pengikutan suara tidak dapat berjalan.
-voice-following = Mengikuti
-voice-following-acquiring = Mencari posisi Anda…
+settings-dictation-enabled = Tulis naskah saya dengan berbicara
+settings-dictation-note = Tekan tombol rekam di atas naskah dan apa yang Anda ucapkan akan dituliskan ke dalamnya. Pengenalan berjalan di perangkat ini — tanpa akun, tanpa jaringan, dan tidak ada yang Anda ucapkan disimpan ke berkas. Mikrofon terbuka hanya selama merekam.
+settings-dictation-unavailable-model = Model suara belum terpasang, jadi dikte tidak dapat berjalan.
+settings-dictation-unavailable-build = Dikte tidak tersedia pada versi ini.

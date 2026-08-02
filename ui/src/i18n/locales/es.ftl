@@ -27,7 +27,7 @@ tray-quit = Salir
 about-version = Versión { $version }
 about-tagline = Un teleprompter local para creadores, ponentes e intérpretes. Un mismo motor basado en caracteres mantiene la vista previa, el proyector y la copia en red sobre la misma palabra.
 about-privacy = Sin IA, sin cuenta, sin telemetría. Tus guiones se quedan en tu dispositivo.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Todos los derechos reservados.
+about-copyright = © 2026 Mike Weaver. Todos los derechos reservados.
 about-website = Sitio web
 about-source = Código fuente
 about-close = Cerrar
@@ -45,6 +45,8 @@ transport-seek = Desplazarse por el guion
 
 ## Editor
 editor-label = Guion
+editor-dictate = Dictar
+editor-dictate-stop = Dejar de dictar
 editor-placeholder = Escribe o pega tu guion. Usa " -- " para una pausa, o " --2 " para detenerte 2 segundos.
 editor-caesura-hint = Escribe -- para una pausa
 editor-est-time = Tiempo de lectura { $time }
@@ -203,24 +205,7 @@ startup-failed = No se pudo iniciar Freally Teleprompt.
 
 ## Voice control (FT-31)
 settings-cat-voice = Voz
-settings-voice-enabled = Controlar el prompter con mi voz
-settings-voice-note = Los comandos se ejecutan en este dispositivo y se comparan con breves grabaciones de tu propia voz. Sin modelo ni red — el micrófono solo se abre mientras escucha, y nada de lo que digas se guarda jamás en un archivo.
-settings-voice-mode = Cuándo escuchar
-settings-voice-mode-ptt = Solo mientras mantengo pulsado el botón
-settings-voice-mode-always = Siempre, mientras esté activado
-settings-voice-commands = Tus comandos
-settings-voice-commands-note = Graba cada comando con tu propia voz dos o tres veces. Más grabaciones lo hacen más estable.
-settings-voice-record = Grabar
-settings-voice-recording = Escuchando…
-settings-voice-forget = Olvidar
-settings-voice-takes = { $count } grabadas
-settings-voice-untrained = Sin grabar
-voice-cmd-next = Siguiente pausa
-voice-listening = Escuchando
-voice-hold-to-talk = Mantén pulsado para hablar
-settings-voice-follow = Seguir mi lectura
-settings-voice-follow-note = Cuando hablas, el guion se desplaza para seguirte — reconoce las propias palabras del guion en este dispositivo. Se aparta en cuanto pierde tu posición, así que nunca te lleva la contraria.
-settings-voice-follow-unavailable-build = El seguimiento por voz no está disponible en esta versión.
-settings-voice-follow-unavailable-model = El modelo de voz aún no está instalado, así que el seguimiento por voz no puede funcionar.
-voice-following = Siguiendo
-voice-following-acquiring = Buscando tu posición…
+settings-dictation-enabled = Escribir mi guion hablando
+settings-dictation-note = Pulsa el botón de grabar situado sobre el guion y lo que digas se escribirá en él. El reconocimiento ocurre en este dispositivo: sin cuenta, sin red y nada de lo que digas se guarda en un archivo. El micrófono solo está abierto mientras grabas.
+settings-dictation-unavailable-model = El modelo de voz no está instalado, así que el dictado no puede funcionar.
+settings-dictation-unavailable-build = El dictado no está disponible en esta versión.

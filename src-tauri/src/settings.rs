@@ -85,15 +85,6 @@ fn default_autocomplete_language() -> String {
     AUTO_LANGUAGE.to_string()
 }
 
-/// Push-to-talk is the safer default of the two voice modes: the mic attends to
-/// nothing until the operator deliberately holds the talk key.
-const VOICE_MODE_PUSH_TO_TALK: &str = "push_to_talk";
-const VOICE_MODE_ALWAYS: &str = "always";
-
-fn default_voice_mode() -> String {
-    VOICE_MODE_PUSH_TO_TALK.to_string()
-}
-
 /// Every persisted preference. `#[serde(default)]` on each field means an older
 /// settings file missing a newly-added key loads with that key's default rather
 /// than failing to parse — settings written by any past version stay readable.
@@ -154,20 +145,14 @@ pub struct Settings {
     /// prose against a Japanese table suggests nothing at all.
     #[serde(default = "default_autocomplete_language")]
     pub autocomplete_language: String,
-    /// Hands-free voice commands (FT-31). **Off by default**: the microphone is
-    /// opened only when this is on and listening is started, audio never leaves
-    /// the device, and nothing is ever written to disk.
+    /// Dictation (FT-33): speak, and the words are written into the script.
+    /// **Off by default** — with this on, a record button appears; the
+    /// microphone opens only while it is recording, audio never leaves the
+    /// device, and nothing is ever written to disk but the text itself.
+    ///
+    /// Only usable where the Vosk model is present; the UI says so otherwise.
     #[serde(default)]
-    pub voice_enabled: bool,
-    /// How the listener decides when to attend to the mic: `"push_to_talk"`
-    /// (only while the talk key is held) or `"always"` (continuously).
-    #[serde(default = "default_voice_mode")]
-    pub voice_mode: String,
-    /// Voice-*following* (FT-35): auto-scroll by recognising the script's own
-    /// words. Off by default, and only usable when the Vosk model is present —
-    /// the UI greys it out otherwise. Separate from `voice_enabled` (commands).
-    #[serde(default)]
-    pub voice_follow_enabled: bool,
+    pub dictation_enabled: bool,
     /// Recently-opened scripts (FT-10), most recent first; the first entry is
     /// the script currently open.
     ///
@@ -211,9 +196,7 @@ impl Default for Settings {
             lan_port: default_lan_port(),
             autocomplete: default_autocomplete(),
             autocomplete_language: default_autocomplete_language(),
-            voice_enabled: false,
-            voice_mode: default_voice_mode(),
-            voice_follow_enabled: false,
+            dictation_enabled: false,
             recent_scripts: Vec::new(),
             accepted_eula_version: None,
             onboarding_seen: false,
@@ -258,11 +241,6 @@ impl Settings {
         // the UI, which falls back to the UI language when it ships no table.
         if self.autocomplete_language.trim().is_empty() {
             self.autocomplete_language = default_autocomplete_language();
-        }
-        // Only the two known voice modes; anything else (a hand-edited file, a UI
-        // from another version) falls back to the safe push-to-talk default.
-        if self.voice_mode != VOICE_MODE_PUSH_TO_TALK && self.voice_mode != VOICE_MODE_ALWAYS {
-            self.voice_mode = default_voice_mode();
         }
         // A recents list is a record, but it is still read back off disk: cap it
         // and drop anything that is no longer a legal script name, so a
@@ -417,9 +395,7 @@ impl SettingsStore {
                 lan_port: _,
                 autocomplete: _,
                 autocomplete_language: _,
-                voice_enabled: _,
-                voice_mode: _,
-                voice_follow_enabled: _,
+                dictation_enabled: _,
             } = std::mem::replace(&mut *guard, next);
             guard.accepted_eula_version = accepted_eula_version;
             guard.recent_scripts = recent_scripts;
@@ -775,27 +751,10 @@ mod tests {
         assert_eq!(serde_json::from_str::<Settings>(&text).unwrap(), s);
     }
 
-    /// Voice control is off by default, and an unknown voice mode falls back to
-    /// the safe push-to-talk default rather than being trusted.
+    /// Dictation is off by default — it opens a microphone, so it is opt-in.
     #[test]
-    fn validate_normalises_voice_settings() {
-        assert!(!Settings::default().voice_enabled);
-        assert_eq!(Settings::default().voice_mode, VOICE_MODE_PUSH_TO_TALK);
-
-        let mut s = Settings {
-            voice_mode: "listen-to-everything".to_string(),
-            ..Settings::default()
-        };
-        s.validate();
-        assert_eq!(s.voice_mode, VOICE_MODE_PUSH_TO_TALK);
-
-        // A legitimate value is kept.
-        let mut always = Settings {
-            voice_mode: VOICE_MODE_ALWAYS.to_string(),
-            ..Settings::default()
-        };
-        always.validate();
-        assert_eq!(always.voice_mode, VOICE_MODE_ALWAYS);
+    fn dictation_is_off_by_default() {
+        assert!(!Settings::default().dictation_enabled);
     }
 
     /// A settings file from an older build is missing newer keys; it must load

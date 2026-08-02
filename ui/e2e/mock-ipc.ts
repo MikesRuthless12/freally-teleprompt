@@ -64,15 +64,9 @@ export type MockState = {
   displays?: { index: number; name: string; width: number; height: number; primary: boolean }[];
   /** The LAN mirror's reported state (FT-12). */
   mirror?: { running: boolean; url: string | null; error: string | null };
-  /** Voice control on/off (FT-31); off by default, as the app ships. */
-  voiceEnabled?: boolean;
-  /** Listening mode (FT-31): push-to-talk (default) or always. */
-  voiceMode?: "push_to_talk" | "always";
-  /** The trained commands `voice_summary` reports (FT-31). */
-  voiceCommands?: { id: string; takes: number }[];
-  /** Voice-following on/off (FT-35); off by default. */
-  voiceFollowEnabled?: boolean;
-  /** What `speech_capability` reports (FT-35); unavailable by default. */
+  /** Dictation on/off (FT-33); off by default, as the app ships. */
+  dictationEnabled?: boolean;
+  /** What `speech_capability` reports (FT-33); unavailable by default. */
   speechCapability?: { available: boolean; engine: string; detail: string };
   /**
    * The Tauri window label this page believes it is (FT-12). `main.tsx` routes
@@ -164,9 +158,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       lanPort: 7346,
       autocomplete: state.autocomplete ?? true,
       autocompleteLanguage: state.autocompleteLanguage ?? "auto",
-      voiceEnabled: state.voiceEnabled ?? false,
-      voiceMode: state.voiceMode ?? "push_to_talk",
-      voiceFollowEnabled: state.voiceFollowEnabled ?? false,
+      dictationEnabled: state.dictationEnabled ?? false,
       recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
       onboardingSeen: state.onboardingSeen !== false,
@@ -191,11 +183,10 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     scripts: state.scripts ?? [],
     displays: state.displays ?? [],
     mirrorStatus: state.mirror ?? { running: false, url: null, error: null },
-    voiceCommands: state.voiceCommands ?? [],
     speechCapability: state.speechCapability ?? {
       available: false,
       engine: "none",
-      detail: "voice-following is not available in this build",
+      detail: "dictation is not available in this build",
     },
     windowLabel: state.windowLabel ?? null,
     // `null`, not undefined: this crosses into the page as JSON, where
@@ -233,13 +224,6 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     ) => {
       for (const handler of listeners[event] ?? []) handler({ event, payload });
     };
-
-    // The trained voice model this mock pretends to hold (FT-31).
-    const voiceCommands = data.voiceCommands.map((c) => ({ ...c }));
-    const voiceSummary = () => ({
-      commands: voiceCommands.map((c) => ({ ...c })),
-      listening: false,
-    });
 
     const responses: Record<string, unknown> = {
       settings_get: data.settings,
@@ -331,34 +315,12 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             Object.assign(data.settings, next, preserved);
             return Promise.resolve({ ...data.settings });
           }
-          // Voice model (FT-31): recording is audio-free here — the mock just
-          // updates the take counts so the pane reflects what the UI asked for.
-          case "voice_summary":
-            return Promise.resolve(voiceSummary());
-          case "voice_enroll_capture": {
-            const id = String(args.commandId ?? "");
-            const found = voiceCommands.find((c) => c.id === id);
-            if (found) found.takes += 1;
-            else voiceCommands.push({ id, takes: 1 });
-            return Promise.resolve(voiceSummary());
-          }
-          case "voice_forget_command": {
-            const id = String(args.commandId ?? "");
-            const at = voiceCommands.findIndex((c) => c.id === id);
-            if (at >= 0) voiceCommands.splice(at, 1);
-            return Promise.resolve(voiceSummary());
-          }
-          case "voice_clear_model":
-            voiceCommands.length = 0;
-            return Promise.resolve(voiceSummary());
-          case "voice_start_listening":
-          case "voice_stop_listening":
-            return Promise.resolve(null);
-          // Voice-following (FT-35).
+          // Dictation (FT-33). No audio here — a spec drives recognition by
+          // firing `voice:dictation` through `emitBackendEvent`.
           case "speech_capability":
             return Promise.resolve(data.speechCapability);
-          case "voice_follow_start":
-          case "voice_follow_stop":
+          case "dictation_start":
+          case "dictation_stop":
             return Promise.resolve(null);
           default:
             break;

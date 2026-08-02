@@ -197,6 +197,19 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # Voice-following's two third-party pieces: the native `libvosk` and the
+      # speech model (~115 MB together). Neither is in the repository — see
+      # `scripts/fetch-vosk.mjs` for why, and for the version choices, which are
+      # load-bearing rather than incidental.
+      #
+      # Fetched HERE and not in `ci.yml`: this is the only build that turns the
+      # `vosk` feature on, and making every pull request pay a 115 MB download
+      # to compile a feature it does not enable would be a poor trade. The FFI
+      # itself is type-checked on every PR without any of this — `cargo check`
+      # does not link, so `--features vosk` needs no native library.
+      - name: Fetch libvosk and the speech model
+        run: node scripts/fetch-vosk.mjs
+
       # macOS code signing, guarded.
       #
       # The guard is the point: setting `APPLE_CERTIFICATE` to an EMPTY string
@@ -264,11 +277,19 @@ jobs:
           releaseDraft: true
           prerelease: false
           # Emits `latest.json` next to the installers — the file the in-app
-          # updater fetches. Tauri points it at the NSIS and AppImage, never the
-          # .msi/.deb, which is correct: those two are the only targets the
-          # updater plugin can install in place.
+          # updater fetches.
+          #
+          # ⚠️ It does NOT arrive pointing only at the in-place-installable
+          # targets, whatever this comment claimed before a tag existed to prove
+          # otherwise. Tauri writes an entry for EVERY bundle it signs, and the
+          # generic `windows-x86_64` key came out naming the .msi. The `publish`
+          # job rewrites the file; see the step there.
           includeUpdaterJson: true
-          args: ${{ matrix.args }}
+          # `--features vosk` is what makes voice-following real instead of
+          # "unavailable", and the overlay config adds the model and the native
+          # libraries to the bundle. Both belong ONLY here: a default or CI build
+          # has no `vendor/` directory and must never ask for one.
+          args: ${{ matrix.args }} --features vosk --config src-tauri/tauri.vosk.conf.json
 
   # Nothing is visible to a user until this passes. A draft release with a
   # missing platform is a support ticket; a published one is a bad afternoon.

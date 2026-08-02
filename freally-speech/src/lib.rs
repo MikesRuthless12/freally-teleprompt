@@ -123,13 +123,23 @@ pub trait SpeechRecognizer {
 mod tests {
     use super::*;
 
+    /// With no model, the answer must be "unavailable" in BOTH builds — but the
+    /// engine NAME differs, and this asserted `"none"` unconditionally while
+    /// claiming in a comment to run only in the default build. Nothing had ever
+    /// compiled this crate with `--features vosk`, so the claim was never
+    /// tested; the first `cargo test --features vosk` turned it red.
     #[test]
-    fn capability_without_the_feature_is_honestly_unavailable() {
-        // These tests run in the default (no-`vosk`) build, which must report
-        // the feature off rather than claim a working engine.
+    fn capability_without_a_model_is_honestly_unavailable() {
         let cap = capability(None);
         assert!(!cap.available);
-        assert_eq!(cap.engine, "none");
         assert!(!cap.detail.is_empty());
+        assert_eq!(
+            cap.engine,
+            if cfg!(feature = "vosk") {
+                "vosk"
+            } else {
+                "none"
+            },
+        );
     }
 }

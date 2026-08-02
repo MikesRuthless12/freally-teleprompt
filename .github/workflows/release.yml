@@ -269,6 +269,41 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
+      # Tauri writes a `latest.json` entry for EVERY bundle it signed, so the
+      # file arrives naming the .msi and the .deb — and worse, the generic
+      # `windows-x86_64` key, which is the one the updater actually reads,
+      # points at the .msi. Neither can be applied in place by the updater; it
+      # downloads them and fails on every machine. The check below refuses to
+      # publish that, and this is the step that makes it true: the generic keys
+      # are repointed at NSIS / AppImage / .app, and the explicit `-msi` and
+      # `-deb` entries are dropped.
+      #
+      # The .msi and .deb stay ATTACHED to the release for people who want to
+      # download them by hand — they are simply not what the updater is told to
+      # fetch. That is why `bundle.targets` still builds them.
+      - name: Point latest.json at the in-place-installable targets
+        run: |
+          gh release download "$TAG" --pattern latest.json --output latest.json --clobber
+          node -e '
+            const fs = require("fs");
+            const j = JSON.parse(fs.readFileSync("latest.json", "utf8"));
+            const bad = /\.(msi|deb|rpm)$/;
+            const p = j.platforms || {};
+            const preferred = (k) => p[k + "-nsis"] || p[k + "-appimage"] || p[k + "-app"];
+            for (const [k, v] of Object.entries(p)) {
+              if (!bad.test(v.url)) continue;
+              // A suffixed key (windows-x86_64-msi) has a plain sibling and is
+              // redundant; a bare one is what the updater reads and must be
+              // repointed rather than removed.
+              const good = /-(msi|deb|rpm)$/.test(k) ? null : preferred(k);
+              if (good) p[k] = { ...good };
+              else delete p[k];
+            }
+            fs.writeFileSync("latest.json", JSON.stringify(j, null, 2));
+            for (const [k, v] of Object.entries(p)) console.log(k + " -> " + v.url.split("/").pop());
+          '
+          gh release upload "$TAG" latest.json --clobber
+
       - name: Every platform is present, and latest.json points at the right ones
         run: |
           # `jq` is deliberately not used — it is not installed everywhere this

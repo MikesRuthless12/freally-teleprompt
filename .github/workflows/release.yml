@@ -189,14 +189,39 @@ jobs:
       # certificate and produces a DMG that looks signed and is not. So the
       # secrets are only exported when the certificate is actually non-empty,
       # and the release says out loud which way it went.
+      # ⚠️ The secrets are exported into the job environment HERE, and are
+      # deliberately NOT listed in the build step's own `env:` block. A key
+      # written there EXISTS even when its expression yields an empty string,
+      # and `std::env::var` returns `Ok("")` for it — so the Rust bundler reads
+      # a defined-but-empty `APPLE_CERTIFICATE` as "sign with this", runs
+      # `security import` on nothing, and fails the entire bundle with
+      # "failed to import keychain certificate". Writing them only on the
+      # branch where they are real is the only way to leave them genuinely
+      # unset. This killed the first two 1.0.0 attempts, with the guard
+      # already in place and looking correct.
       - name: Decide whether macOS signing is possible
         if: matrix.os == 'macos-latest'
         id: mac-signing
         env:
           CERT: ${{ secrets.APPLE_CERTIFICATE }}
+          CERT_PW: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          A_ID: ${{ secrets.APPLE_ID }}
+          A_PW: ${{ secrets.APPLE_PASSWORD }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           if [ -n "$CERT" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
+            # Heredoc form, because a certificate is base64 that may be wrapped
+            # and `KEY=value` cannot carry a newline.
+            {
+              printf 'APPLE_CERTIFICATE<<__EOF__\n%s\n__EOF__\n' "$CERT"
+              printf 'APPLE_CERTIFICATE_PASSWORD<<__EOF__\n%s\n__EOF__\n' "$CERT_PW"
+              printf 'APPLE_SIGNING_IDENTITY<<__EOF__\n%s\n__EOF__\n' "$IDENTITY"
+              printf 'APPLE_ID<<__EOF__\n%s\n__EOF__\n' "$A_ID"
+              printf 'APPLE_PASSWORD<<__EOF__\n%s\n__EOF__\n' "$A_PW"
+              printf 'APPLE_TEAM_ID<<__EOF__\n%s\n__EOF__\n' "$TEAM"
+            } >> "$GITHUB_ENV"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::warning::APPLE_CERTIFICATE is unset — the macOS build will be UNSIGNED and Gatekeeper will refuse it without a right-click Open."
@@ -211,13 +236,9 @@ jobs:
           # will find and then refuse, which is the safe direction.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Only ever non-empty when the guard above said so.
-          APPLE_CERTIFICATE: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
-          APPLE_ID: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          # No APPLE_* keys here on purpose — see the guard step above. Listing
+          # one with an empty value is what breaks the macOS bundle; the guard
+          # exports them to the environment only when they are real.
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: "Freally Teleprompt __VERSION__"

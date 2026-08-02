@@ -1,7 +1,7 @@
 {
   "name": "@freally-teleprompt/ui",
   "private": true,
-  "version": "0.300.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Freally Teleprompt — the React + TypeScript UI (Vite, Havoc dark).",
   "license": "SEE LICENSE IN LICENSE",

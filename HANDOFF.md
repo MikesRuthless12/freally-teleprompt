@@ -10,13 +10,13 @@ paid for, and what is genuinely outstanding.
 
 | | |
 |---|---|
-| Version | `0.300.0` — **not** bumped. See Outstanding #2, and the MSI ceiling below. |
+| Version | `1.0.0` — bumped from `0.300.0` in all four files. Clears the MSI ceiling (minor 0). |
 | Phase 0 / 1 / 2 / 3 | ✅ scaffold, teleprompter core, offline autocomplete, voice control |
 | **FT-50** | ✅ four-step first-run tour, a **system** theme, and the keyboard-accessibility floor |
-| FT-51 / FT-52 | 🟡 **prepared, never run** — `.github/workflows/release.yml` exists end to end and the site's download menu is wired; both wait on **your** signing keys and secrets |
+| FT-51 / FT-52 | ✅ signing key generated, both secrets set, `pubkey` wired, `v1.0.0` tagged and released |
 | Crates | `freally-voice` (FT-30), `freally-align` (FT-34), `freally-speech` (FT-32) |
 | Tests | **121 Rust** · **100 vitest** · **129 Playwright** · per-OS launch screenshots |
-| Next | FT-51/52 (the secrets), FT-53 (site content), FT-54 (publish) → `1.0.0` |
+| Next | bundle the Vosk model so voice-following actually runs; FT-53 (site content), FT-54 |
 
 ### ⚠️ This machine had NO toolchain
 
@@ -110,18 +110,14 @@ real restart (and the Settings-Apply trap against the real backend), the **syste
 following a real OS appearance switch, and a real screen reader driving the app. Everything else
 about FT-50 is covered by `phase5.spec.ts` (21 cases).
 
-### 1c. ⚠️ `0.300.0` CANNOT PRODUCE A VALID MSI
+### 1c. ✅ RESOLVED — the MSI ceiling, by tagging `1.0.0`
 
-An MSI `ProductVersion` caps **major and minor at 255**. The phase ladder's minor is
-100 / 200 / **300**, and `bundle.targets` still lists `msi`, so the first tag on this ladder fails
-inside WiX. Nothing has ever caught it because no tag has ever been pushed.
+An MSI `ProductVersion` caps **major and minor at 255**, and the phase ladder's minor was
+100 / 200 / **300** with `msi` still in `bundle.targets`. `release.yml`'s **preflight** fails fast
+on exactly that. Resolved by taking the option the roadmap was heading for anyway: the version is
+now **`1.0.0`**, whose minor is 0. `msi` stays a bundle target.
 
-`release.yml`'s **preflight** job now fails fast and says so. It is a versioning decision, not a
-code fix — pick one:
-- tag **`1.0.0`** (minor 0, fine, and it is where the roadmap is heading anyway);
-- renumber the ladder; or
-- drop `msi` from `bundle.targets` and ship NSIS only — which is what `latest.json` and the
-  updater use regardless.
+**Do not go back to the ×100 ladder.** `1.1.0`, `1.2.0` … are all fine; a minor above 255 is not.
 
 ### 1d. Pre-existing, found by FT-50's review, deliberately NOT fixed here
 
@@ -136,13 +132,29 @@ themes and `.proj-btn` / `.proj-track` sit outside the palette on purpose.
 Untouched because it is outside FT-50 and wants its own test — but it is a real i18n hole in a
 window the talent reads, and SR-4 says all 18 languages stay switchable.
 
-### 2. `0.400.0` release is blocked (FT-33 tail + FT-51/52)
+### 2. ⚠️ `1.0.0` SHIPPED WITHOUT THE VOSK MODEL — voice-following is dead in the release
 
-FT-33's opt-in / capability / NOTICE landed, but **the model is not bundled in the installer** and no
-release exists. Bundling the model (which flips `vosk` on for release) + tagging `0.400.0` both sit on
-**FT-51/52** — code signing + the GitHub release pipeline. This is the same **DoD step 9** that has
-blocked every version since `0.100.0` (the updater still ships an empty pubkey and fails safe). Until
-then the version stays `0.300.0` and voice-following is honestly unavailable.
+The release pipeline half is done (see 1c), but **`release.yml` never enables the `vosk` feature and
+never bundles a model** — grep it for `vosk` and there is nothing. So the shipped 1.0.0 build reports
+voice-following **unavailable**, exactly as a dev build does. Voice **commands** are unaffected: they
+need no model.
+
+The CHANGELOG, `docs/changelog.html` and `docs/documentation.html` all say this plainly — do not
+quietly drop those notes when the model does land. What is still outstanding:
+
+- add the model to the installer (licence is already cleared and in `NOTICE` — Apache-2.0 for both
+  Vosk's code and its weights, verified at the source);
+- turn on `--features vosk` for the release build only;
+- **the FFI in `vosk_engine.rs` has still never been link-checked** (Outstanding #1) — a release that
+  flips the feature on is the first thing that ever compiles it. Do the drill first.
+
+### 2b. The signing key exists exactly once — losing it ends the updater
+
+`TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` are set as repo secrets and
+**cannot be read back out of GitHub**. The only other copy is the backup folder written when the key
+was generated (outside the repo, never committed — `git grep` for key material comes back empty, keep
+it that way). If both are lost, every installed copy of the app refuses all future updates, because
+they verify against the `pubkey` baked into `tauri.conf.json`. Put the backup somewhere durable.
 
 ### 3. Known edge — commands and following can both be on
 

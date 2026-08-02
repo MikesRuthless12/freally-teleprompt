@@ -27,7 +27,7 @@ tray-quit = إنهاء
 about-version = الإصدار { $version }
 about-tagline = ملقّن نصوص يعمل محليًا لصنّاع المحتوى والمحاضرين والمؤدّين. محرّك واحد قائم على الأحرف يُبقي المعاينة وجهاز العرض والمزامنة الشبكية على الكلمة نفسها.
 about-privacy = بلا ذكاء اصطناعي، وبلا حساب، وبلا تتبّع. تبقى نصوصك على جهازك.
-about-copyright = © 2026 Mike Weaver — Havoc Software. جميع الحقوق محفوظة.
+about-copyright = © 2026 Mike Weaver. جميع الحقوق محفوظة.
 about-website = الموقع
 about-source = الشيفرة المصدرية
 about-close = إغلاق
@@ -45,6 +45,8 @@ transport-seek = التنقل داخل النص
 
 ## Editor
 editor-label = النص
+editor-dictate = إملاء
+editor-dictate-stop = إيقاف الإملاء
 editor-placeholder = اكتب نصك أو الصقه هنا. استخدم " -- " لإضافة وقفة، أو " --2 " للتوقف مدة ثانيتين.
 editor-caesura-hint = اكتب -- لإضافة وقفة
 editor-est-time = زمن القراءة { $time }
@@ -203,24 +205,7 @@ startup-failed = تعذّر تشغيل Freally Teleprompt.
 
 ## Voice control (FT-31)
 settings-cat-voice = الصوت
-settings-voice-enabled = التحكم في الملقّن بصوتي
-settings-voice-note = تُنفَّذ الأوامر على هذا الجهاز وتُطابَق مع تسجيلات قصيرة لصوتك أنت. لا نموذج ولا شبكة — يفتح الميكروفون أثناء الاستماع فقط، ولا يُحفَظ أي شيء تقوله في ملف أبدًا.
-settings-voice-mode = متى يستمع
-settings-voice-mode-ptt = فقط أثناء الضغط على الزر
-settings-voice-mode-always = دائمًا، عند التفعيل
-settings-voice-commands = أوامرك
-settings-voice-commands-note = سجّل كل أمر بصوتك مرتين أو ثلاث مرات. المزيد من التسجيلات يجعله أكثر ثباتًا.
-settings-voice-record = تسجيل
-settings-voice-recording = يستمع…
-settings-voice-forget = نسيان
-settings-voice-takes = تم تسجيل { $count }
-settings-voice-untrained = غير مُسجَّل
-voice-cmd-next = الوقفة التالية
-voice-listening = يستمع
-voice-hold-to-talk = اضغط مع الاستمرار للتحدث
-settings-voice-follow = تتبّع قراءتي
-settings-voice-follow-note = عندما تتحدث، ينتقل النص ليواكبك — فهو يتعرّف على كلمات النص نفسه على هذا الجهاز. ويتنحّى جانبًا في اللحظة التي يفقد فيها موضعك، فلا يزاحمك أبدًا.
-settings-voice-follow-unavailable-build = التتبّع الصوتي غير متوفّر في هذه النسخة.
-settings-voice-follow-unavailable-model = نموذج الكلام غير مثبّت بعد، لذا لا يمكن تشغيل التتبّع الصوتي.
-voice-following = يتتبّع
-voice-following-acquiring = يبحث عن موضعك…
+settings-dictation-enabled = اكتب النص بصوتي
+settings-dictation-note = اضغط زر التسجيل فوق النص وسيُكتب ما تقوله فيه. يتم التعرف على الكلام على هذا الجهاز — بلا حساب، وبلا اتصال بالشبكة، ولا يُحفظ ما تقوله في أي ملف. الميكروفون مفتوح أثناء التسجيل فقط.
+settings-dictation-unavailable-model = نموذج الكلام غير مثبَّت، لذا لا يمكن تشغيل الإملاء.
+settings-dictation-unavailable-build = الإملاء غير متوفر في هذه النسخة.

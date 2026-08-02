@@ -27,7 +27,7 @@ tray-quit = 종료
 about-version = 버전 { $version }
 about-tagline = 크리에이터와 발표자, 공연자를 위한 로컬 텔레프롬프터입니다. 하나의 문자 단위 엔진이 미리보기와 프로젝터, 네트워크 미러를 같은 단어에 맞춥니다.
 about-privacy = AI도, 계정도, 원격 수집도 없습니다. 대본은 기기 안에만 남습니다.
-about-copyright = © 2026 Mike Weaver — Havoc Software. All rights reserved.
+about-copyright = © 2026 Mike Weaver. All rights reserved.
 about-website = 웹사이트
 about-source = 소스 코드
 about-close = 닫기
@@ -45,6 +45,8 @@ transport-seek = 대본 탐색
 
 ## Editor
 editor-label = 대본
+editor-dictate = 받아쓰기
+editor-dictate-stop = 받아쓰기 중지
 editor-placeholder = 대본을 입력하거나 붙여넣으세요. " -- "를 넣으면 잠시 멈추고, " --2 "를 넣으면 2초 동안 멈춥니다.
 editor-caesura-hint = 일시정지하려면 -- 입력
 editor-est-time = 읽는 시간 { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt를 시작할 수 없습니다.
 
 ## Voice control (FT-31)
 settings-cat-voice = 음성
-settings-voice-enabled = 음성으로 프롬프터 제어
-settings-voice-note = 명령은 이 기기에서 실행되며 본인 목소리의 짧은 녹음과 대조됩니다. 모델도 네트워크도 없습니다 — 마이크는 듣는 동안에만 열리며, 말한 내용은 파일에 저장되지 않습니다.
-settings-voice-mode = 들을 시점
-settings-voice-mode-ptt = 버튼을 누르고 있는 동안에만
-settings-voice-mode-always = 사용하는 동안 항상
-settings-voice-commands = 내 명령
-settings-voice-commands-note = 각 명령을 본인 목소리로 두세 번 녹음하세요. 녹음이 많을수록 더 안정적입니다.
-settings-voice-record = 녹음
-settings-voice-recording = 듣는 중…
-settings-voice-forget = 삭제
-settings-voice-takes = { $count }개 녹음됨
-settings-voice-untrained = 녹음 안 됨
-voice-cmd-next = 다음 일시정지
-voice-listening = 듣는 중
-voice-hold-to-talk = 누른 채로 말하기
-settings-voice-follow = 내 낭독 따라가기
-settings-voice-follow-note = 말하면 대본이 따라잡기 위해 스크롤됩니다 — 이 기기에서 대본 자체의 단어를 인식합니다. 위치를 놓치는 순간 물러나므로 절대 방해하지 않습니다.
-settings-voice-follow-unavailable-build = 이 빌드에서는 음성 따라가기를 사용할 수 없습니다.
-settings-voice-follow-unavailable-model = 음성 모델이 아직 설치되지 않아 음성 따라가기를 실행할 수 없습니다.
-voice-following = 따라가는 중
-voice-following-acquiring = 위치를 찾는 중…
+settings-dictation-enabled = 말해서 대본 쓰기
+settings-dictation-note = 대본 위의 녹음 버튼을 누르면 말한 내용이 그대로 입력됩니다. 인식은 이 기기에서 이루어지며 계정도 네트워크도 필요 없고, 말한 내용이 파일로 저장되지 않습니다. 마이크는 녹음 중에만 열립니다.
+settings-dictation-unavailable-model = 음성 모델이 설치되지 않아 받아쓰기를 실행할 수 없습니다.
+settings-dictation-unavailable-build = 이 빌드에서는 받아쓰기를 사용할 수 없습니다.

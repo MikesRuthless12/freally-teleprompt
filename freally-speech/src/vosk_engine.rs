@@ -46,13 +46,26 @@ impl SpeechRecognizer for VoskRecognizer {
     fn set_grammar(&mut self, window: &[String]) {
         // vosk 0.3 exposes no live grammar swap, so a change rebuilds the
         // recogniser. That is safe between utterances, which is when the window
-        // advances; the caller (FT-35) updates it at word boundaries. `[unk]`
-        // lets an off-script word be reported as unknown rather than force-fit.
-        let mut grammar: Vec<&str> = window.iter().map(String::as_str).collect();
-        grammar.push("[unk]");
-        if let Some(mut next) =
+        // advances; the caller (FT-35) updates it at word boundaries.
+        let next = if window.is_empty() {
+            // An empty window FREES the vocabulary — the trait's documented
+            // contract, and what dictation needs: transcribe anything the
+            // speaker says, not just the script's own words.
+            //
+            // This used to fall through to the branch below, which appends
+            // `[unk]` unconditionally — so an empty window built a grammar of
+            // `["[unk]"]`, constraining the recogniser to nothing at all rather
+            // than freeing it. The exact opposite of the documented behaviour,
+            // and invisible until something actually passed an empty slice.
+            Recognizer::new(&self.model, self.sample_rate)
+        } else {
+            // `[unk]` lets an off-script word be reported as unknown rather
+            // than force-fit onto the nearest word in the window.
+            let mut grammar: Vec<&str> = window.iter().map(String::as_str).collect();
+            grammar.push("[unk]");
             Recognizer::new_with_grammar(&self.model, self.sample_rate, &grammar)
-        {
+        };
+        if let Some(mut next) = next {
             next.set_words(true);
             self.recognizer = next;
         }

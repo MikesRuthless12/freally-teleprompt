@@ -27,7 +27,7 @@ tray-quit = Beenden
 about-version = Version { $version }
 about-tagline = Ein lokal arbeitender Teleprompter für Kreative, Vortragende und Bühnenprofis. Eine zeichenbasierte Engine hält Vorschau, Projektor und Netzwerkspiegel auf demselben Wort.
 about-privacy = Keine KI, kein Konto, keine Telemetrie. Deine Skripte bleiben auf deinem Gerät.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Alle Rechte vorbehalten.
+about-copyright = © 2026 Mike Weaver. Alle Rechte vorbehalten.
 about-website = Website
 about-source = Quellcode
 about-close = Schließen
@@ -45,6 +45,8 @@ transport-seek = Im Skript navigieren
 
 ## Editor
 editor-label = Skript
+editor-dictate = Diktieren
+editor-dictate-stop = Diktat beenden
 editor-placeholder = Tippe oder füge dein Skript ein. Verwende " -- " für eine Pause oder " --2 " für 2 Sekunden.
 editor-caesura-hint = Für eine Pause -- eingeben
 editor-est-time = Lesezeit { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt konnte nicht gestartet werden.
 
 ## Voice control (FT-31)
 settings-cat-voice = Stimme
-settings-voice-enabled = Den Prompter mit meiner Stimme steuern
-settings-voice-note = Befehle laufen auf diesem Gerät und werden mit kurzen Aufnahmen deiner eigenen Stimme abgeglichen. Kein Modell und kein Netzwerk — das Mikrofon öffnet sich nur während des Zuhörens, und nichts, was du sagst, wird jemals in einer Datei gespeichert.
-settings-voice-mode = Wann zugehört wird
-settings-voice-mode-ptt = Nur während ich die Taste halte
-settings-voice-mode-always = Immer, solange aktiviert
-settings-voice-commands = Deine Befehle
-settings-voice-commands-note = Nimm jeden Befehl zwei- oder dreimal mit deiner eigenen Stimme auf. Mehr Aufnahmen machen es zuverlässiger.
-settings-voice-record = Aufnehmen
-settings-voice-recording = Höre zu…
-settings-voice-forget = Vergessen
-settings-voice-takes = { $count } aufgenommen
-settings-voice-untrained = Nicht aufgenommen
-voice-cmd-next = Nächste Pause
-voice-listening = Höre zu
-voice-hold-to-talk = Zum Sprechen halten
-settings-voice-follow = Meinem Lesen folgen
-settings-voice-follow-note = Wenn du sprichst, scrollt das Skript mit — es erkennt die Wörter des Skripts direkt auf diesem Gerät. Sobald es deine Stelle verliert, tritt es zur Seite, damit es dir nie in die Quere kommt.
-settings-voice-follow-unavailable-build = Das Folgen per Stimme ist in dieser Version nicht verfügbar.
-settings-voice-follow-unavailable-model = Das Sprachmodell ist noch nicht installiert, daher kann das Folgen per Stimme nicht laufen.
-voice-following = Folgt
-voice-following-acquiring = Suche deine Stelle…
+settings-dictation-enabled = Mein Skript durch Sprechen schreiben
+settings-dictation-note = Drücken Sie die Aufnahmetaste über dem Skript, und was Sie sagen, wird hineingeschrieben. Die Erkennung läuft auf diesem Gerät — kein Konto, kein Netzwerk, und nichts von dem, was Sie sagen, wird je in eine Datei geschrieben. Das Mikrofon ist nur während der Aufnahme offen.
+settings-dictation-unavailable-model = Das Sprachmodell ist nicht installiert, daher kann das Diktat nicht laufen.
+settings-dictation-unavailable-build = Diktat ist in dieser Version nicht verfügbar.

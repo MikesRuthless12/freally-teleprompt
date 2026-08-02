@@ -11,7 +11,6 @@ import type {
   SpeechCapability,
   TeleprompterAction,
   TeleprompterState,
-  VoiceSummary,
 } from "./types";
 
 /**
@@ -149,48 +148,20 @@ export const ttsSpeakNative = (text: string, rate: number): Promise<void> =>
 
 export const ttsStopNative = (): Promise<void> => invoke("tts_stop");
 
-// -- voice commands (FT-31) --------------------------------------------------
+// -- dictation (FT-33) --------------------------------------------------------
 
-/** The trained commands and whether the mic is live. */
-export const voiceSummary = (): Promise<VoiceSummary> => invoke("voice_summary");
-
-/**
- * Record one take of `commandId` from the microphone and add it to the model.
- * Resolves with the updated summary. Audio is matched in memory and never
- * written to disk — only the derived features are kept.
- */
-export const voiceEnrollCapture = (commandId: string): Promise<VoiceSummary> =>
-  invoke("voice_enroll_capture", { commandId });
-
-/** Drop every take of `commandId`. */
-export const voiceForgetCommand = (commandId: string): Promise<VoiceSummary> =>
-  invoke("voice_forget_command", { commandId });
-
-/** Erase all trained commands. */
-export const voiceClearModel = (): Promise<VoiceSummary> => invoke("voice_clear_model");
-
-/**
- * Open the microphone and start recognising commands. Called on enable in
- * always-listening mode, or per press of the talk button in push-to-talk mode,
- * so the mic is open only while it is actually attended.
- */
-export const voiceStartListening = (): Promise<void> => invoke("voice_start_listening");
-
-/** Stop listening and release the microphone. */
-export const voiceStopListening = (): Promise<void> => invoke("voice_stop_listening");
-
-// -- voice-following (FT-35) -------------------------------------------------
-
-/** Whether voice-following can run: the Vosk engine must be built in AND its
- * model installed. The UI greys the toggle out and shows `detail` otherwise. */
+/** Whether dictation can run: the Vosk engine must be built in AND its model
+ * installed. The UI hides the record button and shows `detail` otherwise. */
 export const speechCapability = (): Promise<SpeechCapability> => invoke("speech_capability");
 
-/** Start following the reader's voice. Rejects with the capability reason when
- * voice-following is unavailable. */
-export const voiceFollowStart = (): Promise<void> => invoke("voice_follow_start");
+/**
+ * Open the microphone and start writing what is said into the script. Rejects
+ * with the capability reason when the model is unavailable.
+ */
+export const dictationStart = (): Promise<void> => invoke("dictation_start");
 
-/** Stop following and release the microphone. */
-export const voiceFollowStop = (): Promise<void> => invoke("voice_follow_stop");
+/** Stop dictating and release the microphone. */
+export const dictationStop = (): Promise<void> => invoke("dictation_stop");
 
 /** The scrubbed crash report from the previous run, or `null` after a clean one. */
 export const bugReportPending = (): Promise<string | null> => invoke("bug_report_pending");

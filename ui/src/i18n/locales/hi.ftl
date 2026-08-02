@@ -27,7 +27,7 @@ tray-quit = बाहर निकलें
 about-version = संस्करण { $version }
 about-tagline = क्रिएटर, वक्ताओं और कलाकारों के लिए स्थानीय रूप से चलने वाला टेलीप्रॉम्प्टर। एक ही अक्षर-आधारित इंजन पूर्वावलोकन, प्रोजेक्टर और नेटवर्क मिरर को एक ही शब्द पर रखता है।
 about-privacy = कोई AI नहीं, कोई खाता नहीं, कोई टेलीमेट्री नहीं। आपकी स्क्रिप्ट आपके ही उपकरण पर रहती है।
-about-copyright = © 2026 Mike Weaver — Havoc Software. सर्वाधिकार सुरक्षित।
+about-copyright = © 2026 Mike Weaver. सर्वाधिकार सुरक्षित।
 about-website = वेबसाइट
 about-source = स्रोत कोड
 about-close = बंद करें
@@ -45,6 +45,8 @@ transport-seek = स्क्रिप्ट में आगे-पीछे �
 
 ## Editor
 editor-label = स्क्रिप्ट
+editor-dictate = बोलकर लिखें
+editor-dictate-stop = बोलना बंद करें
 editor-placeholder = अपनी स्क्रिप्ट टाइप करें या पेस्ट करें। ठहराव के लिए " -- " का उपयोग करें, या 2 सेकंड रुकने के लिए " --2 " का।
 editor-caesura-hint = रुकने के लिए -- टाइप करें
 editor-est-time = पढ़ने का समय { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt शुरू नहीं हो सका�
 
 ## Voice control (FT-31)
 settings-cat-voice = आवाज़
-settings-voice-enabled = अपनी आवाज़ से प्रॉम्प्टर नियंत्रित करें
-settings-voice-note = कमांड इसी डिवाइस पर चलते हैं और आपकी अपनी आवाज़ की छोटी रिकॉर्डिंग से मिलान किए जाते हैं। न कोई मॉडल, न कोई नेटवर्क — माइक्रोफ़ोन केवल सुनते समय ही खुलता है, और आप जो कहते हैं वह कभी किसी फ़ाइल में सहेजा नहीं जाता।
-settings-voice-mode = कब सुनना है
-settings-voice-mode-ptt = केवल जब मैं बटन दबाए रखूँ
-settings-voice-mode-always = हमेशा, जब सक्षम हो
-settings-voice-commands = आपके कमांड
-settings-voice-commands-note = हर कमांड को अपनी आवाज़ में दो या तीन बार रिकॉर्ड करें। ज़्यादा रिकॉर्डिंग इसे अधिक स्थिर बनाती हैं।
-settings-voice-record = रिकॉर्ड करें
-settings-voice-recording = सुन रहा है…
-settings-voice-forget = भूल जाएँ
-settings-voice-takes = { $count } रिकॉर्ड किए गए
-settings-voice-untrained = रिकॉर्ड नहीं किया गया
-voice-cmd-next = अगला विराम
-voice-listening = सुन रहा है
-voice-hold-to-talk = बोलने के लिए दबाए रखें
-settings-voice-follow = मेरे पढ़ने का अनुसरण करें
-settings-voice-follow-note = जब आप बोलते हैं, तो स्क्रिप्ट साथ बने रहने के लिए स्क्रॉल होती है — यह इसी डिवाइस पर स्क्रिप्ट के अपने ही शब्दों को पहचानती है। जैसे ही यह आपकी जगह खो देती है, यह हट जाती है, ताकि यह कभी आपसे टकराव न करे।
-settings-voice-follow-unavailable-build = इस संस्करण में आवाज़ से अनुसरण उपलब्ध नहीं है।
-settings-voice-follow-unavailable-model = वाक् मॉडल अभी इंस्टॉल नहीं है, इसलिए आवाज़ से अनुसरण नहीं चल सकता।
-voice-following = अनुसरण कर रहा है
-voice-following-acquiring = आपकी जगह ढूँढ रहा है…
+settings-dictation-enabled = बोलकर अपनी स्क्रिप्ट लिखें
+settings-dictation-note = स्क्रिप्ट के ऊपर रिकॉर्ड बटन दबाएँ और आप जो कहेंगे वह उसमें लिखा जाएगा। पहचान इसी डिवाइस पर होती है — कोई खाता नहीं, कोई नेटवर्क नहीं, और आपकी कही बात कभी किसी फ़ाइल में सहेजी नहीं जाती। माइक्रोफ़ोन केवल रिकॉर्डिंग के दौरान खुला रहता है।
+settings-dictation-unavailable-model = स्पीच मॉडल इंस्टॉल नहीं है, इसलिए डिक्टेशन नहीं चल सकता।
+settings-dictation-unavailable-build = इस बिल्ड में डिक्टेशन उपलब्ध नहीं है।

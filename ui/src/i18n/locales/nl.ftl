@@ -27,7 +27,7 @@ tray-quit = Afsluiten
 about-version = Versie { $version }
 about-tagline = Een lokale autocue voor makers, sprekers en performers. Eén op tekens gebaseerde engine houdt de voorvertoning, de projector en de netwerkspiegel op hetzelfde woord.
 about-privacy = Geen AI, geen account, geen telemetrie. Je scripts blijven op je eigen apparaat.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Alle rechten voorbehouden.
+about-copyright = © 2026 Mike Weaver. Alle rechten voorbehouden.
 about-website = Website
 about-source = Broncode
 about-close = Sluiten
@@ -45,6 +45,8 @@ transport-seek = Door het script bladeren
 
 ## Editor
 editor-label = Script
+editor-dictate = Dicteren
+editor-dictate-stop = Dicteren stoppen
 editor-placeholder = Typ of plak je script. Gebruik " -- " voor een pauze, of " --2 " om 2 seconden te wachten.
 editor-caesura-hint = Typ -- voor een pauze
 editor-est-time = Leestijd { $time }
@@ -203,24 +205,7 @@ startup-failed = Freally Teleprompt kon niet starten.
 
 ## Voice control (FT-31)
 settings-cat-voice = Stem
-settings-voice-enabled = De prompter met mijn stem bedienen
-settings-voice-note = Opdrachten draaien op dit apparaat en worden vergeleken met korte opnamen van je eigen stem. Geen model en geen netwerk — de microfoon gaat alleen open tijdens het luisteren, en niets van wat je zegt wordt ooit in een bestand opgeslagen.
-settings-voice-mode = Wanneer luisteren
-settings-voice-mode-ptt = Alleen terwijl ik de knop ingedrukt houd
-settings-voice-mode-always = Altijd, zolang ingeschakeld
-settings-voice-commands = Jouw opdrachten
-settings-voice-commands-note = Neem elke opdracht twee of drie keer met je eigen stem op. Meer opnamen maken het stabieler.
-settings-voice-record = Opnemen
-settings-voice-recording = Aan het luisteren…
-settings-voice-forget = Vergeten
-settings-voice-takes = { $count } opgenomen
-settings-voice-untrained = Niet opgenomen
-voice-cmd-next = Volgende pauze
-voice-listening = Aan het luisteren
-voice-hold-to-talk = Ingedrukt houden om te spreken
-settings-voice-follow = Mijn lezen volgen
-settings-voice-follow-note = Als je spreekt, scrollt het script mee — het herkent de woorden van het script zelf op dit apparaat. Het stapt opzij zodra het je plek kwijtraakt, zodat het je nooit tegenwerkt.
-settings-voice-follow-unavailable-build = Stemvolgen is niet beschikbaar in deze versie.
-settings-voice-follow-unavailable-model = Het spraakmodel is nog niet geïnstalleerd, dus stemvolgen kan niet werken.
-voice-following = Volgt
-voice-following-acquiring = Je plek zoeken…
+settings-dictation-enabled = Mijn script schrijven door te spreken
+settings-dictation-note = Druk op de opnameknop boven het script en wat je zegt wordt erin geschreven. De herkenning gebeurt op dit apparaat — geen account, geen netwerk, en niets van wat je zegt wordt ooit naar een bestand geschreven. De microfoon staat alleen open tijdens het opnemen.
+settings-dictation-unavailable-model = Het spraakmodel is niet geïnstalleerd, dus dicteren kan niet werken.
+settings-dictation-unavailable-build = Dicteren is niet beschikbaar in deze versie.

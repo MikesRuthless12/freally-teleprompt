@@ -27,7 +27,7 @@ tray-quit = Выход
 about-version = Версия { $version }
 about-tagline = Локальный телесуфлёр для авторов, докладчиков и артистов. Один посимвольный движок держит предпросмотр, проектор и сетевую трансляцию на одном и том же слове.
 about-privacy = Никакого ИИ, аккаунтов и телеметрии. Ваши сценарии остаются на вашем устройстве.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Все права защищены.
+about-copyright = © 2026 Mike Weaver. Все права защищены.
 about-website = Сайт
 about-source = Исходный код
 about-close = Закрыть
@@ -45,6 +45,8 @@ transport-seek = Перемотка по тексту
 
 ## Editor
 editor-label = Сценарий
+editor-dictate = Диктовать
+editor-dictate-stop = Остановить диктовку
 editor-placeholder = Введите или вставьте свой сценарий. Используйте " -- " для паузы или " --2 ", чтобы остановиться на 2 секунды.
 editor-caesura-hint = Введите -- для паузы
 editor-est-time = Время чтения { $time }
@@ -203,24 +205,7 @@ startup-failed = Не удалось запустить Freally Teleprompt.
 
 ## Voice control (FT-31)
 settings-cat-voice = Голос
-settings-voice-enabled = Управлять суфлёром голосом
-settings-voice-note = Команды выполняются на этом устройстве и сравниваются с короткими записями вашего собственного голоса. Ни модели, ни сети — микрофон включается только во время прослушивания, и ничего из сказанного никогда не сохраняется в файл.
-settings-voice-mode = Когда слушать
-settings-voice-mode-ptt = Только пока я удерживаю кнопку
-settings-voice-mode-always = Всегда, когда включено
-settings-voice-commands = Ваши команды
-settings-voice-commands-note = Запишите каждую команду своим голосом два или три раза. Больше записей — стабильнее распознавание.
-settings-voice-record = Записать
-settings-voice-recording = Слушаю…
-settings-voice-forget = Забыть
-settings-voice-takes = Записей: { $count }
-settings-voice-untrained = Не записано
-voice-cmd-next = Следующая пауза
-voice-listening = Слушаю
-voice-hold-to-talk = Удерживайте, чтобы говорить
-settings-voice-follow = Следовать за моим чтением
-settings-voice-follow-note = Когда вы говорите, сценарий прокручивается, чтобы успевать за вами — он распознаёт собственные слова сценария на этом устройстве. Он уступает дорогу, как только теряет ваше место, поэтому никогда не мешает вам.
-settings-voice-follow-unavailable-build = Голосовое следование недоступно в этой сборке.
-settings-voice-follow-unavailable-model = Речевая модель ещё не установлена, поэтому голосовое следование не может работать.
-voice-following = Следую
-voice-following-acquiring = Ищу ваше место…
+settings-dictation-enabled = Писать сценарий голосом
+settings-dictation-note = Нажмите кнопку записи над сценарием, и сказанное будет записано в него. Распознавание выполняется на этом устройстве — без учётной записи, без сети, и ничего из сказанного не сохраняется в файл. Микрофон открыт только во время записи.
+settings-dictation-unavailable-model = Речевая модель не установлена, поэтому диктовка не работает.
+settings-dictation-unavailable-build = Диктовка недоступна в этой сборке.

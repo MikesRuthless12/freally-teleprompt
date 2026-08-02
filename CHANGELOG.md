@@ -11,17 +11,30 @@ together — they are two renderings of the same history.
 
 ### Added
 
-- **Voice-following now actually works** (FT-33) — the speech model ships inside
-  the installer, so "Follow my reading" is available rather than greyed out with
-  a reason. Turn it on and the script keeps up as you read aloud; it still steps
-  aside to manual the moment it loses your place, and still drives only the
-  operator preview, never the projector.
+- **Write your script by speaking** (FT-33) — turn on **Dictation** in
+  Settings → Voice and a record button appears above the script. Press it and
+  what you say is written in; press it again to stop.
 
-  Nothing is downloaded at runtime and nothing is sent anywhere — the recogniser
-  and its model are on your machine, and this remains true offline. The
-  installers are correspondingly larger.
+  It needs no training and no setup: the speech model ships inside the
+  installer, so it works the moment you switch it on. Nothing is downloaded at
+  runtime and nothing is sent anywhere — the recogniser and its model are on
+  your machine, and that stays true offline. The microphone is open only while
+  recording, and nothing you say is written to a file but the text itself.
 
-  Voice **commands** are unchanged: they never needed a model.
+### Removed
+
+- **Voice commands are gone.** They required you to record every command —
+  play, pause, faster, slower, next pause, back to top — in your own voice
+  before any of them did anything, and then to hold a button down while
+  speaking. Until you had done that recording, holding the button opened the
+  microphone and achieved nothing at all, with no way to tell that from a
+  fault. Dictation covers the same ground with nothing to train.
+- **"Follow my reading" is gone** for the same reason: one clear way to use
+  your voice is better than three that overlap. The alignment work behind it
+  still exists as a library and may return in a different shape.
+
+  The installers are correspondingly larger than 1.0.0's — the speech model is
+  about 40 MB, and it now ships whether or not you use it.
 
 ## [1.0.0] — 2026-08-02
 

@@ -1,22 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  lanMirrorOpen,
-  lanMirrorStatus,
-  settingsSet,
-  speechCapability,
-  voiceEnrollCapture,
-  voiceForgetCommand,
-  voiceSummary,
-} from "../api/commands";
-import type { Look, MirrorStatus, Settings, SpeechCapability, VoiceSummary } from "../api/types";
+import { lanMirrorOpen, lanMirrorStatus, settingsSet, speechCapability } from "../api/commands";
+import type { Look, MirrorStatus, Settings, SpeechCapability } from "../api/types";
 import { ModalShell } from "../components/ModalShell";
 import { QrSvg } from "../components/QrSvg";
 import { BUTTON, DIALOG_TITLE, ERROR_LINE, FIELD, PRIMARY } from "../components/styles";
 import { AUTO_LOCALE, PICKER_LOCALES } from "../i18n/locales";
 import { useT } from "../i18n/t";
 import { FONT_FAMILY_IDS } from "../lib/fonts";
-import { VOICE_COMMAND_IDS, VOICE_COMMAND_LABEL } from "../lib/voice";
 
 /** The sidebar, top to bottom. Every entry is a pane of REAL settings. */
 const CATEGORIES = [
@@ -49,7 +40,7 @@ const CATEGORY_FIELDS: Record<CategoryId, Array<keyof Settings>> = {
   appearance: ["look"],
   projector: ["mirror"],
   network: ["lanEnabled", "lanAllInterfaces", "lanPort"],
-  voice: ["voiceEnabled", "voiceMode", "voiceFollowEnabled"],
+  voice: ["dictationEnabled"],
 };
 
 /** The i18n keys each category's controls are labelled with — what the search
@@ -73,7 +64,7 @@ const CATEGORY_KEYS: Record<CategoryId, string[]> = {
   ],
   projector: ["settings-mirror"],
   network: ["settings-lan-enabled", "settings-lan-all-interfaces", "settings-lan-port"],
-  voice: ["settings-voice-enabled", "settings-voice-mode", "settings-voice-commands"],
+  voice: ["settings-dictation-enabled"],
 };
 
 /** The weights the picker offers, matching Rust's 300–900 clamp. */
@@ -200,21 +191,8 @@ export function SettingsDialog({
     if (open) refreshMirror();
   }, [open]);
 
-  // The trained voice model (FT-31) — LIVE state, not part of the draft. Recording
-  // and forgetting take effect at once (they open the mic and save the model), so
-  // they are not deferred to Apply the way the on/off and mode toggles are.
-  const [voice, setVoice] = useState<VoiceSummary | null>(null);
-  /** Which command is recording right now (its mic capture is in flight). */
-  const [trainingId, setTrainingId] = useState<string | null>(null);
-  useEffect(() => {
-    if (open)
-      voiceSummary()
-        .then(setVoice)
-        .catch(() => setVoice(null));
-  }, [open]);
-
-  // Voice-following availability (FT-35) — live, not a draft field. Gates the
-  // toggle: the Vosk engine must be built in AND its model installed.
+  // Dictation availability (FT-33) — live, not a draft field. Gates the toggle:
+  // the Vosk engine must be built in AND its model installed.
   const [speechCap, setSpeechCap] = useState<SpeechCapability | null>(null);
   useEffect(() => {
     if (open)
@@ -222,21 +200,6 @@ export function SettingsDialog({
         .then(setSpeechCap)
         .catch(() => setSpeechCap(null));
   }, [open]);
-
-  const trainCommand = (id: string) => {
-    setTrainingId(id);
-    setError(null);
-    voiceEnrollCapture(id)
-      .then(setVoice)
-      .catch((err) => setError(String(err)))
-      .finally(() => setTrainingId(null));
-  };
-  const forgetCommand = (id: string) => {
-    voiceForgetCommand(id)
-      .then(setVoice)
-      .catch((err) => setError(String(err)));
-  };
-  const takesFor = (id: string) => voice?.commands.find((c) => c.id === id)?.takes ?? 0;
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(applied), [draft, applied]);
 
@@ -713,103 +676,26 @@ export function SettingsDialog({
             {shown === "voice" && (
               <>
                 <Section title={t("settings-cat-voice")}>
+                  {/* Disabled where the engine or its model is absent, so the
+                      toggle can never be switched on over something that cannot
+                      run — the note below says which half is missing. */}
                   <label className="flex items-center gap-2 text-[11px]">
                     <input
                       type="checkbox"
-                      data-testid="settings-voice-enabled"
-                      checked={draft.voiceEnabled}
-                      onChange={(e) => patch({ voiceEnabled: e.target.checked })}
-                    />
-                    {t("settings-voice-enabled")}
-                  </label>
-                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
-                    {t("settings-voice-note")}
-                  </p>
-
-                  <label className="flex items-center justify-between gap-3">
-                    <span className="text-havoc-muted shrink-0 text-[11px]">
-                      {t("settings-voice-mode")}
-                    </span>
-                    <select
-                      data-testid="settings-voice-mode"
-                      className={FIELD}
-                      disabled={!draft.voiceEnabled}
-                      value={draft.voiceMode}
-                      onChange={(e) =>
-                        patch({ voiceMode: e.target.value as Settings["voiceMode"] })
-                      }
-                    >
-                      <option value="push_to_talk">{t("settings-voice-mode-ptt")}</option>
-                      <option value="always">{t("settings-voice-mode-always")}</option>
-                    </select>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-[11px]">
-                    <input
-                      type="checkbox"
-                      data-testid="settings-voice-follow"
+                      data-testid="settings-dictation-enabled"
                       disabled={!speechCap?.available}
-                      checked={draft.voiceFollowEnabled}
-                      onChange={(e) => patch({ voiceFollowEnabled: e.target.checked })}
+                      checked={draft.dictationEnabled}
+                      onChange={(e) => patch({ dictationEnabled: e.target.checked })}
                     />
-                    {t("settings-voice-follow")}
+                    {t("settings-dictation-enabled")}
                   </label>
                   <p className="text-havoc-muted m-0 text-[10px] leading-snug">
                     {speechCap && !speechCap.available
                       ? speechCap.engine === "vosk"
-                        ? t("settings-voice-follow-unavailable-model")
-                        : t("settings-voice-follow-unavailable-build")
-                      : t("settings-voice-follow-note")}
+                        ? t("settings-dictation-unavailable-model")
+                        : t("settings-dictation-unavailable-build")
+                      : t("settings-dictation-note")}
                   </p>
-                </Section>
-
-                <Section title={t("settings-voice-commands")}>
-                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
-                    {t("settings-voice-commands-note")}
-                  </p>
-                  <ul className="m-0 flex list-none flex-col gap-1 p-0">
-                    {VOICE_COMMAND_IDS.map((id) => {
-                      const takes = takesFor(id);
-                      const recording = trainingId === id;
-                      return (
-                        <li
-                          key={id}
-                          data-testid={`voice-command-${id}`}
-                          className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5"
-                        >
-                          <span className="flex-1 text-[11px]">{t(VOICE_COMMAND_LABEL[id])}</span>
-                          <span
-                            data-testid={`voice-takes-${id}`}
-                            className="text-havoc-muted shrink-0 text-[10px] tabular-nums"
-                          >
-                            {takes > 0
-                              ? t("settings-voice-takes", { count: takes })
-                              : t("settings-voice-untrained")}
-                          </span>
-                          <button
-                            type="button"
-                            data-testid={`voice-train-${id}`}
-                            className={BUTTON}
-                            disabled={trainingId !== null}
-                            onClick={() => trainCommand(id)}
-                          >
-                            {recording ? t("settings-voice-recording") : t("settings-voice-record")}
-                          </button>
-                          {takes > 0 && (
-                            <button
-                              type="button"
-                              data-testid={`voice-forget-${id}`}
-                              className={BUTTON}
-                              disabled={trainingId !== null}
-                              onClick={() => forgetCommand(id)}
-                            >
-                              {t("settings-voice-forget")}
-                            </button>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
                 </Section>
               </>
             )}

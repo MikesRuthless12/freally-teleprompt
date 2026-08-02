@@ -29,7 +29,7 @@ tray-quit = Quit
 about-version = Version { $version }
 about-tagline = A local-first teleprompter for creators, presenters and performers. One character-based engine keeps the preview, the projector and the network mirror on the same word.
 about-privacy = No AI, no account, no telemetry. Your scripts stay on your device.
-about-copyright = © 2026 Mike Weaver — Havoc Software. All rights reserved.
+about-copyright = © 2026 Mike Weaver. All rights reserved.
 about-website = Website
 about-source = Source
 about-close = Close
@@ -47,6 +47,8 @@ transport-seek = Seek through the script
 
 ## Editor
 editor-label = Script
+editor-dictate = Dictate
+editor-dictate-stop = Stop dictating
 editor-placeholder = Type or paste your script. Use " -- " for a pause, or " --2 " to hold for 2 seconds.
 editor-caesura-hint = Type -- for a pause
 editor-est-time = Read time { $time }
@@ -149,27 +151,10 @@ settings-apply = Apply
 
 ## Voice control (FT-31)
 settings-cat-voice = Voice
-settings-voice-enabled = Control the prompter with my voice
-settings-voice-note = Commands run on this device, matched against short recordings of your own voice. No model and no network — the microphone opens only while listening, and nothing you say is ever saved to a file.
-settings-voice-mode = When to listen
-settings-voice-mode-ptt = Only while I hold the button
-settings-voice-mode-always = Always, while enabled
-settings-voice-commands = Your commands
-settings-voice-commands-note = Record each command in your own voice two or three times. More recordings make it steadier.
-settings-voice-record = Record
-settings-voice-recording = Listening…
-settings-voice-forget = Forget
-settings-voice-takes = { $count } recorded
-settings-voice-untrained = Not recorded
-voice-cmd-next = Next pause
-voice-listening = Listening
-voice-hold-to-talk = Hold to talk
-settings-voice-follow = Follow my reading
-settings-voice-follow-note = When you speak, the script scrolls to keep up — it recognises the script's own words on this device. It steps aside the moment it loses your place, so it never fights you.
-settings-voice-follow-unavailable-build = Voice-following is not available in this build.
-settings-voice-follow-unavailable-model = The speech model is not installed yet, so voice-following can't run.
-voice-following = Following
-voice-following-acquiring = Finding your place…
+settings-dictation-enabled = Write my script by speaking
+settings-dictation-note = Press the record button above the script and what you say is written into it. Recognised on this device — no account, no network, and nothing you say is ever saved to a file. The microphone is open only while recording.
+settings-dictation-unavailable-model = The speech model isn't installed, so dictation can't run.
+settings-dictation-unavailable-build = Dictation is not available in this build.
 
 ## Onboarding tour (FT-50)
 tour-step = { $n } of { $total }

@@ -67,18 +67,11 @@ export type Settings = {
    * `"auto"` to follow the UI language. Deliberately separate from `language`;
    * operators often run the app in one language and write in another. */
   autocompleteLanguage: string;
-  /** Hands-free voice commands (FT-31). Off by default; the mic opens only while
-   * listening. This is a normal preference — unlike `recentScripts`, the Settings
-   * draft MUST round-trip it, or an Apply resets it. */
-  voiceEnabled: boolean;
-  /** When the app listens: `"push_to_talk"` (only while the talk button is held)
-   * or `"always"` (continuously while enabled). */
-  voiceMode: "push_to_talk" | "always";
-  /** Voice-following (FT-35): auto-scroll by recognising the script's own words.
-   * Off by default; only usable when the Vosk model is present (see
-   * `speechCapability`). A normal preference — the Settings draft must round-trip
-   * it. */
-  voiceFollowEnabled: boolean;
+  /** Dictation (FT-33): speak, and the words are written into the script. Off by
+   * default; only usable when the Vosk model is present (see `speechCapability`),
+   * and the mic opens only while recording. A normal preference — unlike
+   * `recentScripts`, the Settings draft MUST round-trip it, or an Apply resets it. */
+  dictationEnabled: boolean;
   /**
    * Recently-opened scripts (FT-10), most recent first; `[0]` is the script
    * currently open. Read-only from the UI's point of view for the same reason
@@ -160,30 +153,7 @@ export type TeleprompterAction =
   | "seek"
   | "top";
 
-/** Mirror of `voice::CommandInfo` — one trained command and its take count. */
-export type VoiceCommandInfo = {
-  /** The command id (also the transport action it fires). */
-  id: string;
-  /** How many recordings of it the model holds. */
-  takes: number;
-};
-
-/** Mirror of `voice::VoiceSummary` — the trained model as the UI sees it. */
-export type VoiceSummary = {
-  commands: VoiceCommandInfo[];
-  /** Whether the microphone is currently open. */
-  listening: boolean;
-};
-
-/** Payload of the `voice:command` event — a recognised command. */
-export type VoiceCommandEvent = {
-  /** The recognised command id (a transport action). */
-  commandId: string;
-  /** Match confidence in `[0, 1]`. */
-  confidence: number;
-};
-
-/** Mirror of `speech::SpeechCapabilityDto` — whether voice-following can run. */
+/** Mirror of `speech::SpeechCapabilityDto` — whether dictation can run. */
 export type SpeechCapability = {
   /** Usable right now: the Vosk engine is built in AND its model is installed. */
   available: boolean;

@@ -47,7 +47,7 @@
     "shortDescription": "Local-first teleprompter — chars/sec or BPM, with pause chips.",
     "longDescription": "Freally Teleprompt is a local-first, cross-platform teleprompter: one character-based scroll engine keeps the operator preview, the talent projector, and LAN mirrors in step, paced in characters per second or BPM, with inline caesura pause chips. No AI, no account, no telemetry, no cloud.",
     "homepage": "https://mikesruthless12.github.io/freally-teleprompt/",
-    "publisher": "Havoc Software",
+    "publisher": "Mike Weaver",
     "copyright": "© 2026 Mike Weaver — All Rights Reserved",
     "licenseFile": "../LICENSE",
     "resources": { "../THIRD-PARTY.md": "THIRD-PARTY.md", "../NOTICE": "NOTICE" },

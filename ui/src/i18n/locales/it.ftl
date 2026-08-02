@@ -27,7 +27,7 @@ tray-quit = Esci
 about-version = Versione { $version }
 about-tagline = Un gobbo elettronico locale per creator, relatori e interpreti. Un unico motore basato sui caratteri tiene anteprima, proiettore e mirror di rete sulla stessa parola.
 about-privacy = Niente IA, niente account, niente telemetria. I tuoi copioni restano sul tuo dispositivo.
-about-copyright = © 2026 Mike Weaver — Havoc Software. Tutti i diritti riservati.
+about-copyright = © 2026 Mike Weaver. Tutti i diritti riservati.
 about-website = Sito web
 about-source = Codice sorgente
 about-close = Chiudi
@@ -45,6 +45,8 @@ transport-seek = Scorri nel copione
 
 ## Editor
 editor-label = Copione
+editor-dictate = Detta
+editor-dictate-stop = Interrompi dettatura
 editor-placeholder = Scrivi o incolla il tuo copione. Usa " -- " per una pausa, oppure " --2 " per fermarti 2 secondi.
 editor-caesura-hint = Digita -- per una pausa
 editor-est-time = Tempo di lettura { $time }
@@ -203,24 +205,7 @@ startup-failed = Impossibile avviare Freally Teleprompt.
 
 ## Voice control (FT-31)
 settings-cat-voice = Voce
-settings-voice-enabled = Controlla il teleprompter con la mia voce
-settings-voice-note = I comandi vengono eseguiti su questo dispositivo e confrontati con brevi registrazioni della tua stessa voce. Nessun modello e nessuna rete — il microfono si attiva solo durante l'ascolto e nulla di ciò che dici viene mai salvato in un file.
-settings-voice-mode = Quando ascoltare
-settings-voice-mode-ptt = Solo mentre tengo premuto il pulsante
-settings-voice-mode-always = Sempre, quando è attivo
-settings-voice-commands = I tuoi comandi
-settings-voice-commands-note = Registra ogni comando con la tua voce due o tre volte. Più registrazioni lo rendono più stabile.
-settings-voice-record = Registra
-settings-voice-recording = In ascolto…
-settings-voice-forget = Dimentica
-settings-voice-takes = { $count } registrate
-settings-voice-untrained = Non registrato
-voice-cmd-next = Pausa successiva
-voice-listening = In ascolto
-voice-hold-to-talk = Tieni premuto per parlare
-settings-voice-follow = Segui la mia lettura
-settings-voice-follow-note = Quando parli, il copione scorre per starti dietro — riconosce le parole del copione stesso su questo dispositivo. Si fa da parte nel momento in cui perde il tuo punto, così non ti contrasta mai.
-settings-voice-follow-unavailable-build = Il seguimento vocale non è disponibile in questa versione.
-settings-voice-follow-unavailable-model = Il modello vocale non è ancora installato, quindi il seguimento vocale non può funzionare.
-voice-following = Sto seguendo
-voice-following-acquiring = Cerco il tuo punto…
+settings-dictation-enabled = Scrivere il copione parlando
+settings-dictation-note = Premi il pulsante di registrazione sopra il copione e ciò che dici viene scritto al suo interno. Il riconoscimento avviene su questo dispositivo: nessun account, nessuna rete e nulla di ciò che dici viene mai salvato in un file. Il microfono è aperto solo durante la registrazione.
+settings-dictation-unavailable-model = Il modello vocale non è installato, quindi la dettatura non può funzionare.
+settings-dictation-unavailable-build = La dettatura non è disponibile in questa versione.

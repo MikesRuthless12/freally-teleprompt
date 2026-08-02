@@ -1,17 +1,20 @@
-//! Voice-following (FT-32 / FT-33 / FT-35) — Track B's app wiring.
+//! Dictation (FT-32 / FT-33) — speech to text, into the script editor.
 //!
-//! Recognises the script's own words with `freally-speech` (Vosk), aligns them to
-//! a reading position with `freally-align`, and emits that position for the
-//! scroller to follow. The recogniser links a native library and needs a model,
-//! so the whole recognition loop is behind the `vosk` feature; without it (the
-//! default build and CI) the app reports voice-following **unavailable** and the
+//! Recognises free speech with `freally-speech` (Vosk) and emits each completed
+//! utterance for the UI to insert. The recogniser links a native library and
+//! needs a model, so the whole loop is behind the `vosk` feature; without it
+//! (the default build and CI) the app reports dictation **unavailable** and the
 //! loop does not exist.
 //!
-//! It is **opt-in** — off until the operator turns it on — and honest: the
-//! capability check gates the UI, so a build without the engine, or a machine
-//! without the model installed, greys the toggle out with a reason rather than
-//! failing when pressed. The recognition loop reuses `freally-voice`'s cpal
-//! capture and resampler, so there is one microphone path for both tracks.
+//! It is **opt-in** — the microphone opens only when the operator presses record
+//! — and honest: the capability check gates the UI, so a build without the
+//! engine, or a machine without the model, says so rather than failing when
+//! pressed. Audio capture and resampling come from `freally-voice`.
+//!
+//! The grammar is deliberately FREE here. `freally-speech` can constrain the
+//! vocabulary to a window of the script, which is far more accurate for reading
+//! aloud — but dictation exists to write words the script does not contain yet,
+//! so constraining it would defeat the purpose.
 
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
@@ -20,14 +23,12 @@ use std::sync::Arc;
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
-use crate::teleprompter::TeleprompterState;
-
 /// The Vosk model directory.
 ///
 /// Two locations, in this order and deliberately:
 ///
-/// 1. **The user's data directory**, beside settings and the voice-command
-///    model. Nothing writes this — it is the escape hatch for dropping in a
+/// 1. **The user's data directory**, beside settings. Nothing writes this — it
+///    is the escape hatch for dropping in a
 ///    different or larger model without rebuilding the app, and it wins so that
 ///    a deliberate choice is never overridden by the shipped default.
 /// 2. **The bundled model**, in the app's resource directory (FT-33).
@@ -45,7 +46,38 @@ fn model_dir(app: &AppHandle) -> PathBuf {
         .unwrap_or_else(|_| PathBuf::from("vosk-model-en"))
 }
 
-/// Voice-following availability for the UI — a serialisable mirror of
+/// The model path as a string a C library will accept.
+///
+/// ⚠️ On Windows this MUST strip the `\\?\` extended-length prefix.
+/// `resource_dir()` hands back a canonicalised path, and Rust canonicalisation
+/// on Windows always produces the verbatim `\\?\C:\…` form. Rust's own file
+/// APIs understand it — which is exactly what makes this so easy to miss, since
+/// `Path::exists()` returns true and the capability check happily reports the
+/// model as present — but **libvosk is a C library** opening the model with
+/// plain file calls, and those reject the prefix outright.
+///
+/// The result was a build that offered the record button and then failed the
+/// moment it was pressed, with "could not load the Vosk model at \\?\C:\…".
+/// Only a real installed build shows this: in a dev run the path comes from the
+/// manifest directory and carries no prefix.
+///
+/// Its only caller is the `vosk`-gated loop, but it stays compiled either way so
+/// the test below runs in the default build too — this is pure string logic and
+/// needs no engine to be worth checking.
+#[cfg_attr(not(feature = "vosk"), allow(dead_code))]
+fn model_path_for_ffi(dir: &std::path::Path) -> String {
+    let text = dir.to_string_lossy().into_owned();
+    match text.strip_prefix(r"\\?\") {
+        // A UNC verbatim path (`\\?\UNC\server\share`) needs the real UNC form
+        // back, not a bare `UNC\…` which names nothing.
+        Some(rest) => rest
+            .strip_prefix("UNC\\")
+            .map_or_else(|| rest.to_string(), |share| format!(r"\\{share}")),
+        None => text,
+    }
+}
+
+/// Dictation availability for the UI — a serialisable mirror of
 /// `freally_speech::SpeechCapability` (that crate stays dependency-free, so the
 /// serde lives here).
 #[derive(Debug, Clone, Serialize)]
@@ -66,67 +98,58 @@ impl From<freally_speech::SpeechCapability> for SpeechCapabilityDto {
     }
 }
 
-/// Report whether voice-following can run: the `vosk` engine must be built in AND
-/// the model installed. The UI greys the toggle out and shows `detail` otherwise.
+/// Report whether dictation can run: the `vosk` engine must be built in AND the
+/// model installed. The UI hides the record button and shows `detail` otherwise.
 #[tauri::command]
 pub fn speech_capability(app: AppHandle) -> SpeechCapabilityDto {
     freally_speech::capability(Some(&model_dir(&app))).into()
 }
 
-/// Managed state for voice-following.
+/// Managed state for dictation.
 #[derive(Default)]
-pub struct FollowState {
+pub struct DictationState {
     session: crate::session::BackgroundSession,
 }
 
-/// Start following the reader. Errors with the capability reason when
-/// voice-following is unavailable, so the UI shows that rather than a dead toggle.
+/// Start dictating into the script editor.
+///
+/// Emits `voice:dictation` with each completed utterance for the UI to insert.
 #[tauri::command]
-pub fn voice_follow_start(
-    app: AppHandle,
-    state: State<'_, FollowState>,
-    teleprompter: State<'_, TeleprompterState>,
-) -> Result<(), String> {
+pub fn dictation_start(app: AppHandle, state: State<'_, DictationState>) -> Result<(), String> {
     let cap = freally_speech::capability(Some(&model_dir(&app)));
     if !cap.available {
         return Err(cap.detail);
     }
-    let script = teleprompter.dto().script;
     state
         .session
-        .start(move |stop| std::thread::spawn(move || run_follow(app, script, stop)));
+        .start(move |stop| std::thread::spawn(move || run_dictation(app, stop)));
     Ok(())
 }
 
-/// Stop following and release the microphone.
+/// Stop dictating and release the microphone.
 #[tauri::command]
-pub fn voice_follow_stop(state: State<'_, FollowState>) {
+pub fn dictation_stop(state: State<'_, DictationState>) {
     state.session.stop();
 }
 
-/// The recognition + alignment loop. Present only with the `vosk` feature and
-/// verified by the voice-following human drill, never CI. It recognises the
-/// script's own words, aligns them to a visible-character offset, and emits
-/// `voice:offset` and `voice:tracking` for the UI to drive `overrideOffset` and
-/// degrade to manual on low confidence.
+/// The dictation loop — recognise freely and emit the text.
 #[cfg(feature = "vosk")]
-fn run_follow(app: AppHandle, script: String, stop: Arc<AtomicBool>) {
+fn run_dictation(app: AppHandle, stop: Arc<AtomicBool>) {
     use std::sync::atomic::Ordering;
 
-    use freally_align::{Aligner, Script};
-    use freally_speech::{grammar_window, SpeechRecognizer, VoskRecognizer};
+    use freally_speech::{SpeechRecognizer, VoskRecognizer};
     use freally_voice::{AudioSource, CpalSource, Resampler, CANONICAL_SAMPLE_RATE};
     use tauri::Emitter;
 
     const RATE: u32 = CANONICAL_SAMPLE_RATE;
-    let mut recognizer = match VoskRecognizer::new(&model_dir(&app).to_string_lossy(), RATE as f32)
-    {
-        Ok(recognizer) => recognizer,
-        Err(err) => {
-            let _ = app.emit("voice:error", err);
-            return;
-        }
-    };
+    let mut recognizer =
+        match VoskRecognizer::new(&model_path_for_ffi(&model_dir(&app)), RATE as f32) {
+            Ok(recognizer) => recognizer,
+            Err(err) => {
+                let _ = app.emit("voice:error", err);
+                return;
+            }
+        };
     let mut source = match CpalSource::new() {
         Ok(source) => source,
         Err(err) => {
@@ -136,19 +159,12 @@ fn run_follow(app: AppHandle, script: String, stop: Arc<AtomicBool>) {
     };
     let mut resampler = Resampler::new(source.sample_rate(), RATE);
 
-    // Tokenise ONCE, through the aligner's own `Script`, so the grammar window
-    // and `aligner.word_index()` share an index basis. Tokenising separately with
-    // `split_whitespace` would keep the `--` caesuras that `Script` drops, and the
-    // grammar would then centre on the wrong word.
-    let parsed = Script::parse(&script);
-    let words: Vec<String> = parsed.words.iter().map(|w| w.text.clone()).collect();
-    let word_refs: Vec<&str> = words.iter().map(String::as_str).collect();
-    let mut aligner = Aligner::new(parsed);
-    // Constrain the recogniser to the top of the script to begin with.
-    recognizer.set_grammar(&grammar_window(&word_refs, 0, 4, 40));
-    let mut grammar_center = 0usize;
+    // An EMPTY window frees the vocabulary. `freally-speech` can constrain it
+    // to a window of the script, but that would let dictation type only words
+    // already written — the opposite of the point.
+    recognizer.set_grammar(&[]);
 
-    let _ = app.emit("voice:tracking", true);
+    let _ = app.emit("voice:dictating", true);
     let mut block = Vec::new();
     while !stop.load(Ordering::Relaxed) {
         block.clear();
@@ -157,28 +173,21 @@ fn run_follow(app: AppHandle, script: String, stop: Arc<AtomicBool>) {
         }
         let resampled = resampler.process(&block);
         if let Some(hypothesis) = recognizer.accept(&resampled) {
-            for word in &hypothesis.words {
-                aligner.observe(&word.text);
-            }
-            let _ = app.emit("voice:offset", aligner.offset());
-            let _ = app.emit("voice:tracking", aligner.is_tracking());
-            // Slide the constrained vocabulary forward as the reader advances.
-            if let Some(index) = aligner.word_index() {
-                if index.abs_diff(grammar_center) > 15 {
-                    recognizer.set_grammar(&grammar_window(&word_refs, index, 4, 40));
-                    grammar_center = index;
-                }
+            // Silence endpoints as an empty result; emitting it would insert
+            // stray spaces into the operator's script.
+            let text = hypothesis.text.trim();
+            if !text.is_empty() {
+                let _ = app.emit("voice:dictation", text.to_string());
             }
         }
     }
-    let _ = app.emit("voice:tracking", false);
+    let _ = app.emit("voice:dictating", false);
 }
 
-/// Without the `vosk` feature the loop cannot run — but `voice_follow_start`
-/// already refuses via the capability check, so this is never reached. It exists
-/// only so the spawn compiles.
+/// Without the `vosk` feature there is no recogniser — `dictation_start` already
+/// refuses via the capability check, so this is never reached.
 #[cfg(not(feature = "vosk"))]
-fn run_follow(_app: AppHandle, _script: String, _stop: Arc<AtomicBool>) {}
+fn run_dictation(_app: AppHandle, _stop: Arc<AtomicBool>) {}
 
 #[cfg(test)]
 mod tests {
@@ -193,6 +202,33 @@ mod tests {
     /// `"none"`. That stopped compiling the moment the command needed an
     /// `AppHandle` to find the bundled model — and it had been asserting the
     /// default build's answer as though it were the only one.)
+    /// The `\\?\` prefix must never reach libvosk. This shipped once: the
+    /// capability check passed (Rust's `exists()` accepts the prefix), the
+    /// record button appeared, and pressing it failed with "could not load the
+    /// Vosk model at \\?\C:\…" — a path that was, in every other sense, correct.
+    #[test]
+    fn the_ffi_path_never_carries_the_windows_verbatim_prefix() {
+        assert_eq!(
+            model_path_for_ffi(std::path::Path::new(
+                r"\\?\C:\Program Files\App\vosk-model-en"
+            )),
+            r"C:\Program Files\App\vosk-model-en",
+        );
+        // A verbatim UNC path has to come back as a real UNC path, not `UNC\…`.
+        assert_eq!(
+            model_path_for_ffi(std::path::Path::new(r"\\?\UNC\server\share\model")),
+            r"\\server\share\model",
+        );
+        // Anything already plain is left exactly as it is.
+        for plain in [
+            r"C:\Apps\model",
+            "/usr/share/model",
+            r"\\server\share\model",
+        ] {
+            assert_eq!(model_path_for_ffi(std::path::Path::new(plain)), plain);
+        }
+    }
+
     #[test]
     fn the_dto_carries_the_capability_through_unchanged() {
         let cap = freally_speech::SpeechCapability {

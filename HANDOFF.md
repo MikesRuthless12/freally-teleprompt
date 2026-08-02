@@ -155,6 +155,16 @@ builds (no `vosk`) following never runs, so there is no conflict today.
 
 ## Traps paid for THIS session — FT-50 (do not re-learn these)
 
+- **A dialog's key handlers must be registered in a LAYOUT effect, not a passive one.** A passive
+  effect (`useEffect`) flushes *after* the browser paints, so there is a window — one frame, longer
+  on a loaded machine — where the dialog is on screen and Esc does nothing. Every other dialog hides
+  it, because opening one takes a click and the click outlasts the gap; **the tour is the only
+  dialog mounted already open**, so its first keystroke can land in the window. macOS CI failed
+  `leaving by escape records the tour as seen` **twice, deterministically**, while Windows and Linux
+  won the race — and it is not a macOS key-delivery quirk, because Settings' own Escape test passes
+  on the same runner. The tell: the three sibling exits (done/skip/backdrop) all click something
+  first. `toBeVisible()` only proves React **painted**. Fixed at the source in `ModalShell` rather
+  than by teaching the test to wait — visible and dismissible should be the same instant.
 - **`page.emulateMedia({ colorScheme })` DOES deliver `matchMedia` change events**, but a test
   that "changes" the preference to the value it already held asserts nothing. The first version of
   "stops following the system once a theme is pinned" pinned *to the value the OS was already

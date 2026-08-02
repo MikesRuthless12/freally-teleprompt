@@ -7,7 +7,7 @@
 >
 > **No AI, no accounts, no cloud, no subscription.**
 
-**Status: in development (0.300.0).** Freally Teleprompt is the standalone grow-out of the
+**Status: released (1.0.0).** Freally Teleprompt is the standalone grow-out of the
 teleprompter that ships inside
 [Freally Capture](https://github.com/MikesRuthless12/freally-capture) (0.910.0's Teleprompter
 Rework). Platforms: **Windows / macOS / Linux** (Tauri v2 — Rust core + React/TypeScript UI).

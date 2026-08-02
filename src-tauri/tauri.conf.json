@@ -3,7 +3,7 @@
   "productName": "Freally Teleprompt",
   "identifier": "com.freally.teleprompt",
   "mainBinaryName": "freally-teleprompt",
-  "version": "0.300.0",
+  "version": "1.0.0",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -30,7 +30,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVENTZGNThFNUMwMzRCMTYKUldRV1N3TmNqdlZXWGNsYm9ZWGdDTlVBWURRM0NCNlRWeVFHOUhNVW5MSGU5Qy9vQU41NldVTm8K",
       "endpoints": [
         "https://github.com/MikesRuthless12/freally-teleprompt/releases/latest/download/latest.json"
       ],

@@ -110,13 +110,13 @@
 
     <main class="changelog-body">
       <article class="release">
-        <h2>In development</h2>
-        <p class="date">Phase 3 — hands-free voice control · Phase 5 — polish</p>
+        <h2>1.0.0</h2>
+        <p class="date">2 August 2026 — the first published release</p>
 
         <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
           Run the prompter by voice, with commands you train in your own voice — plus a welcome
-          tour, a theme that follows your system, and a keyboard accessibility pass. Merged and in
-          the app, not yet cut as a downloadable release.
+          tour, a theme that follows your system, and a keyboard accessibility pass. This is the
+          first build you can download and install, signed, for Windows, macOS and Linux.
         </p>
 
         <h3>Added</h3>
@@ -148,6 +148,13 @@
             place — so it never scrolls somewhere wrong — and drives only the operator preview, never
             the projector. Off by default, and greyed out where the model isn't installed.
           </li>
+          <li>
+            <strong>Installers, signed and self-updating.</strong> Windows (<code>.exe</code> and
+            <code>.msi</code>), a macOS universal <code>.dmg</code>, and Linux AppImage and
+            <code>.deb</code>, all built from one tagged commit. The in-app updater checks this
+            site's releases, and every update is verified against a signing key the app carries —
+            an update that cannot be verified is refused rather than installed.
+          </li>
         </ul>
 
         <h3>Changed</h3>
@@ -174,8 +181,10 @@
         </ul>
 
         <p style="margin: 8px 0 0; color: var(--muted); line-height: 1.6">
-          Not yet released: the Vosk model ships with the release installer (a later phase), so until
-          then voice-following reports itself unavailable.
+          <strong>Follow my reading is not usable in this build.</strong> The recogniser needs a
+          speech model and this release does not yet bundle one, so the feature detects that and
+          reports itself unavailable with a reason rather than failing when you switch it on. Voice
+          <em>commands</em> are unaffected — they need no model and work here.
         </p>
       </article>
 
@@ -370,12 +379,13 @@
       </article>
 
       <div class="empty-state">
-        <h2>Installers are not published yet</h2>
+        <h2>Installers are published from 1.0.0 onward</h2>
         <p>
-          0.300.0 is a development milestone — the release pipeline lands in a later phase. When
-          the first installers are cut they will appear here for Windows, macOS, and Linux — free,
-          local-first, no account. Meanwhile, the
-          <a href="documentation.html">documentation</a> describes what the app does.
+          0.100.0 through 0.300.0 were development milestones with no downloadable build.
+          <strong>1.0.0</strong> is the first release you can install — Windows, macOS, and Linux,
+          free, local-first, no account. Get it from the
+          <a href="index.html">Releases page</a>, and see the
+          <a href="documentation.html">documentation</a> for what the app does.
         </p>
       </div>
     </main>

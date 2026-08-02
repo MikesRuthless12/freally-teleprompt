@@ -9,8 +9,12 @@ together — they are two renderings of the same history.
 
 ## [Unreleased]
 
-Phase 3 — hands-free voice control — and the first part of Phase 5's polish
-pass. Merged to `main`, not yet cut as a release.
+_Nothing yet._
+
+## [1.0.0] — 2026-08-02
+
+The first published release: everything from Phase 3 (hands-free voice control)
+and Phase 5's polish pass, cut as signed installers for Windows, macOS and Linux.
 
 ### Added
 
@@ -35,6 +39,12 @@ pass. Merged to `main`, not yet cut as a release.
   a reason where the model isn't installed. The deterministic alignment layer
   that decides where in the script you are is fully owned and unit-tested.
 
+- **Installers, signed and self-updating** (FT-51, FT-52) — Windows (`.exe` and
+  `.msi`), a macOS universal `.dmg`, and Linux AppImage and `.deb`, all built
+  from one tagged commit. The in-app updater checks the releases page, and every
+  update is verified against a signing key the app carries — an update that
+  cannot be verified is refused rather than installed.
+
 ### Changed
 
 - **Keyboard and screen-reader accessibility pass** (FT-50) — every focusable
@@ -53,8 +63,11 @@ pass. Merged to `main`, not yet cut as a release.
   to a file. Voice-following runs the recogniser entirely on-device; the model
   ships in the installer and downloads nothing at runtime.
 
-_Not yet released: the Vosk model ships with the release installer (a later
-phase); until then voice-following reports itself unavailable._
+_**Voice-following is not usable in this build.** The recogniser needs a speech
+model, and this release does not yet bundle one — the feature detects that and
+reports itself unavailable with a reason, rather than failing when you turn it
+on. Voice **commands** are unaffected: they need no model and work here. The
+alignment and grammar layers underneath are complete and tested._
 
 ## [0.300.0] — 2026-07-22
 

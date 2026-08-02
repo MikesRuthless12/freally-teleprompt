@@ -13,7 +13,7 @@ paid for, and what is genuinely outstanding.
 | Version | `1.0.0` — bumped from `0.300.0` in all four files. Clears the MSI ceiling (minor 0). |
 | Phase 0 / 1 / 2 / 3 | ✅ scaffold, teleprompter core, offline autocomplete, voice control |
 | **FT-50** | ✅ four-step first-run tour, a **system** theme, and the keyboard-accessibility floor |
-| FT-51 / FT-52 | ✅ signing key generated, both secrets set, `pubkey` wired, `v1.0.0` tagged and released |
+| FT-51 / FT-52 | ✅ **`v1.0.0` is published** — signed installers on all three OSes, updater endpoint live. macOS is **unsigned** (no Apple cert): Gatekeeper needs a right-click → Open. |
 | Crates | `freally-voice` (FT-30), `freally-align` (FT-34), `freally-speech` (FT-32) |
 | Tests | **121 Rust** · **100 vitest** · **129 Playwright** · per-OS launch screenshots |
 | Next | bundle the Vosk model so voice-following actually runs; FT-53 (site content), FT-54 |
@@ -164,6 +164,42 @@ but wasteful and the indicators can confuse. Mutual exclusion is a future refine
 builds (no `vosk`) following never runs, so there is no conflict today.
 
 ---
+
+## Traps paid by `release.yml`'s FIRST EVER RUN (1.0.0 took five attempts)
+
+The workflow was written end to end and never executed. Every one of these was invisible until a
+tag existed. **Preflight caught none of them** — it passed on the first try; all five failures were
+downstream.
+
+- **`icons/icon.icns` was listed in `bundle.icon` and did not exist.** Only the `.ico` and the PNG
+  set had ever been generated. **Windows built fine** — the `.icns` is read only by the macOS and
+  Linux bundlers — so no amount of Windows testing would ever have surfaced it. Generated from the
+  existing 512×512 `icons/icon.png` with `tauri icon` into a temp dir, and only the `.icns` copied
+  in, so the rest of the icon set stayed untouched.
+- **An `env:` key with an empty value still EXISTS.** The mac-signing guard set
+  `APPLE_CERTIFICATE: ${{ … || '' }}` when no certificate was configured, and `std::env::var`
+  returns `Ok("")` for that — so the bundler decided to codesign, ran `security import` on nothing,
+  and failed the whole macOS bundle. The step's own comment described this exact trap while the
+  code walked into it. **The only fix is to not write the key at all**: the secrets now go into
+  `$GITHUB_ENV` on the branch where they are real. There is no way to conditionally omit a key
+  inline.
+- **Tauri writes a `latest.json` entry for every bundle it signs**, so the generic `windows-x86_64`
+  key — the one the updater actually reads — pointed at the **`.msi`**, and `linux-x86_64-deb` at
+  the `.deb`. Neither can be applied in place; the updater downloads them and fails on every
+  machine. The publish gate checked for this and nothing had ever been written to satisfy it. A
+  rewrite step now repoints the generic keys at NSIS/AppImage/`.app` and drops the `-msi`/`-deb`
+  entries. **The `.msi` and `.deb` stay attached as downloads** — the gate still requires them as
+  assets. Do not "simplify" this by dropping them from `bundle.targets`.
+- **Three platforms cannot upload `latest.json` at once.** Bundle names differ per platform; that
+  one filename does not, and the asset API rejects the loser with
+  `{"resource":"ReleaseAsset","code":"already_exists"}` — killing a build that had already compiled
+  and signed everything. A true race: it never fired on the attempts where jobs finished minutes
+  apart, and killed Windows on the one where all three landed inside eleven seconds. Fixed with
+  **`max-parallel: 1`**, roughly 2× the wall clock on a workflow that runs once per release.
+- **Re-tagging is the normal repair loop here.** Every attempt was `gh release delete v1.0.0 --yes`
+  → delete the remote tag → re-tag the fixed commit. That is only safe because the release is built
+  as a **draft** and nothing was ever published; once a release is live, move forward to a new
+  version instead.
 
 ## Traps paid for THIS session — FT-50 (do not re-learn these)
 

@@ -141,6 +141,21 @@ jobs:
     timeout-minutes: 90
     strategy:
       fail-fast: false
+      # ⚠️ ONE AT A TIME, and not for a resource reason.
+      #
+      # Every platform uploads its own bundles AND its own `latest.json` to the
+      # same draft release. The bundle names differ per platform, but
+      # `latest.json` is one name three jobs write, and the GitHub asset API
+      # rejects the loser of that race with
+      # `{"resource":"ReleaseAsset","code":"already_exists"}` — failing a build
+      # that had already compiled and signed everything correctly.
+      #
+      # It is a genuine race, so it hides: on the 1.0.0 attempts where the jobs
+      # finished minutes apart nothing went wrong, and on the one where all
+      # three landed within 11 seconds, Windows died. Serialising costs ~2x the
+      # wall clock on a workflow that runs once per release, which is a good
+      # trade for a release that cannot fail at the last step by luck.
+      max-parallel: 1
       matrix:
         include:
           # One universal DMG rather than two per-arch builds, so the site has a

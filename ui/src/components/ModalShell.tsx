@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 
 /**
  * Open shells, oldest first — the last entry is the topmost dialog and the only
@@ -83,7 +83,17 @@ export function ModalShell({
   // and `stopImmediatePropagation` would not have saved it either — listeners
   // fire in registration order, so the BOTTOM dialog would have won. Hence an
   // explicit stack: whoever registered last is on top, and only they respond.
-  useEffect(() => {
+  //
+  // A LAYOUT effect, not a passive one, and that is load-bearing rather than a
+  // preference. A passive effect runs after the browser has painted, so there
+  // is a window — one frame, longer on a loaded machine — where the dialog is
+  // on screen and Esc does nothing at all. Every other dialog hid it, because
+  // the user has to click something to open one and that click outlasts the
+  // gap; the tour is the only dialog mounted ALREADY OPEN, so its first
+  // keystroke can be the one that lands in the window. macOS CI failed exactly
+  // there, deterministically, while Windows and Linux won the race. Registering
+  // before paint makes "visible" and "dismissible" the same instant.
+  useLayoutEffect(() => {
     if (!open || !onClose) return;
     const token = {};
     ESC_STACK.push(token);

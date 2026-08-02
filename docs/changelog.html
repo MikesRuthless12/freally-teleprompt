@@ -111,15 +111,27 @@
     <main class="changelog-body">
       <article class="release">
         <h2>In development</h2>
-        <p class="date">Phase 3 — hands-free voice control</p>
+        <p class="date">Phase 3 — hands-free voice control · Phase 5 — polish</p>
 
         <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
-          Run the prompter by voice, with commands you train in your own voice. Merged and in the
-          app, not yet cut as a downloadable release.
+          Run the prompter by voice, with commands you train in your own voice — plus a welcome
+          tour, a theme that follows your system, and a keyboard accessibility pass. Merged and in
+          the app, not yet cut as a downloadable release.
         </p>
 
         <h3>Added</h3>
         <ul>
+          <li>
+            <strong>A one-minute welcome tour.</strong> The first time you open the app, four short
+            steps introduce the editor and its pause marks, the pace controls, and the projector.
+            Skip it at any point, and run it again whenever you like from
+            <strong>Settings → General → Show the tour again</strong>.
+          </li>
+          <li>
+            <strong>A theme that follows your system.</strong> Alongside Dark and Light there is now
+            <strong>Same as my system</strong>, which switches with your operating system and
+            repaints straight away when your machine changes at sunset. Dark is still the default.
+          </li>
           <li>
             <strong>Voice commands.</strong> Train <strong>play</strong>, <strong>pause</strong>,
             <strong>faster</strong>, <strong>slower</strong>, <strong>next pause</strong> and
@@ -135,6 +147,19 @@
             Apache-2.0 Vosk model. It <strong>steps aside to manual</strong> the moment it loses your
             place — so it never scrolls somewhere wrong — and drives only the operator preview, never
             the projector. Off by default, and greyed out where the model isn't installed.
+          </li>
+        </ul>
+
+        <h3>Changed</h3>
+        <ul>
+          <li>
+            <strong>Keyboard and screen-reader accessibility pass.</strong> Every focusable control
+            now shows a clear focus ring; <strong>Tab</strong> stays inside an open dialog instead
+            of wandering onto the window behind it; closing a dialog hands focus back to the button
+            that opened it; and the Settings category list reports the pane you are actually looking
+            at, even while a search is filtering it. The app honours <strong>reduce motion</strong>
+            throughout — the script's own scroll is deliberately left alone, because that is the
+            thing the app is for and you already set its speed directly.
           </li>
         </ul>
 

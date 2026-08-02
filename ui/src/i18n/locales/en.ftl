@@ -103,6 +103,7 @@ settings-cat-network = Network
 settings-language = Language
 settings-language-auto = Same as my system
 settings-theme = Theme
+settings-theme-system = Same as my system
 settings-theme-dark = Dark
 settings-theme-light = Light
 settings-window-section = Window
@@ -169,6 +170,24 @@ settings-voice-follow-unavailable-build = Voice-following is not available in th
 settings-voice-follow-unavailable-model = The speech model is not installed yet, so voice-following can't run.
 voice-following = Following
 voice-following-acquiring = Finding your place…
+
+## Onboarding tour (FT-50)
+tour-step = { $n } of { $total }
+tour-skip = Skip
+tour-back = Back
+tour-next = Next
+tour-done = Start writing
+tour-welcome-title = Welcome to Freally Teleprompt
+tour-welcome-body = A teleprompter that runs entirely on your own machine. No account, no cloud, no AI, nothing to subscribe to. This takes about a minute — press Skip any time, and you can run it again from Settings.
+tour-write-title = Write your script
+tour-write-body = Type or paste on the left. Open Scripts to keep more than one; everything you write is saved as you go. Type two dashes for a pause you want to hold, and let the suggestions ahead of the cursor finish long words for you.
+tour-read-title = Set your pace
+tour-read-body = Speed is a real reading pace — characters per second — or switch to BPM if you are rapping or singing to a beat. Play, pause and rewind under the editor, or click any word in the preview to start from there. The lit word always sits on the reading line.
+tour-show-title = Show it to the talent
+tour-show-body = Projector puts the script on a second screen, flipped for beam-splitter glass if you read through it, or mirrored to a phone on your own network. Everything else — typeface, colour, margins, language, theme — lives behind the gear in the title bar.
+settings-tour-section = Getting started
+settings-tour-replay = Show the tour again
+settings-tour-replay-note = Runs the four-step introduction to the editor, the pace controls and the projector. Closing Settings first, so you can see what it points at.
 
 ## First-run agreement
 eula-title = End User License Agreement

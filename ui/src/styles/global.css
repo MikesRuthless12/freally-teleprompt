@@ -21,6 +21,15 @@
   /* The plain-dim fallback is heavier: with no blur, dimming is the only thing
      separating the dialog from the page behind it. */
   --modal-dim-flat: rgba(0, 0, 0, 0.72);
+  /* The keyboard focus indicator, deliberately its OWN token rather than the
+     accent (FT-50). `--color-havoc-accent` is tuned to sit on near-black and is
+     also what the reading surface lights each character with — a surface that
+     stays black in BOTH themes — so it cannot be re-tinted for the light theme
+     without changing what the talent reads. The focus ring has no such
+     constraint and has a hard requirement the accent does not: WCAG 2.2 SC
+     1.4.11 wants 3:1 against what it sits on. #6ea8fe manages 8.1:1 on the dark
+     panel and only 2.4:1 on the light one, which is why these are two tokens. */
+  --focus-ring: #6ea8fe;
 }
 
 :root[data-theme="light"] {
@@ -31,6 +40,8 @@
   --color-havoc-muted: #55617a;
   --modal-dim: rgba(15, 20, 30, 0.35);
   --modal-dim-flat: rgba(15, 20, 30, 0.55);
+  /* ~7:1 on both the white panel and the near-white page. */
+  --focus-ring: #1d4ed8;
 }
 
 html,
@@ -59,6 +70,78 @@ body {
     -apple-system,
     "Segoe UI",
     sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   FT-50 — accessibility floor.
+
+   Two things every control needs and no component should have to remember.
+   --------------------------------------------------------------------------- */
+
+/* A visible focus ring on everything focusable.
+   Several components opt into their own ring with Tailwind's
+   `focus-visible:ring-*`, and everything else — the checkboxes, the sliders,
+   the colour swatch, the native selects, the search box — got whatever the
+   engine happened to draw, which on WebKitGTK is very nearly nothing. Keyboard
+   operation is not optional, so the floor is set once here.
+
+   ⚠️ The selector list below is the SAME set of elements `FOCUSABLE` names in
+   `src/components/ModalShell.tsx`, and the two must stay in step: the trap
+   decides what Tab can reach and this decides what shows a ring, so a control
+   in one list and not the other either gets a ring it cannot be tabbed to or
+   is tabbable with nothing to show for it. There is no way to share one string
+   across CSS and TS here, so it is written twice, on purpose, with this note in
+   both places.
+
+   `[contenteditable]` is on the list because the script editor IS one, and it
+   is the control the operator spends the most time in. Leaving the app's
+   primary surface as the only thing with no focus indicator would have made
+   "every focusable control" a claim the docs could not honestly print.
+   (`summary` is still uncovered — the app ships no `<details>`.)
+
+   `:where()` keeps the specificity at ZERO, so a component that wants its own
+   ring still wins without needing `!important` — this is a floor, not a
+   ceiling. `:focus-visible` (not `:focus`) means a mouse click does not leave a
+   ring behind it. */
+:where(
+  button,
+  [href],
+  input,
+  select,
+  textarea,
+  [contenteditable],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  /* `--focus-ring`, NOT `--color-havoc-accent`. The accent is tuned for
+     near-black and is also what the reading surface lights each character with
+     — a surface that stays black in both themes — so it cannot be re-tinted for
+     the light palette. The ring has a requirement the accent does not: WCAG 2.2
+     SC 1.4.11 wants 3:1 against what it sits on, and the accent manages 8.1:1
+     on the dark panel but only 2.4:1 on the white one. Hence two tokens. */
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Honour a request for less motion across the whole app.
+   Near-zero rather than `none`: a 0s duration skips `transitionend`, and a
+   handler waiting for one would hang forever. The teleprompter's own scroll is
+   driven by requestAnimationFrame rather than by CSS, so it is untouched — and
+   deliberately so. It is the thing the app exists to do, not decoration, and
+   the operator already controls its speed directly. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    /* The delays matter as much as the durations, and the shorthand-based
+       rules this replaced happened to reset them. A near-zero duration behind
+       a 300ms delay is still 300ms of the user watching nothing happen. */
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -150,15 +233,12 @@ body {
   }
 }
 
-/* The blur is a static property, never animated — but say so explicitly, so a
-   later transition on this element cannot reintroduce animated blur. */
-@media (prefers-reduced-motion: reduce) {
-  .modal-backdrop,
-  .modal-panel {
-    transition: none !important;
-    animation: none !important;
-  }
-}
+/* (The blur is a static property and is never animated. The app-wide
+   reduced-motion rule at the top of this file now covers it — and everything
+   else — so the narrower `.modal-backdrop`/`.modal-panel` block that used to
+   sit here has gone. It said `transition: none`, which contradicted the general
+   rule's deliberate near-zero duration, and having the same policy written
+   three times in one file is how the three drift.) */
 
 /* ---------------------------------------------------------------------------
    Projector chrome (FT-12/FT-13).
@@ -203,11 +283,9 @@ body {
   background: rgba(255, 255, 255, 0.22);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .proj-btn {
-    transition: none;
-  }
-}
+/* (`.proj-btn`'s own reduced-motion rule has gone the same way as the modal
+   one — it carried no `!important`, so the app-wide rule at the top of this
+   file already outranked it and it had stopped doing anything at all.) */
 
 /* ---------------------------------------------------------------------------
    Light-theme re-tints.

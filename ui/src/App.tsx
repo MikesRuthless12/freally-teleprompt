@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   bugReportPending,
   eulaStatus as fetchEulaStatus,
+  onboardingSetSeen,
   scriptsSave,
   settingsGet,
   speechCapability,
@@ -42,6 +43,7 @@ import { ProjectorSetup } from "./panels/ProjectorSetup";
 import { ScriptLibrary } from "./panels/ScriptLibrary";
 import { SettingsDialog } from "./panels/Settings";
 import { TeleprompterScroller, TeleprompterSeekBar } from "./panels/Teleprompter";
+import { TourDialog } from "./panels/Tour";
 import { UpdatesDialog } from "./panels/Updates";
 
 /** How long the editor waits after the last keystroke before autosaving (FT-10). */
@@ -92,6 +94,18 @@ export default function App() {
   const [crashAtLaunch, setCrashAtLaunch] = useState<boolean | undefined>(undefined);
   const [manualUpdates, setManualUpdates] = useState(false);
   const [autoUpdateDone, setAutoUpdateDone] = useState(false);
+  // The onboarding tour (FT-50). `manualTour` is the replay from Settings;
+  // `tourDone` retires the first-run showing for this session, the same latch
+  // `autoUpdateDone` is and for the same reason — `settings.onboardingSeen`
+  // only changes once the backend round-trips, and until it does, deriving
+  // "should it be open?" from it alone would re-open the dialog on close.
+  const [manualTour, setManualTour] = useState(false);
+  const [tourDone, setTourDone] = useState(false);
+  // Whether the settings read has finished, succeeded or not. `settings` alone
+  // cannot answer that — null means both "still asking" and "the ask failed" —
+  // and `launchClaim` has to tell them apart. Same three-state problem the
+  // `eula` and `crashAtLaunch` latches above already solve.
+  const [settingsSettled, setSettingsSettled] = useState(false);
 
   // Settings must land before the first paint that shows text, so the app opens
   // in the user's own language rather than flashing English.
@@ -107,7 +121,12 @@ export default function App() {
       .catch(() => {
         // No backend (unit test / lost host): fall back to OS language.
         initLocale("auto");
-      });
+      })
+      // Settled either way — see `launchClaim`. Latched separately from
+      // `settings` because a FAILED read leaves `settings` null forever, and
+      // "we asked and got nothing" must still release the launch dialogs
+      // rather than blocking them for the session.
+      .finally(() => setSettingsSettled(true));
     fetchEulaStatus()
       .then(setEula)
       .catch(() => setEula(null));
@@ -139,19 +158,60 @@ export default function App() {
       });
   }, []);
 
-  // One update check per launch, AFTER the EULA gate — and only when a crash
-  // report was NOT already claiming the dialog slot at launch. The report wins;
-  // the update waits for the next launch. Offline, rate-limited or
-  // no-release-yet stays silent, which `UpdatesDialog` decides for itself.
+  // Who gets the dialog slot at launch. Three things want it and the order
+  // matters: a crash report from the last run is the most urgent, the tour
+  // introduces a first run, and the once-per-launch update check is the least
+  // pressing. Whoever loses waits its turn — the tour releases the slot the
+  // moment it closes, so an update found on a first run is offered right after
+  // the welcome rather than a launch later. A crash report is the exception:
+  // `crashAtLaunch` is latched for the whole session, so the other two really
+  // do wait for the next launch behind one.
   //
-  // Derived during render rather than pushed into state by an effect: "is a
-  // launch check due?" is a pure function of what we already know, and an effect
-  // that only calls setState is a cascading render for no gain.
+  // Written as ONE ordered expression rather than as booleans that negate each
+  // other. Each claimant would otherwise have to name every higher-priority one
+  // in its own condition — N-1 edits every time a fourth is added, and a missed
+  // one shows up as two stacked dialogs on someone's first run.
+  //
+  // Derived during render rather than pushed into state by an effect: "who is
+  // due?" is a pure function of what we already know, and an effect that only
+  // calls setState is a cascading render for no gain.
   //
   // It reads `crashAtLaunch`, not `pendingCrash`, and that distinction is the
-  // whole point — see the latch's declaration above.
-  const autoUpdateDue =
-    !autoUpdateDone && !manualUpdates && eula?.accepted === true && crashAtLaunch === false;
+  // whole point — see the latch's declaration above. `!== false` covers
+  // `undefined` too: while the crash folder is still being read, nobody else
+  // may take the slot. The update check's own silence when it is offline,
+  // rate-limited, or already current is `UpdatesDialog`'s business, not this.
+  //
+  // `settingsSettled` is in the guard for the same reason. Without it, a first
+  // run whose `settings_get` resolved AFTER the crash and EULA reads would see
+  // `settings?.onboardingSeen === false` be false-because-still-loading, hand
+  // the slot to the update check, start a network check, then take it away
+  // again the moment the settings landed — discarding that in-flight result and
+  // firing a second check once the tour closed.
+  const launchClaim =
+    crashAtLaunch !== false || eula?.accepted !== true || !settingsSettled
+      ? "none"
+      : !tourDone && settings?.onboardingSeen === false
+        ? "tour"
+        : !autoUpdateDone && !manualUpdates
+          ? "update"
+          : "none";
+
+  const tourOpen = manualTour || launchClaim === "tour";
+  const autoUpdateDue = launchClaim === "update";
+
+  // Every exit from the tour — Done, Skip, Esc, a backdrop click — records it
+  // as seen, so it introduces itself once and then stays out of the way.
+  //
+  // `tourDone` is the session latch (the same one `autoUpdateDone` is), and it
+  // is deliberately the ONLY thing that closes the dialog: patching
+  // `settings.onboardingSeen` optimistically as well would be a second latch
+  // for one fact, and nothing else in the app reads that field.
+  const closeTour = useCallback(() => {
+    setManualTour(false);
+    setTourDone(true);
+    void onboardingSetSeen(true).catch(() => undefined);
+  }, []);
 
   const onApplied = useCallback((applied: Settings) => {
     setSettings(applied);
@@ -661,8 +721,19 @@ export default function App() {
           settings={settings}
           onClose={() => setSettingsOpen(false)}
           onApplied={onApplied}
+          // Settings covers the surface the tour talks about, so replaying it
+          // closes this dialog first rather than stacking on top of it.
+          onReplayTour={() => {
+            setSettingsOpen(false);
+            setManualTour(true);
+          }}
         />
       )}
+
+      {/* Mounted only while open, like the update dialog below — so a replay
+          from Settings is a fresh mount that starts at step one, and the app's
+          60Hz read-aloud renders do not rebuild a tree nobody can see. */}
+      {tourOpen && <TourDialog onClose={closeTour} />}
 
       <ScriptLibrary
         open={libraryOpen}

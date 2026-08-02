@@ -411,6 +411,7 @@
           <a href="#autocomplete">Autocomplete</a>
           <a href="#voice-control">Voice control</a>
           <a href="#settings">Appearance, languages &amp; settings</a>
+          <a href="#tour-accessibility">Welcome tour &amp; accessibility</a>
           <a href="#problems">Problems &amp; updates</a>
           <a href="#privacy">Privacy</a>
         </nav>
@@ -597,9 +598,34 @@
           <ol class="steps">
             <li><span><strong>Apply means apply.</strong> Settings edit a private draft — nothing takes effect until you click <strong>Apply</strong>; cancelling restores exactly what you had.</span></li>
             <li><span><strong>Language:</strong> choose from <strong>18 languages</strong>, or leave it on <em>Same as my system</em>; the interface updates immediately, and the autocomplete dictionary follows your choice.</span></li>
-            <li><span><strong>Theme:</strong> <strong>dark</strong> or <strong>light</strong>, applied instantly across the whole interface. (The reading surface itself stays high-contrast for the talent whichever theme you pick.)</span></li>
-            <li><span>Later polish adds an <strong>onboarding tour</strong> and an accessibility pass as the app approaches 1.0.0.</span></li>
+            <li><span><strong>Theme:</strong> <strong>dark</strong>, <strong>light</strong>, or <em>Same as my system</em> — applied instantly across the whole interface. On <em>Same as my system</em> the app follows your operating system and repaints the moment it changes, so a machine that switches to dark at sunset takes the app with it. (The reading surface itself stays high-contrast for the talent whichever theme you pick.)</span></li>
+            <li><span><strong>Show the tour again:</strong> under <strong>General</strong>, replays the four-step welcome tour. Settings closes first, so you can see the parts of the app it is describing.</span></li>
           </ol>
+        </section>
+
+        <!-- Welcome tour & accessibility -->
+        <section id="tour-accessibility">
+          <h2>Welcome tour &amp; accessibility</h2>
+          <p class="section-intro">A short introduction the first time you open the app, and a keyboard that reaches everything.</p>
+
+          <h3>The welcome tour</h3>
+          <ol class="steps">
+            <li><span>The first time you launch Freally Teleprompt — right after you accept the licence — a <strong>four-step tour</strong> introduces the editor and its pause marks, the pace controls, and the projector. It takes about a minute.</span></li>
+            <li><span><strong>Skip</strong> leaves at any point, and so do <strong>Esc</strong> and a click outside the panel. However you leave, it does not come back on the next launch.</span></li>
+            <li><span>To see it again, open <strong>Settings → General → Show the tour again</strong>. It always restarts from the first step.</span></li>
+            <li><span>If the app crashed the last time you used it, the <a href="#problems" style="color:var(--accent)">problem reporter</a> takes the screen first — the tour waits, because a crash report is the more urgent thing to read.</span></li>
+          </ol>
+
+          <h3>Keyboard &amp; screen readers</h3>
+          <ol class="steps">
+            <li><span>Every control shows a clear <strong>focus ring</strong> when you reach it with the keyboard, and nothing is reachable by mouse only.</span></li>
+            <li><span>Inside a dialog, <strong>Tab</strong> and <strong>Shift+Tab</strong> cycle within that dialog rather than wandering onto the window behind it. <strong>Esc</strong> closes the topmost dialog, and focus returns to the button that opened it.</span></li>
+            <li><span>The <strong>seek bar</strong> is a real slider: arrow keys move one character, <strong>Page Up/Down</strong> move a screenful, and <strong>Home</strong>/<strong>End</strong> jump to either end.</span></li>
+            <li><span>The Settings category list is a proper tab list — arrow keys move between panes, and the selected pane is always the one announced, even while the search box is filtering the list.</span></li>
+            <li><span>If your system asks for <strong>reduced motion</strong>, the app drops its animations and the modal blur. The script's own scroll keeps running: that is the thing the prompter is for, and you set its speed yourself.</span></li>
+            <li><span>If your system asks for <strong>reduced transparency</strong>, dialogs dim the background instead of blurring it.</span></li>
+          </ol>
+          <div class="tip"><strong>Reading-surface contrast</strong> is yours to set: typeface, weight, size, and text colour all live under <a href="#settings" style="color:var(--accent)">Appearance</a>, and they apply to the preview, the projector, and the network mirror together.</div>
         </section>
 
         <!-- Problems & updates -->

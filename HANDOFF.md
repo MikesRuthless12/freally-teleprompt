@@ -1,8 +1,8 @@
 # Freally Teleprompt — Handoff
 
-**Written 2026-07-22, after Phase 2 (`0.300.0`) — offline dictionary autocomplete.** Read this
-before starting the next session. It says where things actually stand, what is genuinely
-outstanding, and the traps waiting in Phase 3.
+**Written 2026-08-01, after FT-50 (onboarding tour, themes, accessibility) + FT-51/52 prep.**
+Read this before the next session. It says where things actually stand, the traps this session
+paid for, and what is genuinely outstanding.
 
 ---
 
@@ -10,215 +10,290 @@ outstanding, and the traps waiting in Phase 3.
 
 | | |
 |---|---|
-| Version | `0.300.0` (Cargo.toml, package.json, ui/package.json, tauri.conf.json — all four) |
-| Phase 0 | ✅ scaffold, ported engine, docs site, EULA gate, problem reporter |
-| Phase 1 | ✅ FT-10 … FT-16 — script library, chip editor, projector, LAN mirror, transport, BPM, appearance, read-aloud |
-| Phase 2 | ✅ FT-20, FT-21, FT-22 — the seam, ghost text, and a **rebuilt** data pipeline |
-| i18n | ✅ 18 languages × 150 keys, Noto bundled, switch-tested on all 3 OSes |
-| Tests | 56 Rust · **81 vitest** · **96 Playwright** · per-OS app-launch + per-language screenshots |
-| Next | **Phase 3 — voice control → `0.400.0`** (FT-30 …) |
+| Version | `0.300.0` — **not** bumped. See Outstanding #2, and the MSI ceiling below. |
+| Phase 0 / 1 / 2 / 3 | ✅ scaffold, teleprompter core, offline autocomplete, voice control |
+| **FT-50** | ✅ four-step first-run tour, a **system** theme, and the keyboard-accessibility floor |
+| FT-51 / FT-52 | 🟡 **prepared, never run** — `.github/workflows/release.yml` exists end to end and the site's download menu is wired; both wait on **your** signing keys and secrets |
+| Crates | `freally-voice` (FT-30), `freally-align` (FT-34), `freally-speech` (FT-32) |
+| Tests | **121 Rust** · **100 vitest** · **129 Playwright** · per-OS launch screenshots |
+| Next | FT-51/52 (the secrets), FT-53 (site content), FT-54 (publish) → `1.0.0` |
+
+### ⚠️ This machine had NO toolchain
+
+At the start of this session `git`, `node`, `cargo` and the MSVC linker were all absent, and WSL
+was broken (`REGDB_E_CLASSNOTREG`). They were installed with winget:
+
+```
+winget install Git.Git OpenJS.NodeJS.LTS Rustlang.Rustup
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+cargo install cargo-deny cargo-audit --locked
+```
+
+**They are not on the machine-wide `PATH`.** Every command in this session prefixed it:
+
+```powershell
+$env:PATH = "C:\Program Files\Git\cmd;C:\Program Files\nodejs;$env:USERPROFILE\.cargo\bin;$env:PATH"
+```
+
+If a future session finds `git` missing again, that is why — add them to the system PATH properly
+rather than re-installing.
+
+Also: **local `main` was 5 commits behind `origin/main`** while the working tree already held all
+of Phase 0–3 as *untracked* files. `git reset --mixed origin/main` fixed it without touching a
+single byte on disk. Check `git log --oneline -1` against `origin/main` before believing a diff.
 
 ### Get going
 
 ```bash
 npm ci
-npm run ci:local          # the full gate — 15 checks
+npm run ci:local          # the full gate. RUN IT IN THE FOREGROUND (LNK1123 flake).
 ```
-
-> **Run Playwright from `ui/`, not the repo root** (`npm run test:e2e` sets the cwd). The specs
-> write to the relative path `e2e/screenshots`.
 
 ---
 
-## ⚠️ Read this first: the Phase 2 licence finding
+## ⚠️ Read this first: the `vosk` feature is OFF in CI
 
-**The previous handoff said Phase 2's data was "already sourced" in Freally Capture and that the
-licences "looked clean". That was wrong, and it was wrong in the expensive direction.**
+Track B's recogniser links a **native library (`libvosk`)** and needs a **~40–50 MB model**. Neither
+is in CI or the dev machine. So the **`vosk` Cargo feature is off by default**: the whole gate builds
+and passes with no `libvosk`, and voice-following reports itself **unavailable** via
+`speech_capability`.
 
-Capture's `THIRD-PARTY.md` records its Polish dictionary as **Leipzig Corpora Collection, CC BY
-4.0**. Leipzig's actual Terms of Usage grant the corpus downloads "solely for **non-commercial**
-personal and scientific purposes licensed under the Creative Commons License **CC BY-NC**". The
-cited corpus (`pol_news_2020_1M`) is one of those downloads. Non-commercial data cannot ship inside
-a paid installer, and Capture's Polish table (198k words) does.
+Compiled ONLY with `--features vosk` + `libvosk` present, and therefore **verified by the human drill,
+never CI**:
 
-> The trap: Leipzig publishes *two* things. Their **Frequency Dictionaries** CD-ROM word lists
-> really are CC BY 3.0. The free **corpus downloads** — which is what anyone actually reaches for,
-> and what was used — are CC BY-NC. A summary that says "Leipzig, CC BY" is not wrong about the
-> organisation, only about the product, and that is the whole difference.
+- `freally-speech/src/vosk_engine.rs` (`VoskRecognizer`)
+- `src-tauri/src/speech.rs::run_follow` (the recognise → align → emit loop)
 
-Two smaller things the old summary also missed: **SCOWL at size ≥80 incorporates the UK Advanced
-Cryptics Dictionary**, whose licence demands its notice be "prominently displayed and the text of
-this document ... included verbatim" — an obligation Capture's notice does not discharge; and the
-tables did not actually meet FT-22's size target (6 locales under the word floor, 8 under the
-phrase floor).
-
-**What was done instead:** every table was rebuilt from scratch by a real pipeline
-(`scripts/build-dicts.mjs`) against **one** source — the **Tatoeba** sentence corpus, **CC BY 2.0
-FR**, attribution-only, commercial use permitted, covering all 18 languages. One source, one
-obligation, recorded in `NOTICE`, which now **ships in the installer**.
-
-**Nothing from Capture's `ui/src/dict/` was ported. Do not port it later either.**
-
-### Where that leaves the data
-
-12 MB total (Capture's was 21 MB), lazily loaded one locale at a time — Vite splits each table into
-its own chunk, so the app holds ~0.5 MB, not 12.
-
-14 of 18 locales hit the full 30k words / 20k phrases target. Four are **corpus-limited**, because
-Tatoeba simply has fewer sentences in them, and no permissive source was worth the licence debt:
-
-| locale | words | phrases | Tatoeba sentences |
-|---|---|---|---|
-| hi | 7,916 | 19,225 | 16,317 |
-| id | 11,051 | 20,000 | 28,077 |
-| ko | 20,096 | 5,666 | 15,825 |
-| vi | 4,922 | 20,000 | 32,426 |
-
-They work; they suggest less. `dict-lint` deliberately does **not** enforce a size floor — FT-22's
-floor is "present, parses, and survives indexing", and 20k/10k is the target to aim at. If you want
-these fuller, the honest options are a new permissively-licensed source (audit it at the source) or
-accepting the corpus limit.
-
-> **One filter decision worth knowing:** the pipeline keeps words seen only ONCE. Tatoeba is
-> human-written and peer-reviewed, so a hapax there is a real word, not crawl noise — a frequency
-> floor of 2 cost roughly half the vocabulary in exactly the low-resource languages that could
-> least afford it (Korean went 6.4k → 20k when it was dropped). Phrases keep a floor of 2.
+They are written against the **`vosk` 0.3 crate's real source** (read from the cargo registry cache),
+not guessed — but **do not assume they compile until the drill runs**. The app turns the feature on
+through its own `vosk` feature (`src-tauri/Cargo.toml`), which a release build (FT-52) enables. The
+pure IP — the grammar-window builder, the aligner, the capability seam — is dependency-free and fully
+unit-tested without any of this.
 
 ---
 
 ## Standing rules (enforced, not suggestions)
 
-1. **`npm run ci:local` must be green locally BEFORE any push.** If CI fails on something
-   `ci:local` passed, that is a bug in `scripts/ci-local.mjs` — fix it in the same PR.
-2. **Playwright covers every feature it possibly can; everything else gets a step-by-step drill in
+1. **`npm run ci:local` green locally BEFORE any push.** If CI fails on something it passed, that is a
+   bug in `scripts/ci-local.mjs` — fix it in the same PR.
+2. **Playwright covers every feature it can reach; everything else is a step-by-step drill in
    `Live-To-Do-List.md`.** A feature in neither bucket means the phase is not done.
 3. **Look at the three `app-running-<os>` CI artifacts after every phase.**
-4. **Do a code review every time**, directly against the diff.
-5. **All 18 languages stay translated, legible and switchable.** Also check the
-   `ui-panel-gallery-<os>` artifacts.
-6. **Every new check must be proven to fail.** Break the thing it watches, watch it go red, put it
-   back. Done this phase for `dict-lint` (all five failure modes), the picker-order test, and the
-   ghost-serialization test — removing that one guard turns **4** Playwright tests red.
-7. **Re-read every data licence at the source, not in a summary — including this file's.** See
-   above for what a trusted summary cost.
+4. **Full DoD every PR** — `/simplify` → `/code-review` → `/security-review` → fix all → green. This
+   phase those passes found real bugs (see traps): a mic leak, two cross-platform build gaps, a
+   grammar desync. Do not skip them.
+5. **All 18 languages stay translated, legible, switchable.** `i18n:lint` rejects English-identical
+   values; every new UI string is 18 translations.
+6. **Every new check proven to fail.** Break the thing it watches, watch it go red, put it back.
+7. **Re-read every data AND model licence at the source, not a summary.** Vosk's code and weights are
+   licensed separately (both Apache-2.0 — verified); a permissive engine does not make its models
+   permissive.
 
 ---
 
 ## ⚠️ Outstanding
 
-### 1. Human drills have still never been run
+### 1. Human drills — still NONE run
 
-`Live-To-Do-List.md` now carries Phase 0, 1 and 2 drills. **None have been run.** Phase 2 adds
-five that genuinely cannot be automated: ghost text under a real **IME**, Japanese/Chinese
-suggestions (the two languages whose tables are built differently because they have no spaces),
-legibility in both themes, RTL, real typing speed on the largest table, and **confirming `NOTICE`
-is actually inside the built installer**. That last one is a licence obligation, not a nicety.
+`Live-To-Do-List.md` now carries Phase 0/1/2 drills **plus** Phase 3's, none run:
+- **Track A** — train commands in your own voice, drive the prompter hands-free, confirm a wrong word
+  is refused, confirm audio never hits disk (only `voice-model.json` = features).
+- **FT-32** — compile `freally-speech --features vosk` against a real `libvosk` (the FFI has never
+  been link-checked); recognise constrained words from a WAV.
+- **FT-35** — voice-following in a `vosk` build with a model: it follows, holds (not jumps) on a
+  skipped line, and never moves the projector.
 
-### 2. DoD step 9 is still blocked
+### 1b. FT-50's three drills (new)
 
-Tag → release → verify the updater and download links **cannot complete** until FT-51/FT-52 land
-code signing and the release pipeline. `0.100.0`, `0.200.0` and now `0.300.0` have all shipped in
-this position. The updater ships with an empty pubkey and refuses every package — it fails safe,
-but it cannot succeed.
+`Live-To-Do-List.md` now has a **Phase 5** section. Three drills, none run: the tour surviving a
+real restart (and the Settings-Apply trap against the real backend), the **system** theme
+following a real OS appearance switch, and a real screen reader driving the app. Everything else
+about FT-50 is covered by `phase5.spec.ts` (21 cases).
 
-### 3. Two known cosmetic/pre-existing issues (not introduced by Phase 2)
+### 1c. ⚠️ `0.300.0` CANNOT PRODUCE A VALID MSI
 
-- **Clearing the editor leaves `"\n"`, not `""`.** The browser leaves its own `<br>` behind when a
-  contenteditable is emptied, and `serialize()` reports it as a newline. **Verified identical with
-  autocomplete off**, so it is pre-existing FT-11 behaviour. Harmless today; worth a look if
-  anything ever compares a script to empty-string.
-- **`vite build` warns about chunks >500 kB.** Those are the dictionary chunks, and they are
-  lazy-loaded on purpose. Left alone rather than raising `chunkSizeWarningLimit`, which would also
-  hide a real regression.
+An MSI `ProductVersion` caps **major and minor at 255**. The phase ladder's minor is
+100 / 200 / **300**, and `bundle.targets` still lists `msi`, so the first tag on this ladder fails
+inside WiX. Nothing has ever caught it because no tag has ever been pushed.
+
+`release.yml`'s **preflight** job now fails fast and says so. It is a versioning decision, not a
+code fix — pick one:
+- tag **`1.0.0`** (minor 0, fine, and it is where the roadmap is heading anyway);
+- renumber the ladder; or
+- drop `msi` from `bundle.targets` and ship NSIS only — which is what `latest.json` and the
+  updater use regardless.
+
+### 1d. Pre-existing, found by FT-50's review, deliberately NOT fixed here
+
+**The projector window never applies the locale.** `ui/src/main.tsx` renders `<Projector/>` instead
+of `<App/>`, and `initLocale` / `applySettingsToDocument` are only ever called from `App.tsx` — so
+that window's `<html lang>` and `<html dir>` are never stamped and `t()` runs at the source locale.
+`projector-exit-hint` is therefore **always English**, and an Arabic projector is never `dir="rtl"`.
+
+The theme half of the same gap is harmless by design: the projector surface is black in both
+themes and `.proj-btn` / `.proj-track` sit outside the palette on purpose.
+
+Untouched because it is outside FT-50 and wants its own test — but it is a real i18n hole in a
+window the talent reads, and SR-4 says all 18 languages stay switchable.
+
+### 2. `0.400.0` release is blocked (FT-33 tail + FT-51/52)
+
+FT-33's opt-in / capability / NOTICE landed, but **the model is not bundled in the installer** and no
+release exists. Bundling the model (which flips `vosk` on for release) + tagging `0.400.0` both sit on
+**FT-51/52** — code signing + the GitHub release pipeline. This is the same **DoD step 9** that has
+blocked every version since `0.100.0` (the updater still ships an empty pubkey and fails safe). Until
+then the version stays `0.300.0` and voice-following is honestly unavailable.
+
+### 3. Known edge — commands and following can both be on
+
+In a `vosk` build, `voiceEnabled` (commands) and `voiceFollowEnabled` (following) are independent, so
+both can be on → **two mic sessions / two `CpalSource`s** at once. Not a crash (each is independent),
+but wasteful and the indicators can confuse. Mutual exclusion is a future refinement. In current
+builds (no `vosk`) following never runs, so there is no conflict today.
 
 ---
 
-## What Phase 2 added
+## Traps paid for THIS session — FT-50 (do not re-learn these)
 
-```
-scripts/build-dicts.mjs      FT-22  the pipeline: Tatoeba -> ui/src/dict/<locale>.json
-                                    (needs bzip2 + curl; caches to .dict-cache/, gitignored)
-ui/scripts/dict-lint.mjs     FT-22  every locale has both tables, they parse, they survive indexing
-NOTICE                       FT-22  the CC BY 2.0 FR attribution — SHIPS IN THE INSTALLER
-ui/src/dict/*.json                  18 tables, 12 MB, one lazy chunk each
+- **A dialog's key handlers must be registered in a LAYOUT effect, not a passive one.** A passive
+  effect (`useEffect`) flushes *after* the browser paints, so there is a window — one frame, longer
+  on a loaded machine — where the dialog is on screen and Esc does nothing. Every other dialog hides
+  it, because opening one takes a click and the click outlasts the gap; **the tour is the only
+  dialog mounted already open**, so its first keystroke can land in the window. macOS CI failed
+  `leaving by escape records the tour as seen` **twice, deterministically**, while Windows and Linux
+  won the race — and it is not a macOS key-delivery quirk, because Settings' own Escape test passes
+  on the same runner. The tell: the three sibling exits (done/skip/backdrop) all click something
+  first. `toBeVisible()` only proves React **painted**. Fixed at the source in `ModalShell` rather
+  than by teaching the test to wait — visible and dismissible should be the same instant.
+- **`page.emulateMedia({ colorScheme })` DOES deliver `matchMedia` change events**, but a test
+  that "changes" the preference to the value it already held asserts nothing. The first version of
+  "stops following the system once a theme is pinned" pinned *to the value the OS was already
+  reporting*, so it passed with the unsubscribe deliberately broken. Pin to the **opposite** of
+  what the OS says, then move the OS twice. Proven both ways.
+- **The i18n lint reads COMMENTS.** Its scanner is a regex for a `t()` call with a string literal,
+  and it does not know it is looking at prose — so writing the pattern out inside a doc comment
+  fails the build with `has no key in en.ftl`. Describe it; do not quote it.
+- **PowerShell 5.1 cannot be trusted to patch a source file.** `Get-Content -Raw | Set-Content`
+  silently produced a file where the replacement had not taken, so a "proof that the check fails"
+  came back green and looked like a vacuous test. Do every break/restore through **Node**
+  (`readFileSync`/`writeFileSync`), which is what `scripts/`-style proofs already do.
+- **Playwright serves the BUILT `dist/`.** Every break/restore proof needs `npm run build`
+  between the edit and the test run, or it tests the previous bundle. (Carried forward from
+  Phase 2, re-learned this session.)
+- **`ResizeEdges` sits on top of a modal backdrop.** The eight invisible window-resize grips are
+  `fixed z-50` and render after the backdrop, so a Playwright `click({position:{x:4,y:4}})` meant
+  for the backdrop lands on the NorthWest grip and times out. That is correct behaviour — an
+  undecorated window must stay resizable while a dialog is open — so click well inside instead.
+- **`transition: none` and `transition-duration: 0` are not the same reset.** Replacing the
+  narrow per-component reduced-motion rules with one app-wide rule needs
+  `transition-delay`/`animation-delay` zeroed too; the shorthand had been resetting them for free.
+- **An MSI ProductVersion caps major/minor at 255** — see Outstanding #1c. The whole version
+  ladder walks into it.
 
-ui/src/lib/suggest.ts        FT-20  loadDict() + completeWith() (pure) + complete() (the seam)
-ui/src/components/CaesuraEditor.tsx  FT-21  buildGhost/ghostOf/removeGhost, refreshGhost, acceptGhost
-ui/src/panels/Settings.tsx   FT-20  the new "Editor" pane — toggle + suggestion language
-ui/src/i18n/locales.ts              PICKER_LOCALES + resolveAutocompleteLocale()
-ui/e2e/phase2.spec.ts               13 cases, centred on "an unaccepted suggestion is never saved"
-```
+## Traps paid for the PREVIOUS session — Phase 3 (still true)
 
-### The language picker order (asked for mid-phase)
+- **cpal on Linux needs ALSA — in TWO places, and it bit CI twice** (green on Windows/macOS, red on
+  Linux only, because they use WASAPI/CoreAudio and need nothing):
+  - **Build:** `libasound2-dev` in `.github/actions/linux-deps` (shared by `ci.yml` + `release.yml`),
+    or `alsa-sys`'s build script fails `pkg-config --cflags --libs alsa`.
+  - **Runtime:** `libasound2-dev` in `scripts/docker/Dockerfile` — the launch-screenshot runs the
+    built binary in a container that must load `libasound.so.2`, or the app exits **127** before the
+    window opens.
+- **The launch screenshot flakes ("exited early, code 0").** A lingering `freally-teleprompt.exe` from
+  a prior run, or a transient window race. Kill stray processes and re-run — it is not a code error
+  (the identical binary passed moments earlier).
+- **Read a native crate's ACTUAL source before writing FFI you can't compile.** `vosk` 0.3:
+  `Recognizer` owns a raw pointer with no lifetime (so `Model` + `Recognizer` live in one struct, drop
+  order matters); there is **no live `set_grm`** (rebuild via `new_with_grammar` between utterances);
+  results are typed (`CompleteResult::single()`), not raw JSON. All read from the registry cache so
+  the drill-only FFI is written against reality.
+- **The caesura grammar-index desync (fixed, keep it fixed).** `run_follow` must tokenise the script
+  through `freally-align`'s `Script::parse` (which drops `--` caesura tokens), **not**
+  `split_whitespace` — otherwise `grammar_window` (indexed by `aligner.word_index()`, an index into
+  `Script.words`) centres the vocabulary on the wrong word. The word list fed to the grammar and the
+  aligner MUST share one index basis.
+- **The PTT mic leak (fixed).** Disabling voice while the hold-to-talk button is held left the mic
+  open. The always-listening effect keys its stop-cleanup on `voiceOn`, not just `alwaysListening`, so
+  disabling in any mode releases the mic.
+- **The settings-draft trap.** `voice_enabled` / `voice_mode` / `voice_follow_enabled` use
+  `#[serde(default)]`; if the Settings Apply draft omits them they silently reset. `Settings.tsx` must
+  include every voice field in its draft (it does — do not remove them).
+- **`cpal` and `vosk` both pass `cargo-deny`** (Apache-2.0/MIT trees) — verified with `all-features`.
+- **A shared `BackgroundSession`** (`src-tauri/src/session.rs`) now backs both the command listener and
+  the follow loop; the thread lifecycle lives in one place. Do not re-inline it.
 
-Every language picker now shows **English first, then the other seventeen alphabetically by their
-own native name**, in the same order no matter which language the app is in. `PICKER_LOCALES` in
-`locales.ts` does this with a **collator pinned to `en`** — never the active locale. That pinning
-is load-bearing and there is a test proving it: under Arabic a live collator lifts العربية to
-second place, and under Japanese it lifts 日本語 and 简体中文 above Cyrillic.
+### Carried forward from earlier phases (still true)
 
-`LOCALES` itself was left in the shared Havoc order, which the sibling apps also ship and other
-code indexes. Note its doc comment claims "alphabetical by code" — it is actually alphabetical by
-*English name*. Pre-existing, untouched, but do not trust that line.
+- **`ci:local` can flake `tauri: debug build` with `LNK1123` — run it in the foreground.** Rebuild
+  before believing it; it links in ~15s.
+- **eslint blocks `ref.current` assignment during render AND synchronous `setState` in an effect
+  body.** Sync a ref inside a `useEffect`; put `setState` in a timeout/callback.
+- **PowerShell 5.1 mangles UTF-8** on `Get-Content | Set-Content` — edit the `.ftl` catalogs with the
+  Edit tool / Node, never PowerShell. (Confirmed again — two i18n rounds this phase.)
+- **Delegate the 17 non-English `.ftl` translations to a subagent** with the exact keys + format, then
+  verify with `npm run i18n:lint`. Adding a Settings category shifts index-based tab assertions; the
+  Voice pane sits at index 6 (last), so it did not shift the others.
+- **`tauri.conf.json` rejects unknown keys; debug builds are console-subsystem (launch detached);
+  `decorations:false` means no `MainWindowTitle` (check for a window handle); `jq` isn't installed —
+  use `gh --jq`.**
 
 ---
 
-## Traps already paid for (do not re-learn these)
+## What FT-50 added
 
-Phase 2's new ones first:
+```
+ui/src/panels/Tour.tsx              the four-step first-run tour (ModalShell, not a spotlight)
+ui/src/components/ModalShell.tsx    focus trap + focus restore, ONCE, for every dialog
+ui/src/i18n/t.ts                    resolveTheme / watchSystemTheme — "system" resolved here,
+                                    never stamped onto <html data-theme>
+ui/src/styles/global.css            the :focus-visible floor + one app-wide reduced-motion rule
+src-tauri/src/settings.rs           onboarding_seen (a RECORD, preserved across set()) and
+                                    onboarding_set_seen, its only writer
+ui/src/App.tsx                      `launchClaim` — ONE ordered expression deciding which of the
+                                    three launch dialogs (crash / tour / update) gets the slot
+ui/e2e/phase5.spec.ts               21 cases; every tour exit, both theme directions, the trap
+.github/workflows/release.yml       FT-52, written end to end, NEVER RUN
+docs/index.html                     the download menu + real per-OS counts, resolved client-side
+```
 
-- **Playwright runs against `vite preview`, i.e. the BUILT `dist/` — not a dev server.** Run
-  `npm run build` first or you are testing a stale bundle. This cost a full debugging detour: ten
-  specs failed against a `dist/` built before the feature existed. `ci:local` builds first, which
-  is why it only bites when you run `test:e2e` directly.
-- **Ghost text must be redrawn when the table finishes loading.** `complete()` is synchronous and
-  the ghost is otherwise only drawn from `onInput`, so an operator typing faster than a ~600 kB
-  chunk downloads gets *no* suggestion until they happen to press another key. The `loadDict().then()`
-  redraw in `CaesuraEditor` closes that window — this was a real bug, found because the tests were
-  slow and flaky rather than cleanly red.
-- **Prettier will happily reformat 12 MB of generated JSON.** `ui/.prettierignore` excludes
-  `src/dict`; without it `format:check` fails and `format` inflates the tables enormously.
-- **`ci:local` can fail `tauri: debug build` with `LNK1123: failure during conversion to COFF` —
-  and it is a flake, not a code error.** Seen twice in four runs on this machine. Both failures
-  were runs launched detached/in the background and later reaped; both foreground runs passed. The
-  identical `npm run tauri -- build --debug --no-bundle` succeeded standalone 4/4, including
-  immediately after a warm `clippy`+`cargo test` and immediately after Playwright with eleven
-  node/Chromium processes still resident — neither of which reproduces it. **Run `ci:local` in the
-  foreground.** If you hit LNK1123, rebuild before believing it: it links in ~15s.
-- **eslint enforces `react-hooks/refs`: you cannot assign `someRef.current` during render.** The
-  idiom for "a prop a DOM handler needs without re-subscribing" is to sync it inside a `useEffect`,
-  the way `caesuraSecsRef` already did. `tsc` and every test pass with the render-time assignment —
-  only `npm run lint` catches it, which is a good reason not to skip a step of the gate.
-- **Adding a Settings category shifts every index-based tab assertion.** The new "Editor" pane sits
-  at index 1 and broke `language-switch.spec.ts`'s `getByRole("tab").nth(n)` map.
-- **A locale-independent test needs a locale-independent selector.** `getByRole("button", {name:
-  "Settings"})` cannot find the gear when the app is in Japanese — hence `data-testid="titlebar-settings"`.
-- **`settings_set`'s recorded IPC argument is `next`, not `settings`.**
-- **Node's `Intl.Segmenter` with full ICU segments Japanese and Chinese correctly**, which is why
-  the pipeline needs no third-party tokenizer and adds no licence surface. Use it for unspaced
-  languages only; it is far slower than a regex and buys nothing for spaced ones.
-- **Japanese and Chinese never reach the phrase path**, which only fires when the caret sits after
-  whitespace. Their useful multi-word runs are seeded into `words` instead — which is why `words`
-  may contain entries with more than one token for those two locales.
-- **PowerShell 5.1 mangles UTF-8**; the 17 catalogs were edited through Node with explicit `utf8`.
-  (Confirmed again this phase — the Edit tool or Node, never `Get-Content | Set-Content`.)
+### Two things worth knowing before you touch `settings.rs`
 
-Carried forward from earlier phases:
+- **`set()` now destructures `Settings` exhaustively — no `..`.** That is deliberate: adding a
+  field stops the build there until someone decides whether it is a *preference* (the user's to
+  change) or a *record* (preserved across an Apply). Three fields are records now
+  (`accepted_eula_version`, `recent_scripts`, `onboarding_seen`) and the bug that puts them there
+  has shipped once in this suite. **Do not "tidy" the `_`-bound fields into a `..`.**
+- **`ui/e2e/mock-ipc.ts` mirrors that preserve rule.** If you add a fourth record field in Rust,
+  add it there too, or every e2e spec becomes more permissive than the real app.
 
-- **`tauri.conf.json` rejects unknown keys** — no `"//comment"` fields.
-- **Debug builds are console-subsystem apps**, so launch detached.
-- **`decorations: false` means Windows reports no `MainWindowTitle`** — check for a window handle.
-- **Screen capture on Windows must be DPI-aware.**
-- **The projector must never use OS exclusive fullscreen** — borderless window sized to the monitor.
-- **`aux`/projector window creation must be an `async` command.**
-- **Fluent number-formats numeric arguments** (`2560` → `2,560`). Pass technical values as strings.
-- **`jq` is not installed** in Git Bash here; use `gh --jq`.
-- **`document.fonts.check()` does not mean "has a glyph for this"** — read the faces' `unicode-range`.
-- **A flex item is blockified**, so use a `Range` over the contents to detect wrapping.
-- **The GitHub Linux runner has no working GL** — run the screenshot in `scripts/docker/` with
-  llvmpipe. Do not "fix" it by making the step non-blocking.
-- **macOS CI reports `prefers-reduced-transparency: reduce`** — pin the media feature via CDP.
-- **Bundled Noto covers writing systems, not emoji.**
-- **Tauri maps a `../` resource path to a `_up_/` folder** — use the object form, and confirm by
-  unpacking the built installer. (`NOTICE` was added to `resources` this phase and has **not** yet
-  been confirmed by unpacking — that is drill #5.)
+## What Phase 3 added
+
+```
+freally-voice/               FT-30  MFCC + DTW voice-command recognition; cpal behind `capture-cpal`
+freally-align/               FT-34  deterministic words -> visible-char offset; the differentiator
+freally-speech/              FT-32  Vosk recognition + grammar window; Vosk behind the `vosk` feature
+src-tauri/src/voice.rs       FT-31  command backend (train/forget/listen); model = FEATURES, never audio
+src-tauri/src/speech.rs      FT-35  voice-following (capability + feature-gated follow loop)
+src-tauri/src/session.rs            BackgroundSession — shared thread lifecycle for both loops
+ui/src/panels/Settings.tsx          the Voice pane (commands + the follow toggle, capability-gated)
+ui/src/App.tsx                      voice:command -> transport, voice:offset -> scroller, indicators
+ui/src/lib/voice.ts                 command -> transport mapping (pure, unit-tested)
+ui/src/api/events.ts                listenSafe + the voice:* subscriptions
+NOTICE                              Vosk code + weights (both Apache-2.0), shipped-with-the-feature
+```
+Plus the docs site (voice-control section + changelog), 18-language i18n (**172 keys**), and per-OS
+capability matrices in the crate READMEs.
+
+---
+
+## Architecture decisions (so they are not re-litigated)
+
+- **Vosk is bundled, not OS engines** — per the ROADMAP.md 2026-07-21 amendment (with the licensing
+  research). `BUILD-PROMPTS.md`'s Phase 3 block is **stale** on this: it still says "delegate to the
+  OS," which the amendment rejected. Trust the ROADMAP.
+- **Voice-following drives the `overrideOffset` seam** (the same one read-aloud FT-16 uses), so the
+  projector and shared scroll state are **untouched by design** (per FT-35). Losing confidence
+  **holds** the aligner's last position (the aligner never guesses — FT-34) with a green/grey
+  indicator; it does **not** snap back to shared state.
+- **Track A is model-free forever** (MFCC+DTW on your own recordings); **only Track B bundles Vosk**,
+  and only opt-in. Commands need no model, no network; following needs the model or reports itself off.

@@ -101,6 +101,7 @@ settings-cat-network = Rete
 settings-language = Lingua
 settings-language-auto = Come il sistema
 settings-theme = Tema
+settings-theme-system = Come il sistema
 settings-theme-dark = Scuro
 settings-theme-light = Chiaro
 settings-window-section = Finestra
@@ -143,6 +144,24 @@ settings-lan-failed = Impossibile avviare il mirror: { $error }
 mirror-qr-aria = Codice QR del link del mirror
 settings-cancel = Annulla
 settings-apply = Applica
+
+## Onboarding tour (FT-50)
+tour-step = { $n } di { $total }
+tour-skip = Salta
+tour-back = Indietro
+tour-next = Avanti
+tour-done = Inizia a scrivere
+tour-welcome-title = Benvenuto in Freally Teleprompt
+tour-welcome-body = Un gobbo elettronico che gira interamente sul tuo computer. Nessun account, nessun cloud, nessuna IA, nessun abbonamento. Ci vuole circa un minuto: puoi saltare quando vuoi e rivederlo dalle impostazioni.
+tour-write-title = Scrivi il tuo copione
+tour-write-body = Scrivi o incolla a sinistra. Apri Copioni per tenerne più di uno; tutto viene salvato mentre lavori. Due trattini segnano una pausa da tenere, e i suggerimenti sbiaditi davanti al cursore completano per te le parole lunghe.
+tour-read-title = Imposta il tuo ritmo
+tour-read-body = La velocità è un vero ritmo di lettura — caratteri al secondo — oppure passa ai BPM se rappi o canti su una base. Riproduci, metti in pausa e riavvolgi sotto l'editor, o fai clic su una parola qualsiasi nell'anteprima per partire da lì. La parola accesa resta sempre sulla linea di lettura.
+tour-show-title = Mostralo a chi legge
+tour-show-body = Il proiettore porta il copione su un secondo schermo, ribaltato per il vetro semiriflettente se leggi attraverso di esso, oppure replicato su un telefono nella tua rete. Tutto il resto — carattere, colore, margini, lingua, tema — sta dietro l'ingranaggio nella barra del titolo.
+settings-tour-section = Per iniziare
+settings-tour-replay = Rivedi la presentazione
+settings-tour-replay-note = Riavvia l'introduzione in quattro passi all'editor, ai comandi del ritmo e al proiettore. Le impostazioni si chiudono prima, così vedi di cosa parla.
 
 ## First-run agreement
 eula-title = Contratto di licenza con l'utente finale

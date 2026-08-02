@@ -101,6 +101,7 @@ settings-cat-network = Sieć
 settings-language = Język
 settings-language-auto = Taki jak w systemie
 settings-theme = Motyw
+settings-theme-system = Taki jak w systemie
 settings-theme-dark = Ciemny
 settings-theme-light = Jasny
 settings-window-section = Okno
@@ -143,6 +144,24 @@ settings-lan-failed = Nie udało się uruchomić odbicia: { $error }
 mirror-qr-aria = Kod QR z odnośnikiem do odbicia
 settings-cancel = Anuluj
 settings-apply = Zastosuj
+
+## Onboarding tour (FT-50)
+tour-step = { $n } z { $total }
+tour-skip = Pomiń
+tour-back = Wstecz
+tour-next = Dalej
+tour-done = Zacznij pisać
+tour-welcome-title = Witamy w Freally Teleprompt
+tour-welcome-body = Promptera, który działa w całości na twoim komputerze. Bez konta, bez chmury, bez SI, bez abonamentu. To zajmie około minuty — możesz pominąć w każdej chwili, a całość uruchomisz ponownie z ustawień.
+tour-write-title = Napisz swój tekst
+tour-write-body = Pisz lub wklejaj po lewej. Otwórz Skrypty, aby trzymać ich więcej niż jeden; wszystko zapisuje się na bieżąco. Dwa myślniki oznaczają pauzę, którą chcesz przytrzymać, a przygaszone podpowiedzi przed kursorem dokańczają za ciebie długie słowa.
+tour-read-title = Ustal swoje tempo
+tour-read-body = Prędkość to prawdziwe tempo czytania — znaki na sekundę — albo przełącz się na BPM, jeśli rapujesz lub śpiewasz do bitu. Odtwarzanie, pauza i przewijanie są pod edytorem, albo kliknij dowolne słowo w podglądzie, żeby zacząć od niego. Podświetlone słowo zawsze stoi na linii czytania.
+tour-show-title = Pokaż to osobie czytającej
+tour-show-body = Projektor przenosi tekst na drugi ekran, odbity dla szkła półprzepuszczalnego, jeśli czytasz przez nie, albo przesyła go na telefon w twojej własnej sieci. Cała reszta — krój pisma, kolor, marginesy, język, motyw — kryje się za kołem zębatym na pasku tytułu.
+settings-tour-section = Pierwsze kroki
+settings-tour-replay = Pokaż wprowadzenie ponownie
+settings-tour-replay-note = Uruchamia czterostopniowe wprowadzenie do edytora, regulacji tempa i projektora. Ustawienia zamkną się najpierw, żebyś widział, o czym mowa.
 
 ## First-run agreement
 eula-title = Umowa licencyjna użytkownika końcowego

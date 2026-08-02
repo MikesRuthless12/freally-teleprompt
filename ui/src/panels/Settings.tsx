@@ -55,7 +55,12 @@ const CATEGORY_FIELDS: Record<CategoryId, Array<keyof Settings>> = {
 /** The i18n keys each category's controls are labelled with — what the search
  * box matches against, so typing "guide" finds Appearance. */
 const CATEGORY_KEYS: Record<CategoryId, string[]> = {
-  general: ["settings-language", "settings-theme", "settings-minimize-to-tray"],
+  general: [
+    "settings-language",
+    "settings-theme",
+    "settings-minimize-to-tray",
+    "settings-tour-replay",
+  ],
   editor: ["settings-autocomplete", "settings-autocomplete-language"],
   reading: ["settings-speed", "settings-font-size", "settings-caesura", "settings-countdown"],
   appearance: [
@@ -139,11 +144,16 @@ export function SettingsDialog({
   settings,
   onClose,
   onApplied,
+  onReplayTour,
 }: {
   open: boolean;
   settings: Settings;
   onClose: () => void;
   onApplied: (applied: Settings) => void;
+  /** Close this dialog and run the onboarding tour again (FT-50). The shell
+   * owns the tour, because the tour talks about the surface this dialog is
+   * currently covering. */
+  onReplayTour: () => void;
 }) {
   const t = useT();
   const [active, setActive] = useState<CategoryId>("general");
@@ -289,10 +299,15 @@ export function SettingsDialog({
     });
   };
 
-  /** Arrow keys move between tabs, the way a tablist is supposed to behave. */
+  /** Arrow keys move between tabs, the way a tablist is supposed to behave.
+   *
+   * Keyed off `shown`, not `active`, for the same reason the markup below is:
+   * when a search hides the selected category, `active` is not in `order` at
+   * all, so `indexOf` returned -1 and the arrow keys stopped working entirely
+   * on exactly the filtered list they are most useful for. */
   const onTabKeyDown = (e: React.KeyboardEvent) => {
     const order = visibleCategories;
-    const at = order.indexOf(active);
+    const at = order.indexOf(shown);
     if (at < 0) return;
     const next =
       e.key === "ArrowDown" || e.key === "ArrowRight"
@@ -345,13 +360,18 @@ export function SettingsDialog({
                   type="button"
                   role="tab"
                   id={`settings-tab-${category}`}
-                  aria-selected={active === category}
+                  // `shown`, not `active`. They differ whenever a search hides
+                  // the selected category: `active` stayed on a tab that is no
+                  // longer rendered, so NO tab reported itself selected while
+                  // the pane went on claiming to be labelled by one that was
+                  // not on screen — a tablist a screen reader cannot follow.
+                  aria-selected={shown === category}
                   aria-controls="settings-active-pane"
-                  tabIndex={active === category ? 0 : -1}
+                  tabIndex={shown === category ? 0 : -1}
                   onClick={() => setActive(category)}
                   onKeyDown={onTabKeyDown}
                   className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors ${
-                    active === category
+                    shown === category
                       ? "border-havoc-accent/60 bg-havoc-accent/15 text-havoc-text"
                       : "text-havoc-muted hover:text-havoc-text border-transparent hover:bg-white/5"
                   }`}
@@ -403,14 +423,34 @@ export function SettingsDialog({
                       {t("settings-theme")}
                     </span>
                     <select
+                      data-testid="settings-theme"
                       className={FIELD}
                       value={draft.theme}
                       onChange={(e) => patch({ theme: e.target.value as Settings["theme"] })}
                     >
+                      <option value="system">{t("settings-theme-system")}</option>
                       <option value="dark">{t("settings-theme-dark")}</option>
                       <option value="light">{t("settings-theme-light")}</option>
                     </select>
                   </label>
+                </Section>
+
+                <Section title={t("settings-tour-section")}>
+                  {/* Not a draft field: `onboardingSeen` is a record Rust
+                      preserves across `set`, so this is an action, not a
+                      preference — and it takes effect at once rather than on
+                      Apply, like the voice recorder above. */}
+                  <button
+                    type="button"
+                    data-testid="settings-tour-replay"
+                    className={`${BUTTON} self-start`}
+                    onClick={onReplayTour}
+                  >
+                    {t("settings-tour-replay")}
+                  </button>
+                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
+                    {t("settings-tour-replay-note")}
+                  </p>
                 </Section>
 
                 <Section title={t("settings-window-section")}>
@@ -811,7 +851,7 @@ export function SettingsDialog({
               data-testid="settings-apply"
               onClick={() => void apply()}
               disabled={!dirty || busy}
-              className={`${BUTTON} disabled:cursor-not-allowed disabled:opacity-40`}
+              className={BUTTON}
             >
               {t("settings-apply")}
             </button>

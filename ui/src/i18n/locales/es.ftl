@@ -101,6 +101,7 @@ settings-cat-network = Red
 settings-language = Idioma
 settings-language-auto = Igual que mi sistema
 settings-theme = Tema
+settings-theme-system = Igual que mi sistema
 settings-theme-dark = Oscuro
 settings-theme-light = Claro
 settings-window-section = Ventana
@@ -143,6 +144,24 @@ settings-lan-failed = No se pudo iniciar la copia: { $error }
 mirror-qr-aria = Código QR del enlace de la copia
 settings-cancel = Cancelar
 settings-apply = Aplicar
+
+## Onboarding tour (FT-50)
+tour-step = { $n } de { $total }
+tour-skip = Omitir
+tour-back = Atrás
+tour-next = Siguiente
+tour-done = Empezar a escribir
+tour-welcome-title = Te damos la bienvenida a Freally Teleprompt
+tour-welcome-body = Un teleprónter que funciona por completo en tu propio equipo. Sin cuenta, sin nube, sin IA y sin suscripción. Esto dura un minuto: pulsa Omitir cuando quieras y puedes repetirlo desde los ajustes.
+tour-write-title = Escribe tu guion
+tour-write-body = Escribe o pega a la izquierda. Abre Guiones para tener más de uno; todo se guarda mientras trabajas. Dos guiones marcan una pausa que quieres sostener, y las sugerencias atenuadas delante del cursor terminan por ti las palabras largas.
+tour-read-title = Marca tu ritmo
+tour-read-body = La velocidad es un ritmo de lectura real —caracteres por segundo— o cambia a BPM si rapeas o cantas sobre una base. Reproducir, pausar y rebobinar están bajo el editor, o haz clic en cualquier palabra de la vista previa para empezar ahí. La palabra encendida siempre queda sobre la línea de lectura.
+tour-show-title = Muéstraselo a quien lee
+tour-show-body = El proyector lleva el guion a una segunda pantalla, invertido para cristal de teleprónter si lees a través de él, o replicado en un móvil de tu propia red. Todo lo demás —tipografía, color, márgenes, idioma, tema— está detrás del engranaje de la barra de título.
+settings-tour-section = Primeros pasos
+settings-tour-replay = Ver la introducción otra vez
+settings-tour-replay-note = Repite la presentación de cuatro pasos sobre el editor, los controles de ritmo y el proyector. Los ajustes se cierran primero para que veas de qué habla.
 
 ## First-run agreement
 eula-title = Contrato de licencia de usuario final

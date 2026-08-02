@@ -32,10 +32,13 @@ function windowAction(run: (win: ReturnType<typeof getCurrentWindow>) => Promise
   };
 }
 
+/* The focus ring is the shared floor in `styles/global.css`, not a per-button
+   one. This used to carry `focus:outline-none focus-visible:ring-havoc-accent/60`,
+   which suppressed the floor and drew the accent at 60% alpha — roughly 1.7:1
+   on the light theme, under the 3:1 a focus indicator owes a keyboard user. */
 const BTN =
   "flex h-8 w-11 items-center justify-center text-havoc-muted transition-colors " +
-  "hover:bg-white/10 hover:text-havoc-text focus:outline-none focus-visible:ring-2 " +
-  "focus-visible:ring-havoc-accent/60";
+  "hover:bg-white/10 hover:text-havoc-text";
 
 export function TitleBar({
   onSettings,

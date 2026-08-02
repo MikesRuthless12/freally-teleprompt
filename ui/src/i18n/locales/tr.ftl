@@ -101,6 +101,7 @@ settings-cat-network = Ağ
 settings-language = Dil
 settings-language-auto = Sistemimle aynı
 settings-theme = Tema
+settings-theme-system = Sistemimle aynı
 settings-theme-dark = Koyu
 settings-theme-light = Açık
 settings-window-section = Pencere
@@ -143,6 +144,24 @@ settings-lan-failed = Yansıtma başlatılamadı: { $error }
 mirror-qr-aria = Yansıtma bağlantısının QR kodu
 settings-cancel = İptal
 settings-apply = Uygula
+
+## Onboarding tour (FT-50)
+tour-step = { $total } adımdan { $n }
+tour-skip = Atla
+tour-back = Geri
+tour-next = İleri
+tour-done = Yazmaya başla
+tour-welcome-title = Freally Teleprompt'a hoş geldiniz
+tour-welcome-body = Tümüyle kendi bilgisayarınızda çalışan bir suflör. Hesap yok, bulut yok, yapay zekâ yok, abonelik yok. Bu yaklaşık bir dakika sürer — istediğiniz an Atla'ya basın, turu ayarlardan yeniden başlatabilirsiniz.
+tour-write-title = Metninizi yazın
+tour-write-body = Solda yazın ya da yapıştırın. Birden fazlasını saklamak için Metinler'i açın; yazdıkça her şey kaydedilir. İki kısa çizgi, tutmak istediğiniz bir duraklamayı işaretler; imlecin önündeki soluk öneriler de uzun sözcükleri sizin için tamamlar.
+tour-read-title = Temponuzu belirleyin
+tour-read-body = Hız gerçek bir okuma temposudur — saniyedeki karakter sayısı — ya da bir ritim üzerine rap yapıyor veya şarkı söylüyorsanız BPM'e geçin. Oynat, duraklat ve geri sar düzenleyicinin altındadır; ya da önizlemede herhangi bir sözcüğe tıklayıp oradan başlayın. Yanan sözcük her zaman okuma çizgisinin üzerinde durur.
+tour-show-title = Okuyan kişiye gösterin
+tour-show-body = Yansıtıcı, metni ikinci bir ekrana taşır; içinden okuyorsanız yarı geçirgen cam için aynalar ya da kendi ağınızdaki bir telefona yansıtır. Geri kalan her şey — yazı tipi, renk, kenar boşlukları, dil, tema — başlık çubuğundaki dişli simgesinin arkasındadır.
+settings-tour-section = Başlarken
+settings-tour-replay = Turu yeniden göster
+settings-tour-replay-note = Düzenleyici, tempo denetimleri ve yansıtıcı hakkındaki dört adımlık tanıtımı yeniden çalıştırır. Neyi anlattığını görebilmeniz için ayarlar önce kapatılır.
 
 ## First-run agreement
 eula-title = Son Kullanıcı Lisans Sözleşmesi

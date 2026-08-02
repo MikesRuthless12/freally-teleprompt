@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import type { ResolvedTheme, ThemeSetting } from "../api/types";
 import { bundleFor } from "./bundle";
 import { localeDir, resolveLocale, SOURCE_LOCALE, type LocaleCode } from "./locales";
 
@@ -48,6 +49,45 @@ export function initLocale(setting: string, preferred: readonly string[] = navig
   return code;
 }
 
+/** The media query `"system"` resolves against. */
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+/**
+ * The system preference, or `"dark"` where there is nothing to ask — jsdom
+ * ships no `matchMedia`, and a headless environment has no preference to
+ * report. Falling back to the shipped default keeps "system" honest rather
+ * than making it a second way to spell "light".
+ */
+function systemTheme(): ResolvedTheme {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return "dark";
+  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
+}
+
+/** What `theme` actually paints as (FT-50). */
+export function resolveTheme(theme: ThemeSetting): ResolvedTheme {
+  return theme === "system" ? systemTheme() : theme;
+}
+
+/**
+ * The live `prefers-color-scheme` subscription, held module-level for the same
+ * reason `active` is: it belongs to the document, not to a component, and there
+ * must only ever be one. Only `"system"` subscribes — a pinned theme must not
+ * repaint when the OS changes, which is the whole point of pinning it.
+ */
+let systemWatch: MediaQueryList | null = null;
+const onSystemChange = () => applyTheme("system");
+
+function watchSystemTheme(on: boolean): void {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+  if (on && !systemWatch) {
+    systemWatch = window.matchMedia(DARK_QUERY);
+    systemWatch.addEventListener("change", onSystemChange);
+  } else if (!on && systemWatch) {
+    systemWatch.removeEventListener("change", onSystemChange);
+    systemWatch = null;
+  }
+}
+
 /**
  * Stamp the theme onto `<html data-theme>`.
  *
@@ -56,17 +96,23 @@ export function initLocale(setting: string, preferred: readonly string[] = navig
  * every white-alpha re-tint in `styles/global.css` hang off this attribute, and
  * `scripts/theme-lint.mjs` polices that coupling — so a surface that forgets to
  * stamp it renders white-on-white with no test noticing.
+ *
+ * The attribute is always the RESOLVED theme, never `"system"`: the CSS knows
+ * two palettes, and teaching it a third value that means "ask the OS" would put
+ * the same decision in two places. Instead `"system"` is resolved here and
+ * re-resolved whenever the OS preference changes.
  */
-export function applyTheme(theme: "dark" | "light"): void {
+export function applyTheme(theme: ThemeSetting): void {
   if (typeof document === "undefined") return;
-  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.setAttribute("data-theme", resolveTheme(theme));
+  watchSystemTheme(theme === "system");
 }
 
 /**
  * Apply everything a settings snapshot changes about the document at once.
  * Callers should reach for this rather than remembering the pair.
  */
-export function applySettingsToDocument(settings: { language: string; theme: "dark" | "light" }) {
+export function applySettingsToDocument(settings: { language: string; theme: ThemeSetting }) {
   initLocale(settings.language);
   applyTheme(settings.theme);
 }

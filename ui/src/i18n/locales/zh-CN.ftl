@@ -101,6 +101,7 @@ settings-cat-network = 网络
 settings-language = 语言
 settings-language-auto = 跟随系统
 settings-theme = 主题
+settings-theme-system = 跟随系统
 settings-theme-dark = 深色
 settings-theme-light = 浅色
 settings-window-section = 窗口
@@ -143,6 +144,24 @@ settings-lan-failed = 无法启动镜像：{ $error }
 mirror-qr-aria = 镜像链接的二维码
 settings-cancel = 取消
 settings-apply = 应用
+
+## Onboarding tour (FT-50)
+tour-step = 第 { $n } 步，共 { $total } 步
+tour-skip = 跳过
+tour-back = 上一步
+tour-next = 下一步
+tour-done = 开始写稿
+tour-welcome-title = 欢迎使用 Freally Teleprompt
+tour-welcome-body = 一款完全在你自己电脑上运行的提词器。没有账号，没有云端，没有人工智能，也不用订阅。这大约需要一分钟——随时可以跳过，也可以在设置里重新看一遍。
+tour-write-title = 写下你的稿子
+tour-write-body = 在左侧输入或粘贴。想保存多份就打开「稿件」；你写的内容会随时保存。两个连字符表示一处你想停顿的地方，光标前浅色的建议会替你补全长词。
+tour-read-title = 定下你的语速
+tour-read-body = 速度是真实的朗读节奏——每秒多少个字——如果你在跟着节拍说唱或演唱，也可以切换到 BPM。播放、暂停和倒回就在编辑器下方，或者直接点预览里的任意一个字，从那里开始。亮起的字始终停在阅读线上。
+tour-show-title = 让念稿的人看到
+tour-show-body = 投影会把稿子送到第二块屏幕上；如果你透过分光镜玻璃阅读，可以左右翻转，也可以投到同一网络下的手机上。其余的一切——字体、颜色、边距、语言、主题——都在标题栏的齿轮里。
+settings-tour-section = 新手上路
+settings-tour-replay = 再看一次导览
+settings-tour-replay-note = 重新播放关于编辑器、语速控制和投影的四步介绍。设置会先关闭，这样你才能看清它指的是什么。
 
 ## First-run agreement
 eula-title = 最终用户许可协议

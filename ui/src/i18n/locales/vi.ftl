@@ -101,6 +101,7 @@ settings-cat-network = Mạng
 settings-language = Ngôn ngữ
 settings-language-auto = Giống hệ thống của tôi
 settings-theme = Chủ đề
+settings-theme-system = Giống hệ thống của tôi
 settings-theme-dark = Tối
 settings-theme-light = Sáng
 settings-window-section = Cửa sổ
@@ -143,6 +144,24 @@ settings-lan-failed = Không khởi động được bản phản chiếu: { $er
 mirror-qr-aria = Mã QR của liên kết phản chiếu
 settings-cancel = Hủy
 settings-apply = Áp dụng
+
+## Onboarding tour (FT-50)
+tour-step = { $n } trên { $total }
+tour-skip = Bỏ qua
+tour-back = Quay lại
+tour-next = Tiếp
+tour-done = Bắt đầu viết
+tour-welcome-title = Chào mừng đến với Freally Teleprompt
+tour-welcome-body = Một máy nhắc chữ chạy hoàn toàn trên máy của bạn. Không tài khoản, không đám mây, không AI, không phải trả phí hằng tháng. Việc này mất khoảng một phút — bấm Bỏ qua bất cứ lúc nào, và bạn có thể xem lại từ phần cài đặt.
+tour-write-title = Viết kịch bản của bạn
+tour-write-body = Gõ hoặc dán ở bên trái. Mở Kịch bản để giữ nhiều hơn một bản; mọi thứ được lưu ngay khi bạn viết. Hai dấu gạch ngang đánh dấu một quãng nghỉ bạn muốn giữ, còn các gợi ý mờ phía trước con trỏ sẽ hoàn tất những từ dài giúp bạn.
+tour-read-title = Đặt nhịp của bạn
+tour-read-body = Tốc độ là một nhịp đọc thật — số ký tự mỗi giây — hoặc chuyển sang BPM nếu bạn rap hay hát theo nhịp. Phát, tạm dừng và tua lại nằm ngay dưới trình soạn thảo, hoặc bấm vào bất kỳ từ nào trong khung xem trước để bắt đầu từ đó. Từ đang sáng luôn nằm trên vạch đọc.
+tour-show-title = Cho người đọc xem
+tour-show-body = Máy chiếu đưa kịch bản sang màn hình thứ hai, lật ngược cho kính bán mạ nếu bạn đọc xuyên qua nó, hoặc chiếu sang một chiếc điện thoại trong mạng của bạn. Mọi thứ còn lại — phông chữ, màu, lề, ngôn ngữ, chủ đề — nằm sau biểu tượng bánh răng trên thanh tiêu đề.
+settings-tour-section = Bắt đầu
+settings-tour-replay = Xem lại phần giới thiệu
+settings-tour-replay-note = Chạy lại phần giới thiệu bốn bước về trình soạn thảo, các nút chỉnh nhịp và máy chiếu. Cài đặt sẽ đóng trước để bạn thấy được những gì nó nói tới.
 
 ## First-run agreement
 eula-title = Thỏa thuận Cấp phép Người dùng cuối

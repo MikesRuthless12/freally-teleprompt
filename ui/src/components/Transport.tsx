@@ -76,8 +76,14 @@ export function Transport({
   // re-tints would paint these controls black-on-black. See the CSS for the rule.
   const base = onDark
     ? "proj-btn"
-    : "flex h-8 w-8 items-center justify-center rounded-md border border-white/10 " +
-      "text-havoc-text hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-havoc-accent/60";
+    : // No `focus:outline-none` + accent ring of its own any more. That pair
+      // suppressed the shared focus floor (`:focus-visible` in global.css) and
+      // replaced it with `havoc-accent` at 60% alpha, which measures about
+      // 1.7:1 on the light theme's white panel — well under the 3:1 a focus
+      // indicator owes. The floor's `--focus-ring` is re-tinted per theme and
+      // is the same ring every other control now draws.
+      "flex h-8 w-8 items-center justify-center rounded-md border border-white/10 " +
+      "text-havoc-text hover:bg-white/10";
   const icon = onDark ? "h-5 w-5" : "h-4 w-4";
 
   const hold = (step: (by?: number) => void) => ({

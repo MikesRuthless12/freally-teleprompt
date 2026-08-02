@@ -87,6 +87,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             settings::settings_get,
             settings::settings_set,
+            settings::onboarding_set_seen,
             eula::eula_status,
             eula::eula_accept,
             teleprompter::teleprompter_get,

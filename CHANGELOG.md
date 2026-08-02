@@ -2,12 +2,18 @@
 
 All notable changes to **Freally Teleprompt** are documented here.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
-project uses a phase-based version ladder up to 1.0.0 (`0.100.0` → `0.200.0` →
-`0.300.0` → `1.0.0`). Every phase updates this file and `docs/changelog.html`
-together — they are two renderings of the same history.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
+pre-1.0 releases used a phase-based ladder (`0.100.0` → `0.200.0` → `0.300.0` →
+`1.0.0`); from 1.0.0 on it is ordinary semver. Every release updates this file
+and `docs/changelog.html` together — they are two renderings of the same history.
 
 ## [Unreleased]
+
+_Nothing yet._
+
+## [1.1.0] — 2026-08-02
+
+One way to use your voice, and it works the moment you switch it on.
 
 ### Added
 

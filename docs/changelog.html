@@ -110,6 +110,50 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>1.1.0</h2>
+        <p class="date">2 August 2026 — dictation</p>
+
+        <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
+          One way to use your voice, and it works the moment you switch it on.
+        </p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Write your script by speaking.</strong> Turn on
+            <strong>Dictation</strong> in <strong>Settings → Voice</strong> and a record button
+            appears above the script. Press it and what you say is written in; press it again to
+            stop. There is nothing to train and nothing to set up — the speech model ships inside
+            the installer, so it works the first time you switch it on. Nothing is downloaded at
+            runtime and nothing is sent anywhere; it works with the network cable pulled out. The
+            microphone is open only while recording, and the only thing ever written down is the
+            text you see appear.
+          </li>
+        </ul>
+
+        <h3>Removed</h3>
+        <ul>
+          <li>
+            <strong>Voice commands.</strong> They required you to record every command — play,
+            pause, faster, slower, next pause, back to top — in your own voice before any of them
+            did anything, and then to hold a button down while speaking. Until you had done that
+            recording, holding the button opened the microphone and achieved nothing at all, with
+            no way to tell that apart from a fault. Dictation covers the same ground with nothing
+            to train.
+          </li>
+          <li>
+            <strong>Follow my reading.</strong> Gone for the same reason: one clear way to use your
+            voice is better than three that overlap.
+          </li>
+        </ul>
+
+        <p style="margin: 8px 0 0; color: var(--muted); line-height: 1.6">
+          The installers are larger than 1.0.0's — the speech model is about 40 MB, and it now
+          ships whether or not you use it.
+        </p>
+      </article>
+
+      <article class="release">
         <h2>1.0.0</h2>
         <p class="date">2 August 2026 — the first published release</p>
 

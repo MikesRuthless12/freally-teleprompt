@@ -96,12 +96,33 @@ async function download(url, dest) {
 }
 
 /**
- * Extract with `tar`, not a zip library. bsdtar reads zip, and it is present on
- * all three GitHub runners and on Windows 10+ — so this stays dependency-free.
+ * Extract a zip with whatever the host actually has, so this stays free of npm
+ * dependencies.
+ *
+ * ⚠️ `tar` is NOT a portable zip reader. **bsdtar** reads zip and is what
+ * Windows 10+ and macOS ship as `tar` — but **Linux ships GNU tar**, which
+ * cannot read zip at all and fails with "This does not look like a tar
+ * archive". Relying on `tar` alone worked on Windows and macOS and broke the
+ * Linux release build, which is the worst way to find out.
+ *
+ * `unzip` is the right tool on Linux and macOS; `tar` covers Windows, where
+ * `unzip` usually does not exist. Trying both in order means no host needs
+ * anything installed that it does not already have.
  */
 function extract(archive, into) {
-  const r = spawnSync("tar", ["-xf", archive, "-C", into], { stdio: "inherit" });
-  if (r.status !== 0) throw new Error(`tar failed on ${archive} (status ${r.status})`);
+  const attempts = [
+    ["unzip", ["-q", "-o", archive, "-d", into]],
+    ["tar", ["-xf", archive, "-C", into]],
+  ];
+  const failures = [];
+  for (const [cmd, args] of attempts) {
+    const r = spawnSync(cmd, args, { stdio: ["ignore", "ignore", "pipe"] });
+    if (r.status === 0) return;
+    // `error` means the command is not installed at all, which is expected on
+    // some hosts and not worth reporting as the cause.
+    failures.push(`${cmd}: ${r.error ? "not available" : `exit ${r.status}`}`);
+  }
+  throw new Error(`could not extract ${archive} — ${failures.join("; ")}`);
 }
 
 /** The single directory an archive unpacked into. */

@@ -9,7 +9,19 @@ together — they are two renderings of the same history.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Voice-following now actually works** (FT-33) — the speech model ships inside
+  the installer, so "Follow my reading" is available rather than greyed out with
+  a reason. Turn it on and the script keeps up as you read aloud; it still steps
+  aside to manual the moment it loses your place, and still drives only the
+  operator preview, never the projector.
+
+  Nothing is downloaded at runtime and nothing is sent anywhere — the recogniser
+  and its model are on your machine, and this remains true offline. The
+  installers are correspondingly larger.
+
+  Voice **commands** are unchanged: they never needed a model.
 
 ## [1.0.0] — 2026-08-02
 

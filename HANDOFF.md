@@ -132,21 +132,32 @@ themes and `.proj-btn` / `.proj-track` sit outside the palette on purpose.
 Untouched because it is outside FT-50 and wants its own test — but it is a real i18n hole in a
 window the talent reads, and SR-4 says all 18 languages stay switchable.
 
-### 2. ⚠️ `1.0.0` SHIPPED WITHOUT THE VOSK MODEL — voice-following is dead in the release
+### 2. ✅ RESOLVED — the model is bundled and the FFI is proven
 
-The release pipeline half is done (see 1c), but **`release.yml` never enables the `vosk` feature and
-never bundles a model** — grep it for `vosk` and there is nothing. So the shipped 1.0.0 build reports
-voice-following **unavailable**, exactly as a dev build does. Voice **commands** are unaffected: they
-need no model.
+`1.0.0` shipped with voice-following dead. It is now wired end to end and **the FFI drill has been
+run** — `vosk_engine.rs` compiled, linked and executed against a real `libvosk` and a real model for
+the first time. It was correct as written; the only casualty was a test (see the traps).
 
-The CHANGELOG, `docs/changelog.html` and `docs/documentation.html` all say this plainly — do not
-quietly drop those notes when the model does land. What is still outstanding:
+How it fits together:
 
-- add the model to the installer (licence is already cleared and in `NOTICE` — Apache-2.0 for both
-  Vosk's code and its weights, verified at the source);
-- turn on `--features vosk` for the release build only;
-- **the FFI in `vosk_engine.rs` has still never been link-checked** (Outstanding #1) — a release that
-  flips the feature on is the first thing that ever compiles it. Do the drill first.
+- **`scripts/fetch-vosk.mjs`** pulls `libvosk` for the host platform and the model into
+  `src-tauri/vendor/` (gitignored, ~115 MB, same rationale as `.dict-cache/`).
+- **`src-tauri/build.rs`** points the linker at `vendor/vosk/link/` and sets the runtime rpath —
+  `@executable_path/../Resources` on macOS, `$ORIGIN/../lib/freally-teleprompt` on Linux, nothing on
+  Windows (its loader already searches the executable's own directory).
+- **`src-tauri/tauri.vosk.conf.json`** is an OVERLAY, applied with `--config`, that adds the model
+  and the native libraries to the bundle. It is separate because `resources` paths are validated on
+  every build, and a default or CI build has no `vendor/` — putting them in the base config breaks
+  the whole gate.
+- **`release.yml`** fetches, then builds with `--features vosk --config …`.
+- **`freally-speech/tests/vosk_model.rs`** is the drill, as two `#[ignore]`d tests. Read its module
+  docs before running it.
+
+**Still unverified, and only you can do it:** actual recognition through a microphone, and that the
+shipped `.dmg`/`.AppImage`/`.deb` find their bundled library at runtime. Windows is confirmed — the
+built bundle puts the DLLs beside the exe and the model in the resource directory.
+
+**Installer cost:** Windows NSIS went 60 MB, MSI 71 MB (model 68 MB + 45 MB of MinGW/Vosk DLLs).
 
 ### 2b. The signing key exists exactly once — losing it ends the updater
 
@@ -164,6 +175,38 @@ but wasteful and the indicators can confuse. Mutual exclusion is a future refine
 builds (no `vosk`) following never runs, so there is no conflict today.
 
 ---
+
+## Traps paid bundling the Vosk model (FT-33)
+
+- **A feature nothing compiles is a feature nothing tests.** `vosk_engine.rs` and `speech.rs`'s
+  follow loop were invisible to clippy, to `cargo test --workspace` and to CI, because the feature is
+  off everywhere. The FFI itself turned out to be correct — but a unit test asserting
+  `capability().engine == "none"`, whose own comment claimed it "runs in the default build", had
+  never run in any other and went red instantly. `cargo check -p freally-speech --features vosk` is
+  now in `ci.yml` and `ci-local`: **checking does not link**, so it costs nothing — no `libvosk`, no
+  model, no download — and the gap cannot reopen.
+- **`RUSTFLAGS` is split on SPACES.** `-L C:\...\Havoc Software\...` tears in half and rustc dies
+  with "multiple input filenames provided", nowhere near anything Vosk-related. Use
+  `CARGO_ENCODED_RUSTFLAGS` (unit-separated) — or better, do it from a `build.rs` via
+  `CARGO_MANIFEST_DIR`, which is what the app does and why the app never hit this.
+- **Resource paths are validated on EVERY build, not just the one that uses them.** Putting the model
+  in `tauri.conf.json`'s `resources` breaks the default build and all of CI, where `vendor/` does not
+  exist. Hence the `tauri.vosk.conf.json` overlay applied with `--config`.
+- **Only the small and `-lgraph` models support dynamic grammar.** `Recognizer::new_with_grammar` on
+  a big static-graph model returns a recogniser that silently ignores the vocabulary and decodes
+  against the full dictionary — recognition still "works", just much worse, with no error anywhere.
+  The whole script-constrained design depends on this, so the drill asserts it.
+- **Vosk's own release assets are inconsistent.** `0.3.50` ships no binaries at all and `0.3.45` has
+  no macOS build; **`0.3.42` is the newest with all three platforms**, which is why it is pinned. Its
+  macOS `.dylib` is a genuine FAT binary (x86_64 + arm64) — check that before assuming a universal
+  build can link.
+- **Windows libvosk is MinGW-built**, so `libstdc++-6.dll`, `libgcc_s_seh-1.dll` and
+  `libwinpthread-1.dll` must ship beside it or the app will not start. They are GPL-3.0 **WITH
+  GCC-exception-3.1**, and that exception is precisely what permits shipping them with non-GPL
+  software — recorded in `NOTICE` rather than assumed.
+- **The 16 MB `libvosk.lib` is an import library and must not ship.** `fetch-vosk.mjs` splits
+  `lib/` (ships, copied wholesale) from `link/` (build only), which also spares the bundler any
+  per-platform globbing.
 
 ## Traps paid by `release.yml`'s FIRST EVER RUN (1.0.0 took five attempts)
 

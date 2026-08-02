@@ -74,6 +74,20 @@ if (!uiOnly && hasRust) {
   }
   step("rust: clippy", "cargo clippy --workspace --all-targets -- -D warnings", repoRoot);
   step("rust: test", "cargo test --workspace", repoRoot);
+  // The voice-following FFI, which NO other step compiles: the `vosk` feature is
+  // off everywhere else, so `vosk_engine.rs` and `speech.rs`'s follow loop are
+  // invisible to the whole gate above. They sat unbuilt for two phases and the
+  // first compile found a broken test.
+  //
+  // `check`, not `build`, and that is the trick that makes this affordable:
+  // checking does not link, so it needs no `libvosk`, no model, and no 115 MB
+  // download — while still catching every type and API error. Linking is proven
+  // by the release build and by the drill in `Live-To-Do-List.md`.
+  step(
+    "rust: check (vosk feature)",
+    "cargo check -p freally-speech --features vosk",
+    repoRoot,
+  );
 }
 
 if (!rustOnly && hasUi) {

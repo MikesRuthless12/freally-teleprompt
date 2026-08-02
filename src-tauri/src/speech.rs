@@ -18,17 +18,31 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::teleprompter::TeleprompterState;
 
-/// The Vosk model directory, beside settings and the voice-command model. A
-/// release bundles it here (FT-52); until then it is absent and the capability
-/// check reports it missing.
-fn model_dir() -> PathBuf {
-    crate::settings::project_dirs()
-        .map(|dirs| dirs.data_dir().join("vosk-model-en"))
-        .unwrap_or_else(|| PathBuf::from("vosk-model-en"))
+/// The Vosk model directory.
+///
+/// Two locations, in this order and deliberately:
+///
+/// 1. **The user's data directory**, beside settings and the voice-command
+///    model. Nothing writes this — it is the escape hatch for dropping in a
+///    different or larger model without rebuilding the app, and it wins so that
+///    a deliberate choice is never overridden by the shipped default.
+/// 2. **The bundled model**, in the app's resource directory (FT-33).
+///
+/// Falling through to (2) with no bundle present yields a path that does not
+/// exist, which is exactly what the capability check reports on.
+fn model_dir(app: &AppHandle) -> PathBuf {
+    let user = crate::settings::project_dirs().map(|dirs| dirs.data_dir().join("vosk-model-en"));
+    if let Some(dir) = user.filter(|dir| dir.is_dir()) {
+        return dir;
+    }
+    app.path()
+        .resource_dir()
+        .map(|res| res.join("vosk-model-en"))
+        .unwrap_or_else(|_| PathBuf::from("vosk-model-en"))
 }
 
 /// Voice-following availability for the UI — a serialisable mirror of
@@ -55,8 +69,8 @@ impl From<freally_speech::SpeechCapability> for SpeechCapabilityDto {
 /// Report whether voice-following can run: the `vosk` engine must be built in AND
 /// the model installed. The UI greys the toggle out and shows `detail` otherwise.
 #[tauri::command]
-pub fn speech_capability() -> SpeechCapabilityDto {
-    freally_speech::capability(Some(&model_dir())).into()
+pub fn speech_capability(app: AppHandle) -> SpeechCapabilityDto {
+    freally_speech::capability(Some(&model_dir(&app))).into()
 }
 
 /// Managed state for voice-following.
@@ -73,7 +87,7 @@ pub fn voice_follow_start(
     state: State<'_, FollowState>,
     teleprompter: State<'_, TeleprompterState>,
 ) -> Result<(), String> {
-    let cap = freally_speech::capability(Some(&model_dir()));
+    let cap = freally_speech::capability(Some(&model_dir(&app)));
     if !cap.available {
         return Err(cap.detail);
     }
@@ -105,7 +119,8 @@ fn run_follow(app: AppHandle, script: String, stop: Arc<AtomicBool>) {
     use tauri::Emitter;
 
     const RATE: u32 = CANONICAL_SAMPLE_RATE;
-    let mut recognizer = match VoskRecognizer::new(&model_dir().to_string_lossy(), RATE as f32) {
+    let mut recognizer = match VoskRecognizer::new(&model_dir(&app).to_string_lossy(), RATE as f32)
+    {
         Ok(recognizer) => recognizer,
         Err(err) => {
             let _ = app.emit("voice:error", err);
@@ -169,13 +184,25 @@ fn run_follow(_app: AppHandle, _script: String, _stop: Arc<AtomicBool>) {}
 mod tests {
     use super::*;
 
+    /// The capability CONTRACT — unavailable without a model, in both the
+    /// `vosk` and the default build — is tested in `freally-speech`, which owns
+    /// it and needs no Tauri app to do it. This module owns only the mapping
+    /// into the serialisable shape the UI reads, so that is what is tested here.
+    ///
+    /// (It used to call `speech_capability()` directly and assert the engine was
+    /// `"none"`. That stopped compiling the moment the command needed an
+    /// `AppHandle` to find the bundled model — and it had been asserting the
+    /// default build's answer as though it were the only one.)
     #[test]
-    fn capability_is_unavailable_without_the_vosk_feature() {
-        // The default build (and CI) has no engine compiled in, so the toggle
-        // must report unavailable rather than claim it works.
-        let cap = speech_capability();
-        assert!(!cap.available);
-        assert_eq!(cap.engine, "none");
-        assert!(!cap.detail.is_empty());
+    fn the_dto_carries_the_capability_through_unchanged() {
+        let cap = freally_speech::SpeechCapability {
+            available: false,
+            engine: "vosk".into(),
+            detail: "no speech model configured".into(),
+        };
+        let dto: SpeechCapabilityDto = cap.clone().into();
+        assert_eq!(dto.available, cap.available);
+        assert_eq!(dto.engine, cap.engine);
+        assert_eq!(dto.detail, cap.detail);
     }
 }

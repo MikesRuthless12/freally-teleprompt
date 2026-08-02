@@ -64,6 +64,11 @@ ui/test-results/
 # committed once already.
 /e2e/
 
+# Vosk's native library and speech model (scripts/fetch-vosk.mjs). ~115 MB of
+# third-party binary that the `vosk` feature links and bundles, re-fetchable on
+# demand and needed only by a build that turns voice-following on.
+/src-tauri/vendor/
+
 # Downloaded Tatoeba corpus exports (scripts/build-dicts.mjs). ~100 MB of source
 # data that the committed tables in ui/src/dict/ are generated FROM; re-fetched
 # on demand and never needed to build or run the app.

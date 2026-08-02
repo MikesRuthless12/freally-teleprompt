@@ -51,12 +51,28 @@ routinely differ elsewhere — a clean code licence over non-commercial weights 
 the trap Track B was written to avoid:
 
   * ENGINE (code) — Vosk API / bindings, https://github.com/alphacep/vosk-api
+    VERSION — libvosk 0.3.42
     LICENCE — Apache License 2.0
     Reached via the `vosk` Rust crate (Apache-2.0), which links the native
     `libvosk` library.
 
-  * MODEL (weights) — the small English model, https://alphacephei.com/vosk/models
-    LICENCE — Apache License 2.0 (the mainline `vosk-model-small-en-*` weights)
+  * MODEL (weights) — vosk-model-small-en-us-0.15,
+    https://alphacephei.com/vosk/models
+    LICENCE — Apache License 2.0
+    Note that the `daanzu` English models on the same page are AGPL and the
+    `zamia` one LGPL-3.0. The bundled model is neither; do not substitute one
+    without re-reading its licence.
+
+  * WINDOWS ONLY — `libstdc++-6.dll`, `libgcc_s_seh-1.dll`,
+    `libwinpthread-1.dll`, shipped beside `libvosk.dll`
+    LICENCE — GPL-3.0 WITH GCC-exception-3.1 (libstdc++, libgcc) and
+    MIT/BSD-2-Clause (mingw-w64 winpthreads)
+    The upstream Windows libvosk is built with MinGW, so its GCC runtime
+    libraries must ship with it or the app will not start. The **GCC Runtime
+    Library Exception** is what makes this fine: it explicitly permits
+    distributing these runtime libraries with software that is not GPL. That
+    exception is the whole reason this is recorded rather than a problem — it
+    is not the bare GPL.
 
 Apache-2.0 permits commercial use and redistribution with attribution and no
 share-alike term, for both the code and the weights. The model is CPU-only and

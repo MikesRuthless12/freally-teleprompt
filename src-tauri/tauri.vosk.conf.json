@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "../THIRD-PARTY.md": "THIRD-PARTY.md",
+      "../NOTICE": "NOTICE",
+      "vendor/vosk/vosk-model-en": "vosk-model-en",
+      "vendor/vosk/lib/*": ""
+    }
+  }
+}

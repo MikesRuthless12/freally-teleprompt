@@ -975,18 +975,18 @@ dependencies = [
 
 [[package]]
 name = "freally-align"
-version = "1.0.0"
+version = "1.1.0"
 
 [[package]]
 name = "freally-speech"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "vosk",
 ]
 
 [[package]]
 name = "freally-teleprompt"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "chrono",
  "directories",
@@ -1007,7 +1007,7 @@ dependencies = [
 
 [[package]]
 name = "freally-voice"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "cpal",
  "serde",

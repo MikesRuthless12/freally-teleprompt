@@ -580,7 +580,12 @@ export function CaesuraEditor({
           if (ref.current) emit(ref.current);
         }}
         className={className}
-        style={{ whiteSpace: "pre-wrap", overflowWrap: "break-word", outline: "none" }}
+        // No `outline: "none"` here any more (FT-50). An inline style beats
+        // every stylesheet, so it suppressed the shared focus floor and left
+        // the app's PRIMARY control — the one an operator spends all their
+        // time in — as the only thing a keyboard user could reach with no
+        // indication they had reached it.
+        style={{ whiteSpace: "pre-wrap", overflowWrap: "break-word" }}
       />
       <div
         ref={placeholderRef}

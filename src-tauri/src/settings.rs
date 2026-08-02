@@ -15,6 +15,11 @@
 //! re-show the EULA gate on the next launch. That exact bug shipped in Freally
 //! Capture. [`SettingsStore::accept_eula`] is the only writer, and
 //! `set_preserves_eula_acceptance` below is the regression test.
+//!
+//! [`Settings::recent_scripts`] and [`Settings::onboarding_seen`] have the same
+//! shape and the same rule: a record of what happened, carried in every draft,
+//! and therefore trivially clobbered by an Apply from a dialog opened before it
+//! changed. Each has one writer and a regression test of its own.
 
 use std::fs;
 use std::io;
@@ -45,6 +50,12 @@ const AUTO_LANGUAGE: &str = "auto";
 fn default_language() -> String {
     AUTO_LANGUAGE.to_string()
 }
+
+/// The three theme settings (FT-50). `"system"` follows the OS's
+/// `prefers-color-scheme`; the other two pin it. The default stays `"dark"` —
+/// adding the option is not a reason to change what existing installs look
+/// like, and a prompter is read off a dark surface either way.
+const THEMES: [&str; 3] = ["system", "dark", "light"];
 
 fn default_theme() -> String {
     "dark".to_string()
@@ -92,7 +103,7 @@ pub struct Settings {
     /// BCP-47 tag, or `"auto"` to follow the OS.
     #[serde(default = "default_language")]
     pub language: String,
-    /// `"dark"` or `"light"`.
+    /// `"system"` (follow the OS), `"dark"`, or `"light"`.
     #[serde(default = "default_theme")]
     pub theme: String,
     /// Scroll speed in visible characters per second.
@@ -172,6 +183,15 @@ pub struct Settings {
     /// is the only writer; [`SettingsStore::set`] preserves whatever is here.
     #[serde(default)]
     pub accepted_eula_version: Option<String>,
+    /// Whether the first-run onboarding tour has been shown (FT-50).
+    ///
+    /// NOT user-editable — the same rule as `accepted_eula_version` and
+    /// `recent_scripts`, and for the same reason: a Settings dialog opened
+    /// while the tour was still on screen carries `false` in its draft, so an
+    /// Apply would re-open the tour on the next launch.
+    /// [`SettingsStore::set_onboarding_seen`] is the only writer.
+    #[serde(default)]
+    pub onboarding_seen: bool,
 }
 
 impl Default for Settings {
@@ -196,6 +216,7 @@ impl Default for Settings {
             voice_follow_enabled: false,
             recent_scripts: Vec::new(),
             accepted_eula_version: None,
+            onboarding_seen: false,
         }
     }
 }
@@ -211,7 +232,7 @@ impl Settings {
         if self.language.trim().is_empty() {
             self.language = default_language();
         }
-        if self.theme != "dark" && self.theme != "light" {
+        if !THEMES.contains(&self.theme.as_str()) {
             self.theme = default_theme();
         }
         // A NaN survives `clamp` in Rust, so replace non-finite values outright.
@@ -358,19 +379,51 @@ impl SettingsStore {
 
     /// Replace the settings and persist them atomically.
     ///
-    /// `accepted_eula_version` and `recent_scripts` are deliberately **not**
-    /// replaceable through here — see the module docs and the fields' own. Both
-    /// are records of what happened rather than preferences, and a Settings
-    /// dialog opened before either changed carries a stale copy in its draft.
-    /// Everything else is the user's to change.
+    /// `accepted_eula_version`, `recent_scripts` and `onboarding_seen` are
+    /// deliberately **not** replaceable through here — see the module docs and
+    /// the fields' own. All three are records of what happened rather than
+    /// preferences, and a Settings dialog opened before any of them changed
+    /// carries a stale copy in its draft. Everything else is the user's to change.
     pub fn set(&self, next: Settings) -> io::Result<()> {
         {
             let mut guard = self.lock();
-            let accepted = guard.accepted_eula_version.clone();
-            let recents = std::mem::take(&mut guard.recent_scripts);
-            *guard = next;
-            guard.accepted_eula_version = accepted;
-            guard.recent_scripts = recents;
+            // Destructured EXHAUSTIVELY — note the absence of `..`, which is
+            // the whole point. Adding a field to `Settings` stops compiling
+            // right here until someone says which half it belongs to: a
+            // preference the user may change, or a record of what happened that
+            // this must carry across. Three fields are already in the second
+            // group, and the bug that put them there — a stale draft wiping
+            // acceptance — has shipped once in this suite. With a `..` the
+            // fourth one would join the first group silently, and every
+            // existing test would still pass, because they are all per-field.
+            let Settings {
+                // Records: kept from the CURRENT settings, never from `next`.
+                accepted_eula_version,
+                recent_scripts,
+                onboarding_seen,
+                // Preferences: `next`'s values win. Bound to `_` purely so the
+                // exhaustiveness check above has teeth.
+                language: _,
+                theme: _,
+                speed: _,
+                font_size: _,
+                caesura_secs: _,
+                countdown_secs: _,
+                mirror: _,
+                look: _,
+                minimize_to_tray: _,
+                lan_enabled: _,
+                lan_all_interfaces: _,
+                lan_port: _,
+                autocomplete: _,
+                autocomplete_language: _,
+                voice_enabled: _,
+                voice_mode: _,
+                voice_follow_enabled: _,
+            } = std::mem::replace(&mut *guard, next);
+            guard.accepted_eula_version = accepted_eula_version;
+            guard.recent_scripts = recent_scripts;
+            guard.onboarding_seen = onboarding_seen;
             guard.validate();
         }
         self.persist()
@@ -395,6 +448,24 @@ impl SettingsStore {
     /// and keeps the caller free of "did it change?" bookkeeping.
     pub fn forget_recent(&self, name: &str) -> io::Result<()> {
         self.lock().recent_scripts.retain(|entry| entry != name);
+        self.persist()
+    }
+
+    /// Record whether the onboarding tour has been shown (FT-50) and persist.
+    /// The only writer of `onboarding_seen`. Idempotent.
+    ///
+    /// Persists on **every** call, including when the value is unchanged —
+    /// deliberately, and for the reason `forget_recent` states above. An
+    /// "already equal, skip the write" guard compares memory against memory,
+    /// which is only a proxy for the disk while every previous write has
+    /// succeeded. If one did not (a scanner holding the `.tmp`, a momentarily
+    /// full volume), the flag is right in memory and wrong on disk, the caller
+    /// has already swallowed the error, and the skip means the next close —
+    /// the one that would have repaired it — reports success without touching
+    /// the file. The tour then returns on the next launch. One redundant write
+    /// per tour close is not worth that.
+    pub fn set_onboarding_seen(&self, seen: bool) -> io::Result<()> {
+        self.lock().onboarding_seen = seen;
         self.persist()
     }
 
@@ -459,6 +530,20 @@ pub fn settings_set(
     // had to remember to restart it would eventually forget.
     crate::lanmirror::apply_settings(&app, &applied);
     Ok(applied)
+}
+
+/// Record that the onboarding tour has been shown, or clear it to show it again
+/// (FT-50). Its own command rather than a `settings_set` field for the same
+/// reason `eula_accept` is: `set` deliberately cannot write this, so a Settings
+/// draft taken while the tour was open cannot re-arm it.
+#[tauri::command]
+pub fn onboarding_set_seen(
+    store: tauri::State<'_, SettingsStore>,
+    seen: bool,
+) -> Result<(), String> {
+    store
+        .set_onboarding_seen(seen)
+        .map_err(|err| format!("could not save settings: {err}"))
 }
 
 #[cfg(test)]
@@ -594,6 +679,51 @@ mod tests {
         };
         s.validate();
         assert_eq!(s.recent_scripts, vec!["fine", "also fine"]);
+    }
+
+    /// The third field with the EULA's shape (FT-50). The draft a Settings
+    /// dialog opened *during* the tour carries `onboarding_seen: false`, so
+    /// without this the very first Apply would re-arm the tour for next launch.
+    #[test]
+    fn set_preserves_the_onboarding_flag() {
+        let store = temp_store("preserves-onboarding");
+        let stale = store.get(); // a draft taken while the tour was still open
+        assert!(!stale.onboarding_seen);
+
+        store.set_onboarding_seen(true).unwrap();
+        assert!(store.get().onboarding_seen);
+
+        let mut next = stale.clone();
+        next.theme = "light".to_string();
+        store.set(next).unwrap();
+        assert_eq!(store.get().theme, "light", "the preference did apply");
+        assert!(
+            store.get().onboarding_seen,
+            "saving settings must never re-arm the onboarding tour"
+        );
+
+        // And it survives a reload, not just the in-memory copy.
+        let reloaded = SettingsStore::load(store.path.clone());
+        assert!(reloaded.get().onboarding_seen);
+
+        // Replaying the tour goes through the one writer, and that DOES stick.
+        store.set_onboarding_seen(false).unwrap();
+        assert!(!store.get().onboarding_seen);
+    }
+
+    /// `"system"` (FT-50) is a real setting, not a typo to be corrected away;
+    /// the default deliberately stays `"dark"`.
+    #[test]
+    fn validate_accepts_the_system_theme() {
+        assert_eq!(Settings::default().theme, "dark");
+        for theme in THEMES {
+            let mut s = Settings {
+                theme: theme.to_string(),
+                ..Settings::default()
+            };
+            s.validate();
+            assert_eq!(s.theme, theme, "{theme} is a shipped theme");
+        }
     }
 
     #[test]

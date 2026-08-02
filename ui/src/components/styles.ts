@@ -18,8 +18,17 @@
 /** Shape only — no colour. Both button variants build on this. */
 const BUTTON_BASE = "rounded-md border px-3 py-1.5 text-xs";
 
-/** The default button: quiet, white-alpha hover. */
-export const BUTTON = `${BUTTON_BASE} border-white/10 text-havoc-text hover:bg-white/10`;
+/**
+ * The default button: quiet, white-alpha hover.
+ *
+ * The disabled look is part of the variant, not something each caller appends.
+ * It had already been pasted onto Settings' Apply and was about to be pasted a
+ * second time onto the tour's Back — which is the same drift `PRIMARY` avoids
+ * by carrying `disabled:opacity-40` itself.
+ */
+export const BUTTON =
+  `${BUTTON_BASE} border-white/10 text-havoc-text hover:bg-white/10 ` +
+  `disabled:cursor-not-allowed disabled:opacity-40`;
 
 /**
  * The confirming action — Apply, I Agree, Yes/update now, Open GitHub issue.

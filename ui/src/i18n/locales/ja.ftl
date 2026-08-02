@@ -101,6 +101,7 @@ settings-cat-network = ネットワーク
 settings-language = 言語
 settings-language-auto = システムに合わせる
 settings-theme = テーマ
+settings-theme-system = システムに合わせる
 settings-theme-dark = ダーク
 settings-theme-light = ライト
 settings-window-section = ウィンドウ
@@ -143,6 +144,24 @@ settings-lan-failed = ミラーを開始できませんでした: { $error }
 mirror-qr-aria = ミラーのリンクの QR コード
 settings-cancel = キャンセル
 settings-apply = 適用
+
+## Onboarding tour (FT-50)
+tour-step = { $total } 件中 { $n } 件目
+tour-skip = スキップ
+tour-back = 戻る
+tour-next = 次へ
+tour-done = 書きはじめる
+tour-welcome-title = Freally Teleprompt へようこそ
+tour-welcome-body = すべてお使いのパソコンの中だけで動くテレプロンプターです。アカウントもクラウドも AI もサブスクリプションもありません。所要時間は約 1 分です。いつでもスキップでき、設定からもう一度見ることもできます。
+tour-write-title = 原稿を書く
+tour-write-body = 左側に入力するか貼り付けてください。複数の原稿を持つには「原稿」を開きます。書いているそばから自動で保存されます。ハイフン 2 つで「ここで間を取る」という印になり、カーソルの先に薄く出る候補が長い単語を補ってくれます。
+tour-read-title = 読む速さを決める
+tour-read-body = 速度は実際の読み上げペース、つまり 1 秒あたりの文字数です。ビートに合わせてラップや歌をのせるなら BPM に切り替えてください。再生・一時停止・巻き戻しはエディターの下にあります。プレビューの好きな単語をクリックすれば、そこから始められます。光っている単語はつねに読み取り線の上にとどまります。
+tour-show-title = 読み手に見せる
+tour-show-body = プロジェクターは原稿を 2 つ目の画面に映します。ハーフミラー越しに読む場合は左右反転でき、自宅のネットワーク上のスマートフォンに映すこともできます。書体・色・余白・言語・テーマなど、そのほかの設定はタイトルバーの歯車の中にあります。
+settings-tour-section = はじめに
+settings-tour-replay = ツアーをもう一度見る
+settings-tour-replay-note = エディター、速度の操作、プロジェクターについての 4 ステップの案内をもう一度表示します。何を指しているか見えるよう、先に設定を閉じます。
 
 ## First-run agreement
 eula-title = エンドユーザー使用許諾契約

@@ -21,11 +21,25 @@ export type Look = {
   guidePct: number;
 };
 
+/**
+ * What the operator picked (FT-50). `"system"` follows the OS's
+ * `prefers-color-scheme` and repaints when it changes; the other two pin it.
+ * Mirror of Rust's `THEMES`.
+ */
+export type ThemeSetting = "system" | "dark" | "light";
+
+/**
+ * What actually gets stamped onto `<html data-theme>`. Deliberately narrower
+ * than `ThemeSetting`: the CSS knows two palettes, so `"system"` is resolved
+ * before it ever reaches the document.
+ */
+export type ResolvedTheme = "dark" | "light";
+
 /** Mirror of `settings::Settings`. */
 export type Settings = {
   /** BCP-47 tag, or `"auto"` to follow the OS. */
   language: string;
-  theme: "dark" | "light";
+  theme: ThemeSetting;
   /** Scroll speed in visible characters per second. */
   speed: number;
   /** Reading font size in px. */
@@ -78,6 +92,13 @@ export type Settings = {
    * draft can never wipe acceptance. `eulaAccept()` is the only way to set it.
    */
   acceptedEulaVersion: string | null;
+  /**
+   * Whether the first-run onboarding tour has been shown (FT-50). Read-only
+   * from the UI's point of view, for the same reason as `acceptedEulaVersion`:
+   * a Settings draft taken while the tour was still open carries `false`, and
+   * Rust's `settings_set` ignores it. `onboardingSetSeen()` is the only writer.
+   */
+  onboardingSeen: boolean;
 };
 
 /** Mirror of `eula::EulaStatus`. */

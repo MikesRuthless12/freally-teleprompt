@@ -101,6 +101,7 @@ settings-cat-network = الشبكة
 settings-language = اللغة
 settings-language-auto = مثل نظامي
 settings-theme = السمة
+settings-theme-system = مثل نظامي
 settings-theme-dark = داكن
 settings-theme-light = فاتح
 settings-window-section = النافذة
@@ -143,6 +144,24 @@ settings-lan-failed = تعذّر بدء المزامنة: { $error }
 mirror-qr-aria = رمز QR لرابط المزامنة
 settings-cancel = إلغاء
 settings-apply = تطبيق
+
+## Onboarding tour (FT-50)
+tour-step = { $n } من { $total }
+tour-skip = تخطٍّ
+tour-back = رجوع
+tour-next = التالي
+tour-done = ابدأ الكتابة
+tour-welcome-title = أهلًا بك في Freally Teleprompt
+tour-welcome-body = ملقّن نصوص يعمل بالكامل على جهازك أنت. بلا حساب، بلا سحابة، بلا ذكاء اصطناعي، وبلا اشتراك. يستغرق هذا نحو دقيقة — اضغط «تخطٍّ» متى شئت، ويمكنك تشغيله مرة أخرى من الإعدادات.
+tour-write-title = اكتب نصّك
+tour-write-body = اكتب أو الصق في الجهة اليمنى. افتح «النصوص» للاحتفاظ بأكثر من نص؛ وكل ما تكتبه يُحفظ أولًا بأول. شرطتان تعنيان وقفة تريد أن تطيلها، والاقتراحات الباهتة أمام المؤشر تُكمل لك الكلمات الطويلة.
+tour-read-title = اضبط إيقاعك
+tour-read-body = السرعة إيقاع قراءة حقيقي — عدد الأحرف في الثانية — أو انتقل إلى BPM إن كنت تؤدّي الراب أو تغنّي على إيقاع. التشغيل والإيقاف المؤقت والإرجاع أسفل المحرّر، أو انقر أي كلمة في المعاينة لتبدأ منها. الكلمة المضيئة تبقى دائمًا على سطر القراءة.
+tour-show-title = اعرضه على من يقرأ
+tour-show-body = يضع العارض النص على شاشة ثانية، مقلوبًا للزجاج شبه العاكس إن كنت تقرأ من خلاله، أو منسوخًا إلى هاتف على شبكتك أنت. وكل ما عدا ذلك — الخط واللون والهوامش واللغة والسمة — خلف رمز الترس في شريط العنوان.
+settings-tour-section = البداية
+settings-tour-replay = أعد عرض الجولة
+settings-tour-replay-note = يعيد تشغيل التعريف المكوَّن من أربع خطوات بالمحرّر وأدوات الإيقاع والعارض. تُغلق الإعدادات أولًا لكي ترى ما تشير إليه.
 
 ## First-run agreement
 eula-title = اتفاقية ترخيص المستخدم النهائي

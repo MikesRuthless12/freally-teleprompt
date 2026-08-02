@@ -12,8 +12,9 @@ import {
   resolveLocale,
   SOURCE_LOCALE,
 } from "../locales";
-import { t } from "../t";
+import { applyTheme, resolveTheme, t } from "../t";
 import { FONT_FAMILY_IDS } from "../../lib/fonts";
+import { TOUR_STEPS } from "../../panels/Tour";
 
 /** `key = value` ids from a catalog, ignoring comments and blank lines. */
 function keysOf(source: string): Set<string> {
@@ -40,6 +41,83 @@ describe("typeface picker keys (FT-15)", () => {
       expect(source.has(key), `${key} missing from ${SOURCE_LOCALE}.ftl`).toBe(true);
       expect(t(key)).not.toBe(key);
     }
+  });
+});
+
+/**
+ * The onboarding tour builds its keys from the step id — `tour-${step}-title` —
+ * so `i18n-lint` cannot see them either, for exactly the reason above. Without
+ * this the tour would ship with `tour-write-title` as a visible heading.
+ */
+describe("onboarding tour keys (FT-50)", () => {
+  it("every step resolves to a real title and body", () => {
+    const source = keysOf(catalogSource(SOURCE_LOCALE));
+    expect(TOUR_STEPS.length).toBeGreaterThan(0);
+    for (const step of TOUR_STEPS) {
+      for (const key of [`tour-${step}-title`, `tour-${step}-body`]) {
+        expect(source.has(key), `${key} missing from ${SOURCE_LOCALE}.ftl`).toBe(true);
+        expect(t(key)).not.toBe(key);
+      }
+    }
+  });
+
+  it("has no orphaned step strings left in the catalog", () => {
+    // The other direction: a step removed from the tour leaves two keys behind
+    // in all eighteen catalogs, which key-parity is perfectly happy with.
+    const live = new Set(TOUR_STEPS.flatMap((s) => [`tour-${s}-title`, `tour-${s}-body`]));
+    const orphans = [...keysOf(catalogSource(SOURCE_LOCALE))].filter(
+      (key) => /^tour-.+-(title|body)$/.test(key) && !live.has(key),
+    );
+    expect(orphans).toEqual([]);
+  });
+});
+
+/**
+ * `"system"` (FT-50) is resolved here, never stamped onto the document — the
+ * CSS knows two palettes, and a third `data-theme` value meaning "ask the OS"
+ * would put the decision in two places.
+ */
+describe("theme resolution (FT-50)", () => {
+  const setSystemDark = (on: boolean) =>
+    (window as unknown as { __setSystemDark: (v: boolean) => void }).__setSystemDark(on);
+
+  it("passes a pinned theme straight through", () => {
+    setSystemDark(true);
+    expect(resolveTheme("dark")).toBe("dark");
+    expect(resolveTheme("light")).toBe("light");
+  });
+
+  it("reads the OS preference for 'system'", () => {
+    setSystemDark(true);
+    expect(resolveTheme("system")).toBe("dark");
+    setSystemDark(false);
+    expect(resolveTheme("system")).toBe("light");
+  });
+
+  it("stamps the RESOLVED theme, never the word 'system'", () => {
+    setSystemDark(true);
+    applyTheme("system");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("repaints when the OS preference changes under 'system'", () => {
+    setSystemDark(true);
+    applyTheme("system");
+    setSystemDark(false);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  });
+
+  /**
+   * The half that is easy to get wrong: pinning a theme has to UNSUBSCRIBE.
+   * Leaving the listener attached means a user who deliberately chose Light
+   * gets flipped to dark the moment their OS switches at sunset — the exact
+   * thing pinning it was meant to prevent.
+   */
+  it("stops following the OS once a theme is pinned", () => {
+    applyTheme("system");
+    applyTheme("light");
+    setSystemDark(true);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
 });
 

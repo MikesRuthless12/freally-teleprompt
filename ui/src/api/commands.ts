@@ -36,6 +36,15 @@ export const settingsGet = (): Promise<Settings> => invoke("settings_get");
  */
 export const settingsSet = (next: Settings): Promise<Settings> => invoke("settings_set", { next });
 
+/**
+ * Record that the onboarding tour has been shown, or clear it to arm it again
+ * (FT-50). Its own command rather than a `settingsSet` field: Rust deliberately
+ * preserves `onboardingSeen` across `settingsSet`, so a Settings draft taken
+ * while the tour was open cannot re-arm it.
+ */
+export const onboardingSetSeen = (seen: boolean): Promise<void> =>
+  invoke("onboarding_set_seen", { seen });
+
 export const eulaStatus = (): Promise<EulaStatus> => invoke("eula_status");
 
 export const eulaAccept = (): Promise<void> => invoke("eula_accept");

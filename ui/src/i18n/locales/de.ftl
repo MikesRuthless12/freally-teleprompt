@@ -101,6 +101,7 @@ settings-cat-network = Netzwerk
 settings-language = Sprache
 settings-language-auto = Wie mein System
 settings-theme = Design
+settings-theme-system = Wie mein System
 settings-theme-dark = Dunkel
 settings-theme-light = Hell
 settings-window-section = Fenster
@@ -143,6 +144,24 @@ settings-lan-failed = Die Spiegelung konnte nicht gestartet werden: { $error }
 mirror-qr-aria = QR-Code für den Spiegelungs-Link
 settings-cancel = Abbrechen
 settings-apply = Anwenden
+
+## Onboarding tour (FT-50)
+tour-step = { $n } von { $total }
+tour-skip = Überspringen
+tour-back = Zurück
+tour-next = Weiter
+tour-done = Los geht's
+tour-welcome-title = Willkommen bei Freally Teleprompt
+tour-welcome-body = Ein Teleprompter, der vollständig auf deinem eigenen Rechner läuft. Kein Konto, keine Cloud, keine KI, kein Abo. Das dauert etwa eine Minute – du kannst jederzeit überspringen und die Tour später in den Einstellungen erneut starten.
+tour-write-title = Schreib dein Skript
+tour-write-body = Tippe oder füge links ein. Über Skripte verwaltest du mehrere Texte; alles wird beim Schreiben gespeichert. Zwei Bindestriche setzen eine Pause, die du halten möchtest, und die blassen Vorschläge vor dem Cursor vervollständigen lange Wörter für dich.
+tour-read-title = Bestimme dein Tempo
+tour-read-body = Die Geschwindigkeit ist ein echtes Lesetempo – Zeichen pro Sekunde – oder wechsle zu BPM, wenn du zu einem Beat rappst oder singst. Wiedergabe, Pause und Rücklauf liegen unter dem Editor, oder klicke in der Vorschau auf ein beliebiges Wort, um dort zu beginnen. Das hervorgehobene Wort steht immer auf der Leselinie.
+tour-show-title = Zeig es der Sprecherin oder dem Sprecher
+tour-show-body = Der Projektor bringt das Skript auf einen zweiten Bildschirm, bei Bedarf für Spiegelglas gespiegelt, oder überträgt es auf ein Telefon im eigenen Netzwerk. Alles andere – Schrift, Farbe, Ränder, Sprache, Design – liegt hinter dem Zahnrad in der Titelleiste.
+settings-tour-section = Erste Schritte
+settings-tour-replay = Tour erneut anzeigen
+settings-tour-replay-note = Startet die vierteilige Einführung zu Editor, Temporeglern und Projektor. Die Einstellungen werden zuerst geschlossen, damit du siehst, worum es geht.
 
 ## First-run agreement
 eula-title = Endbenutzer-Lizenzvereinbarung

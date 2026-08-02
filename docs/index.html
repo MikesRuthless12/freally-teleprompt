@@ -86,10 +86,34 @@
       <img class="logo" src="freally-icon.png" alt="Freally Teleprompt icon" width="288" height="288" />
       <h1>Freally Teleprompt</h1>
       <p class="sub">Look confident. Stay on script. — a local-first teleprompter that reads at a real human pace and marks your pauses. No AI, no account, no cloud.</p>
+
+      <!-- Real per-OS download counts, or nothing at all (FT-04/FT-52). Filled
+           in by the script at the foot of this page. -->
+      <div class="dl-stats" id="dl-stats" hidden></div>
     </header>
 
     <main class="landing">
       <div class="cta-row">
+        <!-- FT-52 — the download menu.
+             Every href uses GitHub's `/releases/latest/download/<asset>` path,
+             which redirects to whatever the newest published release actually
+             attached. That is the "stable naming scheme": the URLs here never
+             carry a version number, so they resolve the moment a release is
+             published `--latest` and never need editing again. Until then they
+             404, which is why the whole menu stays hidden behind `#dl-real`
+             until the script below confirms a release exists. -->
+        <details class="dl" id="dl-real" hidden>
+          <summary>Download <span class="chev">▾</span></summary>
+          <div class="dl-menu">
+            <a id="dl-win" href="#" rel="noopener">Windows — installer (.exe)</a>
+            <a id="dl-win-msi" href="#" rel="noopener">Windows — MSI</a>
+            <a id="dl-mac" href="#" rel="noopener">macOS — universal (.dmg)</a>
+            <a id="dl-linux" href="#" rel="noopener">Linux — AppImage</a>
+            <a id="dl-deb" href="#" rel="noopener">Linux — Debian/Ubuntu (.deb)</a>
+            <span class="dl-note">Free core · no account · your scripts stay on your device.</span>
+          </div>
+        </details>
+        <span class="future" id="dl-none">No release yet — in development</span>
         <a class="cta" href="documentation.html">Read the Documentation →</a>
         <p class="cta-note">In development — Windows, macOS &amp; Linux. Free core, local-first, no subscription required.</p>
       </div>
@@ -133,5 +157,96 @@
         <a href="documentation.html">Documentation</a>
       </p>
     </footer>
+
+    <!--
+      FT-52 — resolve the download menu against the real release, client-side.
+
+      Deliberately reads the public releases API rather than hard-coding asset
+      names: Tauri stamps the version into every filename
+      (`Freally.Teleprompt_1.0.0_x64-setup.exe`), so any name written here would
+      go stale on the next release. The `/latest/download/<name>` URLs the menu
+      uses are stable; only the NAMES have to be discovered, and this is what
+      discovers them.
+
+      Real numbers or none — never a fabricated count, and never a download
+      button that 404s. If the fetch fails, if there is no release, or if the
+      page is opened offline, the menu simply stays hidden and the
+      "in development" chip stays where it is.
+    -->
+    <script>
+      (function () {
+        var REPO = "MikesRuthless12/freally-teleprompt";
+        var BASE = "https://github.com/" + REPO + "/releases/latest/download/";
+        // [element id, a predicate over the asset name]. Order matters only in
+        // that `.exe` must not also match the NSIS uninstaller, hence `setup`.
+        var WANT = [
+          ["dl-win", /setup\.exe$/i],
+          ["dl-win-msi", /\.msi$/i],
+          ["dl-mac", /\.dmg$/i],
+          ["dl-linux", /\.AppImage$/i],
+          ["dl-deb", /\.deb$/i],
+        ];
+        // Which OS an asset counts towards, for the download tally.
+        var OS = [
+          ["Windows", /\.(exe|msi)$/i],
+          ["macOS", /\.dmg$/i],
+          ["Linux", /\.(AppImage|deb)$/i],
+        ];
+
+        fetch("https://api.github.com/repos/" + REPO + "/releases/latest", {
+          headers: { Accept: "application/vnd.github+json" },
+        })
+          .then(function (r) {
+            if (!r.ok) throw new Error(String(r.status));
+            return r.json();
+          })
+          .then(function (release) {
+            var assets = release.assets || [];
+            if (!assets.length) return;
+
+            var shown = 0;
+            WANT.forEach(function (pair) {
+              var el = document.getElementById(pair[0]);
+              var hit = assets.filter(function (a) {
+                return pair[1].test(a.name);
+              })[0];
+              if (!el) return;
+              if (!hit) {
+                // A platform this release did not build is hidden outright
+                // rather than offered as a link that fails.
+                el.hidden = true;
+                return;
+              }
+              el.href = BASE + hit.name;
+              shown++;
+            });
+            if (!shown) return;
+
+            document.getElementById("dl-real").hidden = false;
+            document.getElementById("dl-none").hidden = true;
+
+            var total = 0;
+            var parts = OS.map(function (pair) {
+              var n = assets.reduce(function (sum, a) {
+                return pair[1].test(a.name) ? sum + (a.download_count || 0) : sum;
+              }, 0);
+              total += n;
+              return '<span class="dl-stats-os">' + pair[0] + " <b>" + n.toLocaleString() + "</b></span>";
+            });
+            if (total > 0) {
+              var stats = document.getElementById("dl-stats");
+              stats.innerHTML =
+                '<span class="dl-stats-total"><strong>' +
+                total.toLocaleString() +
+                "</strong> downloads</span>" +
+                parts.join("");
+              stats.hidden = false;
+            }
+          })
+          .catch(function () {
+            /* No release, rate-limited, or offline: leave the page as it is. */
+          });
+      })();
+    </script>
   </body>
 </html>

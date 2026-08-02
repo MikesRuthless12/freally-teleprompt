@@ -101,6 +101,7 @@ settings-cat-network = Netwerk
 settings-language = Taal
 settings-language-auto = Hetzelfde als mijn systeem
 settings-theme = Thema
+settings-theme-system = Hetzelfde als mijn systeem
 settings-theme-dark = Donker
 settings-theme-light = Licht
 settings-window-section = Venster
@@ -143,6 +144,24 @@ settings-lan-failed = De spiegeling kon niet starten: { $error }
 mirror-qr-aria = QR-code voor de spiegellink
 settings-cancel = Annuleren
 settings-apply = Toepassen
+
+## Onboarding tour (FT-50)
+tour-step = { $n } van { $total }
+tour-skip = Overslaan
+tour-back = Terug
+tour-next = Volgende
+tour-done = Beginnen met schrijven
+tour-welcome-title = Welkom bij Freally Teleprompt
+tour-welcome-body = Een autocue die volledig op je eigen machine draait. Geen account, geen cloud, geen AI, geen abonnement. Dit duurt ongeveer een minuut — sla het gerust over, en je kunt het later opnieuw starten vanuit de instellingen.
+tour-write-title = Schrijf je tekst
+tour-write-body = Typ of plak aan de linkerkant. Open Script om er meer dan één te bewaren; alles wordt bewaard terwijl je schrijft. Twee streepjes markeren een pauze die je wilt aanhouden, en de vage suggesties vóór de cursor maken lange woorden voor je af.
+tour-read-title = Bepaal je tempo
+tour-read-body = Snelheid is een echt leestempo — tekens per seconde — of schakel over naar BPM als je rapt of zingt op een beat. Afspelen, pauzeren en terugspoelen staan onder de editor, of klik op een willekeurig woord in het voorbeeld om daar te beginnen. Het opgelichte woord staat altijd op de leeslijn.
+tour-show-title = Laat het zien aan wie voorleest
+tour-show-body = De projector zet de tekst op een tweede scherm, gespiegeld voor spiegelglas als je daardoorheen leest, of doorgestuurd naar een telefoon in je eigen netwerk. Al het andere — lettertype, kleur, marges, taal, thema — zit achter het tandwiel in de titelbalk.
+settings-tour-section = Aan de slag
+settings-tour-replay = Rondleiding opnieuw tonen
+settings-tour-replay-note = Start de introductie in vier stappen over de editor, de tempoknoppen en de projector. De instellingen sluiten eerst, zodat je ziet waar het over gaat.
 
 ## First-run agreement
 eula-title = Licentieovereenkomst voor eindgebruikers

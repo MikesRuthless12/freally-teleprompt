@@ -31,7 +31,22 @@ export type MockState = {
   script?: string;
   playing?: boolean;
   offset?: number;
-  theme?: "dark" | "light";
+  theme?: "system" | "dark" | "light";
+  /**
+   * Whether the onboarding tour has already been shown (FT-50).
+   *
+   * Defaults to **true** — i.e. the app as a returning user sees it. A mock
+   * that defaulted to a first run would drop the tour over every other spec's
+   * screenshot, and each of them would have to dismiss a dialog it is not
+   * testing. Set it to `false` in the specs that are actually about the tour.
+   */
+  onboardingSeen?: boolean;
+  /**
+   * The scrubbed crash report `bug_report_pending` finds from the previous run
+   * (FT-06), or undefined for a clean one. Set it to make the reporter claim
+   * the launch dialog slot.
+   */
+  pendingCrash?: string;
   /** The locale the app boots in (`settings.language`); defaults to English. */
   language?: string;
   /** The reading appearance the engine reports (FT-15). */
@@ -154,6 +169,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       voiceFollowEnabled: state.voiceFollowEnabled ?? false,
       recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
+      onboardingSeen: state.onboardingSeen !== false,
     },
     eula: {
       version: "2026-07-21",
@@ -182,6 +198,10 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       detail: "voice-following is not available in this build",
     },
     windowLabel: state.windowLabel ?? null,
+    // `null`, not undefined: this crosses into the page as JSON, where
+    // undefined would vanish and `bug_report_pending` would fall through to
+    // the catch-all instead of answering "no crash".
+    pendingCrash: state.pendingCrash ?? null,
   };
 
   await page.addInitScript((data: typeof payload) => {
@@ -225,6 +245,8 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       settings_get: data.settings,
       eula_status: data.eula,
       eula_accept: null,
+      onboarding_set_seen: null,
+      bug_report_pending: data.pendingCrash,
       scripts_list: data.scripts,
       scripts_open: null,
       scripts_save: null,
@@ -294,9 +316,21 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
           // `null` (as this mock used to) made `apply()` throw into its own
           // catch, so every "apply" in a test recorded the right IPC call and
           // then changed nothing on screen.
-          case "settings_set":
-            Object.assign(data.settings, args.next ?? {});
+          case "settings_set": {
+            const next = (args.next ?? {}) as Record<string, unknown>;
+            // Rust PRESERVES these three across `set` — they are records of
+            // what happened, not preferences, and every draft carries a
+            // possibly-stale copy (see `settings.rs`). Mirroring that here
+            // matters: a mock that let a draft write `onboardingSeen` would let
+            // a spec prove the tour behaves in a way the real app does not.
+            const preserved = {
+              acceptedEulaVersion: data.settings.acceptedEulaVersion,
+              recentScripts: data.settings.recentScripts,
+              onboardingSeen: data.settings.onboardingSeen,
+            };
+            Object.assign(data.settings, next, preserved);
             return Promise.resolve({ ...data.settings });
+          }
           // Voice model (FT-31): recording is audio-free here — the mock just
           // updates the take counts so the pane reflects what the UI asked for.
           case "voice_summary":

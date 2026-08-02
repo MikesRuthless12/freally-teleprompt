@@ -101,6 +101,7 @@ settings-cat-network = 네트워크
 settings-language = 언어
 settings-language-auto = 시스템과 동일
 settings-theme = 테마
+settings-theme-system = 시스템과 동일
 settings-theme-dark = 어둡게
 settings-theme-light = 밝게
 settings-window-section = 창
@@ -143,6 +144,24 @@ settings-lan-failed = 미러를 시작하지 못했습니다: { $error }
 mirror-qr-aria = 미러 링크 QR 코드
 settings-cancel = 취소
 settings-apply = 적용
+
+## Onboarding tour (FT-50)
+tour-step = { $total }단계 중 { $n }단계
+tour-skip = 건너뛰기
+tour-back = 이전
+tour-next = 다음
+tour-done = 대본 쓰기 시작
+tour-welcome-title = Freally Teleprompt에 오신 것을 환영합니다
+tour-welcome-body = 전적으로 내 컴퓨터 안에서만 도는 프롬프터입니다. 계정도, 클라우드도, AI도, 구독도 없습니다. 1분쯤 걸립니다. 언제든 건너뛸 수 있고, 설정에서 다시 볼 수도 있습니다.
+tour-write-title = 대본을 쓰세요
+tour-write-body = 왼쪽에 입력하거나 붙여 넣으세요. 여러 개를 두려면 대본을 여세요. 쓰는 동안 모두 저장됩니다. 붙임표 두 개는 붙잡고 싶은 쉼을 뜻하고, 커서 앞의 흐린 제안이 긴 낱말을 대신 완성해 줍니다.
+tour-read-title = 속도를 정하세요
+tour-read-body = 속도는 실제 읽기 속도, 곧 초당 글자 수입니다. 비트에 맞춰 랩을 하거나 노래한다면 BPM으로 바꾸세요. 재생, 일시정지, 되감기는 편집기 아래에 있고, 미리보기의 아무 낱말이나 눌러 거기서 시작할 수도 있습니다. 켜진 낱말은 언제나 읽기 선 위에 놓입니다.
+tour-show-title = 읽는 사람에게 보여 주세요
+tour-show-body = 프로젝터는 대본을 두 번째 화면으로 보냅니다. 반투명 거울 너머로 읽는다면 좌우를 뒤집을 수 있고, 같은 네트워크의 휴대폰으로 내보낼 수도 있습니다. 글꼴, 색, 여백, 언어, 테마 등 나머지는 모두 제목 표시줄의 톱니바퀴 안에 있습니다.
+settings-tour-section = 시작하기
+settings-tour-replay = 둘러보기 다시 보기
+settings-tour-replay-note = 편집기, 속도 조절, 프로젝터에 대한 네 단계 안내를 다시 실행합니다. 무엇을 가리키는지 보이도록 설정을 먼저 닫습니다.
 
 ## First-run agreement
 eula-title = 최종 사용자 사용권 계약

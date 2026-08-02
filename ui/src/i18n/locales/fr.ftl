@@ -101,6 +101,7 @@ settings-cat-network = Réseau
 settings-language = Langue
 settings-language-auto = Comme mon système
 settings-theme = Thème
+settings-theme-system = Comme mon système
 settings-theme-dark = Sombre
 settings-theme-light = Clair
 settings-window-section = Fenêtre
@@ -143,6 +144,24 @@ settings-lan-failed = La diffusion n'a pas pu démarrer : { $error }
 mirror-qr-aria = Code QR du lien de diffusion
 settings-cancel = Annuler
 settings-apply = Appliquer
+
+## Onboarding tour (FT-50)
+tour-step = { $n } sur { $total }
+tour-skip = Passer
+tour-back = Retour
+tour-next = Suivant
+tour-done = Commencer à écrire
+tour-welcome-title = Bienvenue dans Freally Teleprompt
+tour-welcome-body = Un prompteur qui fonctionne entièrement sur votre machine. Pas de compte, pas de cloud, pas d'IA, aucun abonnement. Comptez une minute — appuyez sur Passer quand vous voulez, et relancez la visite depuis les réglages.
+tour-write-title = Écrivez votre texte
+tour-write-body = Tapez ou collez à gauche. Ouvrez Script pour en garder plusieurs ; tout est enregistré au fil de la frappe. Deux tirets marquent une pause que vous voulez tenir, et les suggestions grisées devant le curseur terminent les mots longs à votre place.
+tour-read-title = Réglez votre rythme
+tour-read-body = La vitesse est un vrai rythme de lecture — caractères par seconde — ou passez en BPM si vous rappez ou chantez sur un tempo. Lecture, pause et retour se trouvent sous l'éditeur, ou cliquez sur n'importe quel mot de l'aperçu pour partir de là. Le mot allumé reste toujours sur la ligne de lecture.
+tour-show-title = Montrez-le à qui lit
+tour-show-body = Le projecteur affiche le texte sur un second écran, inversé pour un miroir sans tain si vous lisez à travers, ou renvoyé vers un téléphone sur votre propre réseau. Tout le reste — police, couleur, marges, langue, thème — se trouve derrière l'engrenage de la barre de titre.
+settings-tour-section = Premiers pas
+settings-tour-replay = Revoir la visite
+settings-tour-replay-note = Relance la présentation en quatre étapes de l'éditeur, des commandes de rythme et du projecteur. Les réglages se ferment d'abord, pour que vous voyiez ce dont il est question.
 
 ## First-run agreement
 eula-title = Contrat de licence utilisateur final

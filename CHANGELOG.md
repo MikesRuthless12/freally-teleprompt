@@ -9,10 +9,18 @@ together — they are two renderings of the same history.
 
 ## [Unreleased]
 
-Phase 3 — hands-free voice control. Merged to `main`, not yet cut as a release.
+Phase 3 — hands-free voice control — and the first part of Phase 5's polish
+pass. Merged to `main`, not yet cut as a release.
 
 ### Added
 
+- **A one-minute welcome tour** (FT-50) — the first time you open the app, four
+  short steps introduce the editor and its pause marks, the pace controls, and
+  the projector. Skip it at any point, and run it again whenever you like from
+  **Settings → General → Show the tour again**.
+- **A theme that follows your system** (FT-50) — alongside Dark and Light there
+  is now **Same as my system**, which switches with your OS and repaints
+  immediately when your machine changes at sunset. Dark is still the default.
 - **Voice commands** (FT-30, FT-31) — train **play, pause, faster, slower, next
   pause, back to top** in your own voice (a few takes each) and drive the
   prompter hands-free. A visible **● Listening** indicator shows whenever the
@@ -26,6 +34,17 @@ Phase 3 — hands-free voice control. Merged to `main`, not yet cut as a release
   operator preview, never the projector. **Off by default**, and greyed out with
   a reason where the model isn't installed. The deterministic alignment layer
   that decides where in the script you are is fully owned and unit-tested.
+
+### Changed
+
+- **Keyboard and screen-reader accessibility pass** (FT-50) — every focusable
+  control now shows a clear focus ring; **Tab** stays inside an open dialog
+  instead of wandering onto the window behind it; closing a dialog hands focus
+  back to the button that opened it; and the Settings category list now reports
+  the pane you are actually looking at, even while a search is filtering it.
+  The app also honours **reduce motion** throughout. The script's own scroll is
+  deliberately untouched by that setting — it is the thing the app is for, and
+  you already control its speed directly.
 
 ### Privacy
 

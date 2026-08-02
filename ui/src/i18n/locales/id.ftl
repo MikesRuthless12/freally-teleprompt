@@ -101,6 +101,7 @@ settings-cat-network = Jaringan
 settings-language = Bahasa
 settings-language-auto = Sama seperti sistem saya
 settings-theme = Tema
+settings-theme-system = Sama seperti sistem saya
 settings-theme-dark = Gelap
 settings-theme-light = Terang
 settings-window-section = Jendela
@@ -143,6 +144,24 @@ settings-lan-failed = Cermin tidak bisa dijalankan: { $error }
 mirror-qr-aria = Kode QR untuk tautan cermin
 settings-cancel = Batal
 settings-apply = Terapkan
+
+## Onboarding tour (FT-50)
+tour-step = { $n } dari { $total }
+tour-skip = Lewati
+tour-back = Kembali
+tour-next = Lanjut
+tour-done = Mulai menulis
+tour-welcome-title = Selamat datang di Freally Teleprompt
+tour-welcome-body = Teleprompter yang berjalan sepenuhnya di komputer Anda sendiri. Tanpa akun, tanpa awan, tanpa AI, tanpa langganan. Ini memakan waktu sekitar satu menit — tekan Lewati kapan saja, dan Anda bisa menjalankannya lagi dari pengaturan.
+tour-write-title = Tulis naskah Anda
+tour-write-body = Ketik atau tempel di sebelah kiri. Buka Naskah untuk menyimpan lebih dari satu; semuanya tersimpan sambil Anda menulis. Dua tanda hubung menandai jeda yang ingin Anda tahan, dan saran samar di depan kursor menyelesaikan kata-kata panjang untuk Anda.
+tour-read-title = Atur tempo Anda
+tour-read-body = Kecepatan adalah tempo membaca yang sebenarnya — karakter per detik — atau beralihlah ke BPM jika Anda nge-rap atau bernyanyi mengikuti ketukan. Putar, jeda, dan mundur ada di bawah editor, atau klik kata mana pun di pratinjau untuk mulai dari sana. Kata yang menyala selalu berada di garis baca.
+tour-show-title = Tunjukkan kepada pembaca
+tour-show-body = Proyektor menampilkan naskah di layar kedua, dibalik untuk kaca pemisah sinar jika Anda membacanya lewat kaca, atau dicerminkan ke ponsel di jaringan Anda sendiri. Selebihnya — huruf, warna, margin, bahasa, tema — ada di balik roda gigi pada bilah judul.
+settings-tour-section = Langkah awal
+settings-tour-replay = Tampilkan tur lagi
+settings-tour-replay-note = Menjalankan kembali pengenalan empat langkah tentang editor, kendali tempo, dan proyektor. Pengaturan ditutup lebih dulu agar Anda bisa melihat yang dimaksud.
 
 ## First-run agreement
 eula-title = Perjanjian Lisensi Pengguna Akhir

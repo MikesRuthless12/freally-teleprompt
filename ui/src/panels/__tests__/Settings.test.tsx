@@ -54,14 +54,26 @@ const BASE: Settings = {
   voiceFollowEnabled: false,
   recentScripts: [],
   acceptedEulaVersion: "2026-07-21",
+  onboardingSeen: true,
 };
 
 /** The theme `<select>`, found the way a screen-reader user would. */
 const themeSelect = () => screen.getByRole("combobox", { name: "Theme" });
 
-function renderDialog(open: boolean, onClose = vi.fn(), onApplied = vi.fn()) {
+function renderDialog(
+  open: boolean,
+  onClose = vi.fn(),
+  onApplied = vi.fn(),
+  onReplayTour = vi.fn(),
+) {
   return render(
-    <SettingsDialog open={open} settings={BASE} onClose={onClose} onApplied={onApplied} />,
+    <SettingsDialog
+      open={open}
+      settings={BASE}
+      onClose={onClose}
+      onApplied={onApplied}
+      onReplayTour={onReplayTour}
+    />,
   );
 }
 
@@ -126,10 +138,26 @@ describe("SettingsDialog — the draft/apply contract", () => {
     // Cancel: the parent closes the dialog without applying anything.
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onClose).toHaveBeenCalled();
-    rerender(<SettingsDialog open={false} settings={BASE} onClose={onClose} onApplied={vi.fn()} />);
+    rerender(
+      <SettingsDialog
+        open={false}
+        settings={BASE}
+        onClose={onClose}
+        onApplied={vi.fn()}
+        onReplayTour={vi.fn()}
+      />,
+    );
 
     // Reopen with the SAME settings object.
-    rerender(<SettingsDialog open={true} settings={BASE} onClose={onClose} onApplied={vi.fn()} />);
+    rerender(
+      <SettingsDialog
+        open={true}
+        settings={BASE}
+        onClose={onClose}
+        onApplied={vi.fn()}
+        onReplayTour={vi.fn()}
+      />,
+    );
     expect(themeSelect()).toHaveValue("dark");
     expect(settingsSet).not.toHaveBeenCalled();
   });
@@ -137,5 +165,64 @@ describe("SettingsDialog — the draft/apply contract", () => {
   it("renders nothing at all when closed", () => {
     renderDialog(false);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsDialog — FT-50", () => {
+  beforeEach(() => {
+    settingsSet.mockReset();
+    settingsSet.mockResolvedValue(undefined);
+  });
+
+  it("offers all three themes, including following the system", () => {
+    renderDialog(true);
+    const options = [...themeSelect().querySelectorAll("option")].map((o) => o.value);
+    expect(options).toEqual(["system", "dark", "light"]);
+  });
+
+  it("sends the system theme through the same draft as any other preference", () => {
+    renderDialog(true);
+    fireEvent.change(themeSelect(), { target: { value: "system" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+    expect(settingsSet.mock.calls[0][0].theme).toBe("system");
+  });
+
+  /**
+   * `onboardingSeen` is one of the three fields Rust preserves across `set`.
+   * The UI's half of that contract is simply never to drop it from the draft —
+   * the same rule the voice fields have, and the same way it gets broken:
+   * someone builds the draft field-by-field instead of spreading the whole
+   * settings object.
+   */
+  it("keeps the onboarding flag in the payload rather than blanking it", () => {
+    renderDialog(true);
+    fireEvent.change(themeSelect(), { target: { value: "light" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+    expect(settingsSet.mock.calls[0][0].onboardingSeen).toBe(true);
+  });
+
+  it("asks the shell to replay the tour, and writes no settings doing it", () => {
+    const onReplayTour = vi.fn();
+    renderDialog(true, vi.fn(), vi.fn(), onReplayTour);
+    fireEvent.click(screen.getByTestId("settings-tour-replay"));
+    expect(onReplayTour).toHaveBeenCalledTimes(1);
+    // Replaying the tour is an action, not a preference — it must not smuggle
+    // a settings write in behind the draft/apply contract.
+    expect(settingsSet).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The tablist bug this fixes: a search that hides the selected category left
+   * `active` pointing at a tab that is no longer rendered, so NOTHING reported
+   * itself selected while the pane went on showing the first visible category.
+   */
+  it("marks the tab whose pane is actually shown, even when a search hides the selection", () => {
+    renderDialog(true);
+    // "General" is selected on open, and does not match this search.
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "guide" } });
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[0]).toHaveAttribute("id", "settings-tab-appearance");
   });
 });

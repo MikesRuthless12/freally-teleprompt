@@ -264,24 +264,26 @@ jobs:
           # will find and then refuse, which is the safe direction.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Linux/AppImage only; inert on Windows and macOS.
+          # Linux/AppImage only; inert on Windows and macOS, which ignore it.
           #
-          # `linuxdeploy` is itself distributed AS an AppImage, so running it
-          # needs FUSE — and GitHub's ubuntu image dropped libfuse2. The symptom
-          # is uniquely unhelpful: tauri reports `failed to run linuxdeploy`
-          # with NO output whatsoever, because the tool never got as far as
-          # starting. 1.0.0 built an AppImage fine hours earlier; the runner
-          # image moved under us (the same run started warning about Node 20).
+          # The app binary LINKS `libvosk.so`, so `linuxdeploy` walks its ELF
+          # dependencies and refuses to build an AppImage it cannot resolve:
           #
-          # This makes every AppImage extract itself and run from a temp dir
-          # instead of mounting, which needs no FUSE at all.
-          APPIMAGE_EXTRACT_AND_RUN: 1
-          # The other silent linuxdeploy failure: it strips what it bundles, and
-          # a strip that fails aborts the whole run with equally little to say.
-          # `libvosk.so` is a large prebuilt GCC library and exactly the kind of
-          # thing that trips it. Skipping the strip costs bundle size, which for
-          # an AppImage already carrying a 40 MB speech model is noise.
-          NO_STRIP: "true"
+          #     ERROR: Could not find dependency: libvosk.so
+          #
+          # Our copy lives in the Tauri resource directory, which is not on any
+          # library search path, and `build.rs`'s rpath is a RUNTIME hint that
+          # says nothing to a build-time dependency walker. Pointing
+          # `LD_LIBRARY_PATH` at the vendored library is what lets linuxdeploy
+          # find it — and it then bundles it into the AppImage's own `usr/lib`,
+          # which is the correct place for it to live.
+          #
+          # Worth knowing how long this took to see: the bundler swallows its
+          # tools' output, so three runs failed saying only "failed to run
+          # linuxdeploy". Two guesses (FUSE, stripping) were spent before
+          # `--verbose` was added, and both were wrong — tauri already passes
+          # `--appimage-extract-and-run` itself. Reach for the log first.
+          LD_LIBRARY_PATH: ${{ github.workspace }}/src-tauri/vendor/vosk/lib
           # No APPLE_* keys here on purpose — see the guard step above. Listing
           # one with an empty value is what breaks the macOS bundle; the guard
           # exports them to the environment only when they are real.

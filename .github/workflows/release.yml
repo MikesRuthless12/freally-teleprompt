@@ -307,7 +307,13 @@ jobs:
           # "unavailable", and the overlay config adds the model and the native
           # libraries to the bundle. Both belong ONLY here: a default or CI build
           # has no `vendor/` directory and must never ask for one.
-          args: ${{ matrix.args }} --features vosk --config src-tauri/tauri.vosk.conf.json
+          # `--verbose` is not noise-for-its-own-sake. Without it the bundler
+          # swallows its tools' output entirely: the Linux AppImage step failed
+          # three times reporting only `failed to run linuxdeploy`, with no hint
+          # from linuxdeploy itself, which is unfixable except by guessing. A
+          # release builds rarely and is the one place a full log is worth
+          # having.
+          args: ${{ matrix.args }} --verbose --features vosk --config src-tauri/tauri.vosk.conf.json
 
   # Nothing is visible to a user until this passes. A draft release with a
   # missing platform is a support ticket; a published one is a bad afternoon.

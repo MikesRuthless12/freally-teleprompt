@@ -232,7 +232,6 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       onboarding_set_seen: null,
       bug_report_pending: data.pendingCrash,
       scripts_list: data.scripts,
-      scripts_open: null,
       scripts_save: null,
       scripts_create: null,
       scripts_rename: null,
@@ -273,6 +272,18 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             engine.offset = 0;
             emit();
             return Promise.resolve(null);
+          // Opening a script REPLACES the engine's text, exactly as Rust's
+          // `scripts_open` does. Returning a bare null (as this used to) made
+          // the library look like it worked while the prompter kept showing the
+          // previous script — so no spec could tell a real switch from a no-op,
+          // and a bug that corrupted the newly-opened script was invisible here.
+          case "scripts_open": {
+            const name = String(args.name ?? "");
+            engine.script = `[${name}]`;
+            engine.offset = 0;
+            emit();
+            return Promise.resolve(null);
+          }
           case "teleprompter_set_speed":
             engine.speed = Number(args.speed);
             emit();

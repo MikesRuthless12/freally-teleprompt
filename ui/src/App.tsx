@@ -384,22 +384,35 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [voiceError]);
 
+  // Recording must stop if the operator switches it off, revokes the agreement,
+  // or the engine becomes unavailable — otherwise the microphone stays open with
+  // the record button gone from the toolbar and NOTHING left that can close it.
+  // The Settings copy promises "the microphone is open only while recording", so
+  // this is the code that keeps that true.
+  useEffect(() => {
+    if (!dictationOn && dictating) void dictationStop().catch(() => undefined);
+  }, [dictationOn, dictating]);
+
   // What dictation last wrote, so consecutive utterances chain.
   //
   // `state.script` is NOT safe to append to twice in a row: it round-trips
   // through the engine, so two utterances arriving before that returns would
   // both append to the same base and the first would be silently lost. Speak
-  // two short phrases quickly and the first one vanishes — which an e2e test
-  // caught, and which would have been maddening to diagnose in the field.
+  // two short phrases quickly and the first one vanishes.
   //
   // While recording, dictation therefore owns the tail of the script and chains
   // from its own last write. The trade is deliberate: text typed BY HAND
-  // mid-recording is not merged. Cleared whenever recording stops, so ordinary
-  // editing always resumes from the engine's truth.
+  // mid-recording is not merged.
+  //
+  // ⚠️ Cleared when recording stops AND when the OPEN SCRIPT CHANGES. Without
+  // the second, opening another script mid-recording left this holding the old
+  // script's text; the next utterance wrote that text over the newly-opened one
+  // and autosave then persisted it — silently destroying the file on disk. It is
+  // the worst thing this feature could do, so the reset is keyed on both.
   const dictationBase = useRef<string | null>(null);
   useEffect(() => {
-    if (!dictating) dictationBase.current = null;
-  }, [dictating]);
+    dictationBase.current = null;
+  }, [dictating, currentScript]);
 
   // Held in a ref and refreshed every render. The listener below is registered
   // ONCE, so a closure over `state.script` would append to whatever the script

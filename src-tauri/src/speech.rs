@@ -115,7 +115,20 @@ pub struct DictationState {
 ///
 /// Emits `voice:dictation` with each completed utterance for the UI to insert.
 #[tauri::command]
-pub fn dictation_start(app: AppHandle, state: State<'_, DictationState>) -> Result<(), String> {
+pub fn dictation_start(
+    app: AppHandle,
+    window: tauri::Window,
+    state: State<'_, DictationState>,
+) -> Result<(), String> {
+    // App commands registered with `generate_handler!` are NOT covered by the
+    // capability files, so `projector.json` being deliberately narrow does not
+    // stop the projector webview from invoking this. Nothing today can reach it
+    // — the CSP is `default-src 'self'` with no inline script, and no component
+    // injects HTML — but "opens the microphone" is the one command worth an
+    // explicit window check rather than an argument about reachability.
+    if window.label() != "main" {
+        return Err("dictation can only be started from the main window".into());
+    }
     // Resolved ONCE and moved into the thread. `model_dir` stats the data
     // directory and asks Tauri for the resource directory (which on Windows
     // means `current_exe()` plus canonicalisation); doing that again inside the

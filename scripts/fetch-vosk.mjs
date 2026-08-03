@@ -30,7 +30,8 @@
  * Vosk's code is Apache-2.0 and this model's weights are Apache-2.0. The
  * `daanzu` models are AGPL and the `zamia` one LGPL-3.0 — do not swap one in.
  */
-import { createWriteStream, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createWriteStream, existsSync, readdirSync } from "node:fs";
 import { copyFile, mkdir, rm, readdir, rename } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -56,25 +57,30 @@ const MODEL_NAME = "vosk-model-small-en-us-0.15";
 const PLATFORMS = {
   win32: {
     url: `https://github.com/alphacep/vosk-api/releases/download/v${VOSK_VERSION}/vosk-win64-${VOSK_VERSION}.zip`,
+    sha256: "9a63e42bd970343041d19e784e545228d3f4703ccec9f2eb1ccc6d5e96c170c3",
     // libvosk is built with MinGW, so its three runtime DLLs ship alongside it —
     // the app will not start without them.
-    ship: /\.dll$/i,
-    link: /\.lib$/i,
+    ship: /^(libvosk|libgcc_s_seh-1|libstdc\+\+-6|libwinpthread-1)\.dll$/i,
+    link: /^libvosk\.lib$/i,
   },
   darwin: {
     url: `https://github.com/alphacep/vosk-api/releases/download/v${VOSK_VERSION}/vosk-osx-${VOSK_VERSION}.zip`,
+    sha256: "65395f196c9d0583d79949142b25560acaf9c295f36284e18433097f3adb0ea1",
     // On Unix the shared object IS the link target, so it is both.
-    ship: /\.dylib$/,
-    link: /\.dylib$/,
+    ship: /^libvosk\.dylib$/,
+    link: /^libvosk\.dylib$/,
   },
   linux: {
     url: `https://github.com/alphacep/vosk-api/releases/download/v${VOSK_VERSION}/vosk-linux-x86_64-${VOSK_VERSION}.zip`,
-    ship: /\.so(\.\d+)*$/,
-    link: /\.so(\.\d+)*$/,
+    sha256: "70480495011a29f957c1194cd460449ef7de8c17ea000e387ddb13fd7f844d42",
+    ship: /^libvosk\.so(\.\d+)*$/,
+    link: /^libvosk\.so(\.\d+)*$/,
   },
 };
 
 const MODEL_URL = `https://alphacephei.com/vosk/models/${MODEL_NAME}.zip`;
+const MODEL_SHA256 =
+  "30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498";
 
 const force = process.argv.includes("--force");
 const plat = PLATFORMS[process.platform];
@@ -83,10 +89,45 @@ if (!plat) {
   process.exit(1);
 }
 
-async function download(url, dest) {
+/**
+ * Download `url` to `dest` and refuse anything whose SHA-256 is not `expected`.
+ *
+ * ⚠️ This is the ONLY thing standing between two third-party hosts and a binary
+ * that gets LINKED INTO the app, bundled into the installers, and signed with
+ * the publisher's key. Worse, `release.yml` puts the fetched directory on
+ * `LD_LIBRARY_PATH` for the whole bundling step — so a hostile archive would be
+ * preloaded into cargo, node and linuxdeploy in the one job that holds the
+ * signing key and a `contents: write` token. Transport security alone does not
+ * cover a compromised release asset or account.
+ *
+ * The hash is checked BEFORE extraction, so nothing untrusted is ever unpacked.
+ * If a version here is bumped, the digest must be recomputed with it — a
+ * mismatch is meant to stop the build, not to be "fixed" by pasting the new
+ * value in without knowing why it changed.
+ */
+async function download(url, dest, expected) {
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
-  await pipeline(Readable.fromWeb(res.body), createWriteStream(dest));
+  const hash = createHash("sha256");
+  await pipeline(
+    Readable.fromWeb(res.body),
+    async function* (source) {
+      for await (const chunk of source) {
+        hash.update(chunk);
+        yield chunk;
+      }
+    },
+    createWriteStream(dest),
+  );
+  const actual = hash.digest("hex");
+  if (actual !== expected) {
+    await rm(dest, { force: true });
+    throw new Error(
+      `checksum mismatch for ${url}\n  expected ${expected}\n  actual   ${actual}\n` +
+        "Refusing to use it. If the upstream artifact legitimately changed, verify " +
+        "the new one independently before updating the digest.",
+    );
+  }
 }
 
 /**
@@ -130,8 +171,16 @@ async function soleDir(parent) {
   return join(parent, dirs[0].name);
 }
 
+/** A directory that exists AND has something in it. */
+const populated = (dir) => existsSync(dir) && readdirSync(dir).length > 0;
+
 async function fetchLib() {
-  if (!force && existsSync(LIB_DIR) && existsSync(LINK_DIR)) {
+  // Contents, not mere existence. The directories are created empty before
+  // anything is copied in, so a run that matched no files left them behind —
+  // and an existence check then reported "already present" forever, masking the
+  // real failure. `build.rs`'s guard has the same blind spot, so the build got
+  // a raw "cannot find -lvosk" instead of the actionable message.
+  if (!force && populated(LIB_DIR) && populated(LINK_DIR)) {
     console.log(`fetch-vosk: libvosk already present (${LIB_DIR})`);
     return;
   }
@@ -140,7 +189,7 @@ async function fetchLib() {
   await rm(tmp, { recursive: true, force: true });
   await mkdir(tmp, { recursive: true });
   const zip = join(tmp, "lib.zip");
-  await download(plat.url, zip);
+  await download(plat.url, zip, plat.sha256);
   extract(zip, tmp);
   await rm(zip);
 
@@ -184,7 +233,7 @@ async function fetchModel() {
   await rm(tmp, { recursive: true, force: true });
   await mkdir(tmp, { recursive: true });
   const zip = join(tmp, "model.zip");
-  await download(MODEL_URL, zip);
+  await download(MODEL_URL, zip, MODEL_SHA256);
   extract(zip, tmp);
   await rm(zip);
 

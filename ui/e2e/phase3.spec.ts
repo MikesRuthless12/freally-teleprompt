@@ -32,14 +32,24 @@ const READY = { available: true, engine: "vosk", detail: "ready" };
 
 /** Fire a backend event the way the recogniser would (see mock-ipc `__emitTauri`). */
 async function emit(page: Page, event: string, payload: unknown) {
-  await page.evaluate(
-    ([e, p]) =>
-      (window as unknown as { __emitTauri: (e: string, p: unknown) => void }).__emitTauri(
-        e as string,
-        p,
-      ),
-    [event, payload] as const,
-  );
+  await emitAll(page, [[event, payload]]);
+}
+
+/**
+ * Fire several events WITHOUT yielding between them.
+ *
+ * This matters more than it looks. Each `page.evaluate` is a CDP round-trip, so
+ * two separate `emit` calls give React time to flush and rebuild its handlers in
+ * between — which is exactly the gap the code under test has to survive without.
+ * Firing back-to-back utterances through two `emit`s tested nothing: it passed
+ * against the naive implementation that loses the first utterance. Anything
+ * asserting behaviour BETWEEN renders has to go through here.
+ */
+async function emitAll(page: Page, events: Array<[string, unknown]>) {
+  await page.evaluate((batch) => {
+    const w = window as unknown as { __emitTauri: (e: string, p: unknown) => void };
+    for (const [event, payload] of batch) w.__emitTauri(event, payload);
+  }, events);
 }
 
 async function openVoicePane(page: Page) {
@@ -173,18 +183,83 @@ test.describe("FT-33 dictation — the record button", () => {
     await expect(page.getByTestId("caesura-editor")).toContainText("hello from the microphone");
   });
 
-  /** Two utterances must not run together into one word. */
-  test("consecutive utterances are separated", async ({ page }) => {
+  /**
+   * Two utterances arriving BACK TO BACK must both survive, and be separated.
+   *
+   * The regression this guards: the script round-trips through the engine, so a
+   * second utterance arriving before that returns would append to the same base
+   * as the first — and the first would vanish. Both events therefore go through
+   * `emitAll`, in ONE evaluate, with no chance for React to flush between them.
+   * Fired as two separate `emit`s this test passes even when the bug is present.
+   */
+  test("consecutive utterances are separated, and neither is lost", async ({ page }) => {
     await mockTauri(page, ON);
     await page.goto("/");
     await waitForShell(page);
 
     await page.getByTestId("dictate-toggle").click();
     await emit(page, "voice:dictating", true);
-    await emit(page, "voice:dictation", "first line");
-    await emit(page, "voice:dictation", "second line");
+    await emitAll(page, [
+      ["voice:dictation", "first line"],
+      ["voice:dictation", "second line"],
+    ]);
 
     await expect(page.getByTestId("caesura-editor")).toContainText("first line second line");
+  });
+
+  /**
+   * Opening another script mid-recording must not carry the previous script's
+   * text across. It used to: the next utterance wrote the OLD script over the
+   * newly-opened one, and autosave then persisted it — destroying the file.
+   */
+  test("switching scripts mid-recording does not overwrite the new one", async ({ page }) => {
+    await mockTauri(page, {
+      ...ON,
+      scripts: [{ name: "Act Two", bytes: 10, modifiedMs: 1_760_000_000_000 }],
+    });
+    await page.goto("/");
+    await waitForShell(page);
+
+    const editor = page.getByTestId("caesura-editor");
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+    await emit(page, "voice:dictation", "belongs to the first script");
+    await expect(editor).toContainText("belongs to the first script");
+
+    // Open a different script WITHOUT stopping — the mock replaces the engine
+    // text, exactly as `scripts_open` does in Rust.
+    await page.getByRole("button", { name: "Scripts" }).click();
+    await page.getByRole("button", { name: "Open", exact: true }).first().click();
+    await expect(editor).toContainText("[Act Two]");
+    await expect(editor).not.toContainText("belongs to the first script");
+
+    // The next utterance must land on Act Two and carry none of the old script
+    // with it. Before the fix it re-wrote the previous text over this one, and
+    // autosave then persisted that to Act Two's file.
+    await emit(page, "voice:dictation", "belongs to act two");
+    await expect(editor).toContainText("belongs to act two");
+    await expect(editor).not.toContainText("belongs to the first script");
+  });
+
+  /** Switching dictation off mid-recording must release the microphone. */
+  test("turning dictation off while recording stops it", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+    await expect(page.getByTestId("dictate-toggle")).toHaveAttribute("aria-pressed", "true");
+
+    const dialog = await openVoicePane(page);
+    await dialog.getByTestId("settings-dictation-enabled").uncheck();
+    await dialog.getByTestId("settings-apply").click();
+
+    // The button is gone — and, crucially, the microphone was told to close.
+    await expect(page.getByTestId("dictate-toggle")).toHaveCount(0);
+    await expect
+      .poll(async () => (await ipcCalls(page)).filter((c) => c.cmd === "dictation_stop").length)
+      .toBeGreaterThan(0);
   });
 
   /** A failed session must not leave the button looking live. */

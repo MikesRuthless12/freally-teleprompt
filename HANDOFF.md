@@ -229,6 +229,39 @@ Notes for whoever builds it:
 - The three e2e cases that assert `aria-pressed` and the start/stop IPC still apply unchanged; only
   the appearance is moving.
 
+### 4b. Found by the 1.1.0 review passes and deliberately NOT fixed
+
+All of these were raised by `/simplify`, `/code-review` or `/security-review`, judged real, and left
+alone on purpose. None is a correctness bug in shipped behaviour.
+
+- **Dictation bypasses the editor's undo stack.** It calls `onScriptChange` directly rather than the
+  editor's `snapshot()`, so the first Ctrl+Z after a session jumps back to the last *keystroke* and
+  discards the whole dictation in one step. The deeper fix is an imperative `insertText` handle on
+  `CaesuraEditor` (it already does exactly this for paste) — dictation then becomes a paste with a
+  different source, and gains caret placement and undo for free. That also removes the
+  `dictationBase` ref entirely. Worth doing with the button redesign in #4.
+- **Text typed by hand mid-recording is not merged** — the same root cause, same fix. The
+  destructive half of this (switching scripts mid-recording overwriting the new file) IS fixed and
+  has a test.
+- **`ship`/`link` duplicates the shared object on Unix.** The two regexes are identical on macOS and
+  Linux, so ~45 MB is copied twice. Fixing it means changing what `build.rs` puts on the link search
+  path, which can only be proven by a release run — not worth destabilising a working release path
+  for disk space on a build machine.
+- **`freally-align` has no consumers at all**, and most of `freally-voice` (the DTW recogniser, MFCC,
+  VAD, enrolment) and `freally_speech::grammar_window` have none either. They are still compiled,
+  linted and tested on every gate. Kept as library IP, and because deleting a published crate is a
+  decision rather than a cleanup.
+- **`model_path_for_ffi` mishandles verbatim VOLUME paths** (`\\?\Volume{GUID}\…`, an install under
+  a drive-letterless mounted folder) — stripping leaves a relative path. Rare enough that the guard
+  would be untestable here; the verbatim-drive and verbatim-UNC cases that do occur are covered.
+- **`capability()` checks the model DIRECTORY exists, not `am/final.mdl`.** An empty directory of
+  that name makes the record button appear and then fail on press. The user-data escape hatch is the
+  only way to create one.
+- **`tauri.vosk.conf.json` re-lists `NOTICE` and `THIRD-PARTY.md`**, which the base config already
+  has. Tauri merges `--config` with RFC 7396, which merges object keys, so they are redundant — but
+  being wrong here means shipping installers with no licence files, and that cannot be verified
+  without a full bundle on each platform. Left duplicated on purpose; keep them in step.
+
 ### 5. Dictation cannot be exercised in a dev build (a papercut, not a bug)
 
 `--features vosk` is release-only, so `npm run tauri dev` reports the engine absent and disables the
@@ -248,6 +281,37 @@ findable — put `src-tauri/vendor/vosk/lib` on `PATH` for that shell. Worth wra
 `npm run dev:vosk` script; it was scoped and not built.
 
 ---
+
+## Traps paid by the 1.1.0 review passes (bugs that were SHIPPING)
+
+Four reviewers found these in code that was already released. Every one is now fixed and tested.
+
+- **A background worker that exits on its own wedges the feature permanently.**
+  `BackgroundSession::start` returned early whenever the slot was full, and only `stop()` ever
+  emptied it — so a worker that ended by itself (microphone already in use, model failed to load,
+  device unplugged) left a dead handle behind and **every later start was a silent no-op**. No
+  error, no event, nothing to press: dictation was gone until the app restarted. `start` now reaps a
+  finished worker first. If you add a second `BackgroundSession` user, this is the property to keep.
+- **A ref holding "the script right now" MUST be invalidated when the open script changes.**
+  `dictationBase` was cleared only when recording stopped. Open another script mid-recording and the
+  next utterance wrote the OLD script's text over the newly-opened one — and autosave then persisted
+  it, **destroying the file on disk**. Now keyed on `[dictating, currentScript]`.
+- **Gating a control's VISIBILITY is not the same as tearing the feature down.** Turning dictation
+  off in Settings while recording removed the button and left the microphone open, with no UI left
+  that could close it — directly contradicting "the microphone is open only while recording" in the
+  Settings copy. There is now an explicit stop when `dictationOn` goes false. The removed voice-command
+  code had exactly this teardown; it was lost in the rewrite.
+- **⚠️ Playwright's `page.evaluate` is a yield point, so two `emit()` calls do NOT test a race.**
+  The "consecutive utterances" test passed against the very bug it was written for, because React
+  flushed between the two round-trips. Anything asserting behaviour BETWEEN renders must fire both
+  events inside ONE evaluate — that is what `emitAll` in `phase3.spec.ts` is for. Proven both ways.
+- **A mock that returns `null` hides the behaviour it is standing in for.** `scripts_open` in
+  `mock-ipc.ts` did nothing, so no spec could tell a real script switch from a no-op — which is why
+  the data-loss bug above had no test. It now replaces the engine text like Rust does.
+- **An existence check on a directory you created empty is not a check.** `fetch-vosk.mjs` made
+  `lib/` and `link/` before copying into them, so a run that matched no files left them behind and
+  every later run reported "already present" — masking the failure permanently, and turning
+  `build.rs`'s actionable guard into a raw linker error. It now requires them to be non-empty.
 
 ## Traps paid shipping dictation and `v1.1.0`
 

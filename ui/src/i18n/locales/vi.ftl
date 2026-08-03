@@ -47,6 +47,8 @@ transport-seek = Di chuyển trong kịch bản
 editor-label = Kịch bản
 editor-dictate = Đọc chính tả
 editor-dictate-stop = Dừng đọc chính tả
+editor-dictate-hint = Nhấn ghi âm để bắt đầu đọc chính tả
+editor-dictate-hint-stop = Nhấn dừng để kết thúc đọc chính tả
 editor-placeholder = Nhập hoặc dán kịch bản của bạn. Dùng " -- " để tạo một khoảng dừng, hoặc " --2 " để dừng 2 giây.
 editor-caesura-hint = Nhập -- để tạm dừng
 editor-est-time = Thời gian đọc { $time }
@@ -206,6 +208,6 @@ startup-failed = Không thể khởi động Freally Teleprompt.
 ## Voice control (FT-31)
 settings-cat-voice = Giọng nói
 settings-dictation-enabled = Viết kịch bản bằng giọng nói
-settings-dictation-note = Nhấn nút ghi phía trên kịch bản và những gì bạn nói sẽ được viết vào đó. Việc nhận dạng diễn ra trên thiết bị này — không tài khoản, không mạng, và không có điều gì bạn nói được lưu vào tệp. Micrô chỉ mở trong lúc ghi.
+settings-dictation-note = Nhấn nút ghi phía trên kịch bản và những gì bạn nói sẽ được viết vào đó. Việc nhận dạng diễn ra trên thiết bị này — không tài khoản, không mạng, và không có điều gì bạn nói được lưu vào tệp. Micrô chỉ mở trong lúc ghi. Nếu kịch bản đang được phản chiếu tới các thiết bị trong mạng của bạn, những từ đọc chính tả sẽ đến đó ngay khi được viết ra — giống như mọi thứ bạn gõ.
 settings-dictation-unavailable-model = Chưa cài mô hình giọng nói nên không thể đọc chính tả.
 settings-dictation-unavailable-build = Bản dựng này không hỗ trợ đọc chính tả.

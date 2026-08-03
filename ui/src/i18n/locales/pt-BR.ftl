@@ -47,6 +47,8 @@ transport-seek = Navegar pelo roteiro
 editor-label = Roteiro
 editor-dictate = Ditar
 editor-dictate-stop = Parar de ditar
+editor-dictate-hint = Pressione gravar para começar a ditar
+editor-dictate-hint-stop = Pressione parar para encerrar o ditado
 editor-placeholder = Digite ou cole seu roteiro. Use " -- " para uma pausa, ou " --2 " para segurar por 2 segundos.
 editor-caesura-hint = Digite -- para uma pausa
 editor-est-time = Tempo de leitura { $time }
@@ -206,6 +208,6 @@ startup-failed = Não foi possível iniciar o Freally Teleprompt.
 ## Voice control (FT-31)
 settings-cat-voice = Voz
 settings-dictation-enabled = Escrever meu roteiro falando
-settings-dictation-note = Pressione o botão de gravar acima do roteiro e o que você disser será escrito nele. O reconhecimento acontece neste dispositivo — sem conta, sem rede, e nada do que você diz é salvo em arquivo. O microfone fica aberto apenas durante a gravação.
+settings-dictation-note = Pressione o botão de gravar acima do roteiro e o que você disser será escrito nele. O reconhecimento acontece neste dispositivo — sem conta, sem rede, e nada do que você diz é salvo em arquivo. O microfone fica aberto apenas durante a gravação. Se o roteiro estiver sendo espelhado para dispositivos na sua rede, as palavras ditadas chegam a eles conforme são escritas — igual a tudo o que você digita.
 settings-dictation-unavailable-model = O modelo de fala não está instalado, então o ditado não pode funcionar.
 settings-dictation-unavailable-build = O ditado não está disponível nesta versão.

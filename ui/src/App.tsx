@@ -18,8 +18,8 @@ import { onVoiceDictating, onVoiceDictation, onVoiceError } from "./api/events";
 import type { EulaStatus, Settings } from "./api/types";
 import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
 import { applySettingsToDocument, getLocale, initLocale, useT } from "./i18n/t";
-import { CaesuraEditor } from "./components/CaesuraEditor";
-import { BUTTON, ERROR_LINE, PRIMARY } from "./components/styles";
+import { CaesuraEditor, type CaesuraEditorHandle } from "./components/CaesuraEditor";
+import { BUTTON, ERROR_LINE } from "./components/styles";
 import { ResizeEdges, TitleBar } from "./components/TitleBar";
 import { Transport } from "./components/Transport";
 import { parseCaesuras, timeAtOffset, visibleChars } from "./lib/caesura";
@@ -358,13 +358,12 @@ export default function App() {
   // Speak, and the words are written into the script. The recogniser runs in
   // Rust behind the `vosk` feature and pushes completed utterances as events.
   //
-  // Each utterance is APPENDED: inserting at the caret would mean reaching into
-  // the chip-aware contenteditable, whereas appending goes through the same
-  // `onScriptChange` path as typing — so the engine, the projector and autosave
-  // all update exactly as they already do. (Which also means dictated text does
-  // not enter the editor's own undo stack; see the handoff.)
-  //
-  // Placed AFTER `onScriptChange` because it calls it.
+  // Each utterance goes THROUGH THE EDITOR, via its `insertText` handle — the
+  // same path a paste takes. That is one line here and a great deal of
+  // machinery not written: the editor already owns the caret, the undo stack
+  // and the chip-aware DOM, so dictation inherits all three, and the script
+  // still reaches the engine, the projector and autosave through the editor's
+  // ordinary `onChange`. See `CaesuraEditor.insertText` for what this replaced.
   const [dictating, setDictating] = useState(false);
   // The capability check: is the engine compiled in AND its model installed?
   const [speechAvailable, setSpeechAvailable] = useState(false);
@@ -393,48 +392,29 @@ export default function App() {
     if (!dictationOn && dictating) void dictationStop().catch(() => undefined);
   }, [dictationOn, dictating]);
 
-  // What dictation last wrote, so consecutive utterances chain.
+  // The editor's imperative handle — the seam every utterance goes through.
   //
-  // `state.script` is NOT safe to append to twice in a row: it round-trips
-  // through the engine, so two utterances arriving before that returns would
-  // both append to the same base and the first would be silently lost. Speak
-  // two short phrases quickly and the first one vanishes.
-  //
-  // While recording, dictation therefore owns the tail of the script and chains
-  // from its own last write. The trade is deliberate: text typed BY HAND
-  // mid-recording is not merged.
-  //
-  // ⚠️ Cleared when recording stops AND when the OPEN SCRIPT CHANGES. Without
-  // the second, opening another script mid-recording left this holding the old
-  // script's text; the next utterance wrote that text over the newly-opened one
-  // and autosave then persisted it — silently destroying the file on disk. It is
-  // the worst thing this feature could do, so the reset is keyed on both.
-  const dictationBase = useRef<string | null>(null);
-  useEffect(() => {
-    dictationBase.current = null;
-  }, [dictating, currentScript]);
-
-  // Held in a ref and refreshed every render. The listener below is registered
-  // ONCE, so a closure over `state.script` would append to whatever the script
-  // was at mount and silently discard everything typed since.
-  const dictateInsert = useRef<(said: string) => void>(() => {});
-  useEffect(() => {
-    dictateInsert.current = (said: string) => {
-      const base = dictationBase.current ?? state.script;
-      const joiner = base.length === 0 || /\s$/.test(base) ? "" : " ";
-      const next = `${base}${joiner}${said}`;
-      dictationBase.current = next;
-      onScriptChange(next);
-    };
-  });
+  // ⚠️ It is what makes the DOM the single source of truth, and three separate
+  // bugs came from not having it. `state.script` round-trips through the engine,
+  // so anything chaining from it loses a second utterance that arrives before
+  // the round-trip returns; chaining from dictation's OWN last write instead
+  // fixed that and broke two more — text typed by hand mid-recording was
+  // overwritten, and opening another script mid-recording wrote the previous
+  // script's text over the newly-opened one, which autosave then persisted,
+  // destroying the file on disk. Reading the live editor has none of those
+  // failure modes, because there is nothing left to keep in step.
+  const editor = useRef<CaesuraEditorHandle>(null);
 
   // One mount-once subscription for the whole feature: the capability read and
   // all three `voice:*` events share a lifetime, so they share an effect.
+  //
+  // The handle is read at CALL time (`editor.current`), never captured, so this
+  // listener registering once is not the stale-closure trap it looks like.
   useEffect(() => {
     speechCapability()
       .then((cap) => setSpeechAvailable(cap.available))
       .catch(() => setSpeechAvailable(false));
-    const text = onVoiceDictation((said) => dictateInsert.current(said));
+    const text = onVoiceDictation((said) => editor.current?.insertText(said));
     const running = onVoiceDictating(setDictating);
     const error = onVoiceError(setVoiceError);
     return () => {
@@ -444,7 +424,12 @@ export default function App() {
     };
   }, []);
 
+  // The button carries no text (it is a circle with a glyph), so these two say
+  // the same thing in the two places a control can be read: `dictateLabel` is
+  // its accessible name and its tooltip, `dictateHint` is the visible line
+  // beside it.
   const dictateLabel = dictating ? t("editor-dictate-stop") : t("editor-dictate");
+  const dictateHint = dictating ? t("editor-dictate-hint-stop") : t("editor-dictate-hint");
 
   const toggleDictation = () => {
     if (dictating) {
@@ -552,27 +537,43 @@ export default function App() {
                 same microphone either way, and a stop control that appears from
                 nowhere is harder to hit than one already under the pointer. */}
             {dictationOn && (
-              <button
-                type="button"
-                data-testid="dictate-toggle"
-                className={dictating ? PRIMARY : BUTTON}
-                aria-pressed={dictating}
-                title={dictateLabel}
-                onClick={toggleDictation}
-              >
-                {/* A square while recording (stop), a red circle when idle
-                    (record) — the two shapes every recorder uses. */}
-                <span
-                  aria-hidden="true"
-                  className={`inline-block h-2.5 w-2.5 align-middle ${
-                    dictating ? "bg-current" : "rounded-full bg-red-500"
-                  }`}
-                />
-                <span className="ml-1.5 align-middle">{dictateLabel}</span>
-              </button>
+              <>
+                {/* The instruction, to the LEFT of the button and outside it.
+                    It changes with the state, which is why it cannot live
+                    inside a control whose whole point is not to resize. */}
+                <span data-testid="dictate-hint" className="text-havoc-muted text-[11px]">
+                  {dictateHint}
+                </span>
+                <button
+                  type="button"
+                  data-testid="dictate-toggle"
+                  className="dictate-btn"
+                  aria-pressed={dictating}
+                  // A glyph-only control still needs a name. `title` is the
+                  // pointer's version of the same string and `aria-label` the
+                  // screen reader's; the visible hint beside it is a third
+                  // wording of the same thing, for everyone else.
+                  title={dictateLabel}
+                  aria-label={dictateLabel}
+                  onClick={toggleDictation}
+                >
+                  {/* A square while recording (stop), a circle when idle
+                      (record) — the two shapes every recorder uses. Drawn as
+                      boxes rather than written as ● and ■: the glyph a font
+                      hands back for those varies, and this app renders in 18
+                      languages across three platforms' font stacks.
+                      `bg-current` is what makes the shape follow the hover
+                      colour the stylesheet decides. */}
+                  <span
+                    aria-hidden="true"
+                    className={`h-2.5 w-2.5 bg-current ${dictating ? "" : "rounded-full"}`}
+                  />
+                </button>
+              </>
             )}
           </div>
           <CaesuraEditor
+            ref={editor}
             value={state.script}
             onChange={onScriptChange}
             caesuraSecs={state.caesuraSecs}

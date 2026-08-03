@@ -47,6 +47,8 @@ transport-seek = 台本内を移動
 editor-label = 台本
 editor-dictate = 音声入力
 editor-dictate-stop = 音声入力を停止
+editor-dictate-hint = 録音を押すと音声入力を開始します
+editor-dictate-hint-stop = 停止を押すと音声入力を終了します
 editor-placeholder = 台本を入力するか貼り付けてください。" -- " で間が入り、" --2 " で 2 秒止まります。
 editor-caesura-hint = 一時停止するには -- と入力
 editor-est-time = 読了時間 { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt を起動できませんでした。
 ## Voice control (FT-31)
 settings-cat-voice = 音声
 settings-dictation-enabled = 話して原稿を書く
-settings-dictation-note = 原稿の上にある録音ボタンを押すと、話した内容がそのまま書き込まれます。認識はこの端末で行われ、アカウントもネットワークも不要で、話した内容がファイルに保存されることはありません。マイクは録音中だけ開きます。
+settings-dictation-note = 原稿の上にある録音ボタンを押すと、話した内容がそのまま書き込まれます。認識はこの端末で行われ、アカウントもネットワークも不要で、話した内容がファイルに保存されることはありません。マイクは録音中だけ開きます。台本を同じネットワークの端末にミラーしている場合、音声入力した語も書き込まれた時点でそちらに届きます。入力した文字とまったく同じ扱いです。
 settings-dictation-unavailable-model = 音声モデルが未インストールのため、音声入力を実行できません。
 settings-dictation-unavailable-build = このビルドでは音声入力を利用できません。

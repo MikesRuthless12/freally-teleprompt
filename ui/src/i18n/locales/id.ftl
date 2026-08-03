@@ -47,6 +47,8 @@ transport-seek = Telusuri naskah
 editor-label = Naskah
 editor-dictate = Dikte
 editor-dictate-stop = Hentikan dikte
+editor-dictate-hint = Tekan rekam untuk mulai dikte
+editor-dictate-hint-stop = Tekan berhenti untuk mengakhiri dikte
 editor-placeholder = Ketik atau tempel naskah Anda. Gunakan " -- " untuk jeda, atau " --2 " untuk berhenti 2 detik.
 editor-caesura-hint = Ketik -- untuk jeda
 editor-est-time = Waktu baca { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt tidak dapat dijalankan.
 ## Voice control (FT-31)
 settings-cat-voice = Suara
 settings-dictation-enabled = Tulis naskah saya dengan berbicara
-settings-dictation-note = Tekan tombol rekam di atas naskah dan apa yang Anda ucapkan akan dituliskan ke dalamnya. Pengenalan berjalan di perangkat ini — tanpa akun, tanpa jaringan, dan tidak ada yang Anda ucapkan disimpan ke berkas. Mikrofon terbuka hanya selama merekam.
+settings-dictation-note = Tekan tombol rekam di atas naskah dan apa yang Anda ucapkan akan dituliskan ke dalamnya. Pengenalan berjalan di perangkat ini — tanpa akun, tanpa jaringan, dan tidak ada yang Anda ucapkan disimpan ke berkas. Mikrofon terbuka hanya selama merekam. Jika naskah sedang dicerminkan ke perangkat di jaringan Anda, kata-kata hasil dikte sampai ke sana begitu dituliskan — sama seperti apa pun yang Anda ketik.
 settings-dictation-unavailable-model = Model suara belum terpasang, jadi dikte tidak dapat berjalan.
 settings-dictation-unavailable-build = Dikte tidak tersedia pada versi ini.

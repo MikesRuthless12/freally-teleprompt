@@ -10,6 +10,35 @@ user who installs a build. It is bundled as a resource in `tauri.conf.json`.
 
 ---
 
+## Vosk — speech recognition (bundled only in dictation builds)
+
+Dictation (FT-33) recognises speech **on the device**, with an engine and a
+model that ship inside the installer. Both are third-party, and — this is the
+part that is easy to get wrong — they are licensed **separately**. A permissive
+engine does not make its weights permissive; several of the English models
+published on the same page as the bundled one are AGPL or LGPL-3.0.
+
+| Component | What it is | Version | Licence |
+|---|---|---|---|
+| `libvosk` + the `vosk` Rust crate | The recognition engine | libvosk 0.3.42 | Apache-2.0 |
+| `vosk-model-small-en-us-0.15` | The English acoustic/language model | 0.15 | Apache-2.0 |
+| `libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libwinpthread-1.dll` (Windows only) | The MinGW runtime the upstream `libvosk.dll` is built against | as shipped upstream | GPL-3.0 **WITH GCC-exception-3.1**, and MIT/BSD-2-Clause for winpthreads |
+
+Apache-2.0 permits commercial use and redistribution with attribution and no
+share-alike term. The GCC Runtime Library Exception is what permits shipping
+those three DLLs beside software that is not GPL — **`NOTICE` carries the full
+reasoning and the pointers to their corresponding source**, and is the file to
+read before changing anything here.
+
+Nothing in this section is downloaded at runtime: the model is in the installer
+or the feature reports itself unavailable. A build without the `vosk` feature
+ships none of it.
+
+Sources: <https://github.com/alphacep/vosk-api> ·
+<https://alphacephei.com/vosk/models>
+
+---
+
 ## Noto fonts (bundled)
 
 The app ships in 18 languages and lets the user switch at runtime, so it bundles

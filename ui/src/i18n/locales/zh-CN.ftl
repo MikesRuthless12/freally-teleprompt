@@ -47,6 +47,8 @@ transport-seek = 在稿件中定位
 editor-label = 稿件
 editor-dictate = 语音输入
 editor-dictate-stop = 停止语音输入
+editor-dictate-hint = 按录音开始语音输入
+editor-dictate-hint-stop = 按停止结束语音输入
 editor-placeholder = 输入或粘贴你的稿件。用 " -- " 表示停顿，用 " --2 " 停顿 2 秒。
 editor-caesura-hint = 输入 -- 表示停顿
 editor-est-time = 阅读时长 { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt 无法启动。
 ## Voice control (FT-31)
 settings-cat-voice = 语音
 settings-dictation-enabled = 用说话来写稿
-settings-dictation-note = 按下稿件上方的录音按钮，你说的话就会写进稿件。识别在本机完成——无需账户、无需联网，你说的内容也不会写入任何文件。麦克风仅在录音时开启。
+settings-dictation-note = 按下稿件上方的录音按钮，你说的话就会写进稿件。识别在本机完成——无需账户、无需联网，你说的内容也不会写入任何文件。麦克风仅在录音时开启。如果稿件正镜像到你网络中的设备，语音输入的文字一写进稿件就会传到那些设备，和你手动输入的内容一样。
 settings-dictation-unavailable-model = 尚未安装语音模型，无法进行语音输入。
 settings-dictation-unavailable-build = 此版本不支持语音输入。

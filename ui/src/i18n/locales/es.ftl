@@ -47,6 +47,8 @@ transport-seek = Desplazarse por el guion
 editor-label = Guion
 editor-dictate = Dictar
 editor-dictate-stop = Dejar de dictar
+editor-dictate-hint = Pulsa grabar para empezar a dictar
+editor-dictate-hint-stop = Pulsa detener para dejar de dictar
 editor-placeholder = Escribe o pega tu guion. Usa " -- " para una pausa, o " --2 " para detenerte 2 segundos.
 editor-caesura-hint = Escribe -- para una pausa
 editor-est-time = Tiempo de lectura { $time }
@@ -206,6 +208,6 @@ startup-failed = No se pudo iniciar Freally Teleprompt.
 ## Voice control (FT-31)
 settings-cat-voice = Voz
 settings-dictation-enabled = Escribir mi guion hablando
-settings-dictation-note = Pulsa el botón de grabar situado sobre el guion y lo que digas se escribirá en él. El reconocimiento ocurre en este dispositivo: sin cuenta, sin red y nada de lo que digas se guarda en un archivo. El micrófono solo está abierto mientras grabas.
+settings-dictation-note = Pulsa el botón de grabar situado sobre el guion y lo que digas se escribirá en él. El reconocimiento ocurre en este dispositivo: sin cuenta, sin red y nada de lo que digas se guarda en un archivo. El micrófono solo está abierto mientras grabas. Si el guion se está duplicando en los dispositivos de tu red, las palabras dictadas les llegan según se escriben, igual que todo lo que tecleas.
 settings-dictation-unavailable-model = El modelo de voz no está instalado, así que el dictado no puede funcionar.
 settings-dictation-unavailable-build = El dictado no está disponible en esta versión.

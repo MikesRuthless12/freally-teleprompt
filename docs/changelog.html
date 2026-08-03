@@ -110,6 +110,69 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>1.2.0</h2>
+        <p class="date">2 August 2026 — dictation, finished properly</p>
+
+        <p style="margin: 0 0 4px; color: var(--muted); line-height: 1.6">
+          The record button becomes a button, and dictated words start behaving like words you
+          typed.
+        </p>
+
+        <h3>Changed</h3>
+        <ul>
+          <li>
+            <strong>The record button is a circle with a glyph in it</strong> — ● to record, ■ to
+            stop — with the instruction beside it rather than inside it, so it stops changing width
+            as you use it. Its colour follows your pointer as well as its state: hover it and it
+            turns green; while it is recording, hovering it turns it red. Moving away puts it back
+            without changing what it will do.
+          </li>
+          <li>
+            <strong>Dictated words go through the editor now.</strong> That means
+            <strong>Ctrl+Z takes back one thing you said</strong> rather than the whole session,
+            <strong>text you type while recording is kept</strong> instead of being overwritten by
+            the next thing you say, and words land <strong>where your cursor is</strong> rather
+            than always at the end.
+          </li>
+        </ul>
+
+        <h3>Fixed</h3>
+        <ul>
+          <li>
+            Dictation said it was ready whenever the speech-model <em>folder</em> existed, even if
+            the model inside was missing or half-copied — a record button that could only fail when
+            pressed. It now checks the one file the recogniser cannot start without.
+          </li>
+          <li>
+            On an install under a drive-letterless volume (a folder-mounted drive), the model path
+            handed to the recogniser was turned into one that named nothing at all. It now names
+            the model — and if loading it still fails there, the error says which model it could
+            not open rather than quietly looking somewhere else.
+          </li>
+          <li>
+            Dictation could report itself <strong>unavailable while a perfectly good model was
+            installed</strong>: a stray or half-copied <code>vosk-model-en</code> in your data
+            folder was preferred over the one inside the app, and then rejected for being
+            incomplete. An unusable folder is now passed over.
+          </li>
+        </ul>
+
+        <h3>Documentation</h3>
+        <ul>
+          <li>
+            Search on this site finds <strong>dictation</strong> — it shipped in 1.1.0 and was
+            missing from the index. Results that could only ever 404 are gone at the same time: the
+            shared index listed five Freally apps that have no site yet. The third-party notices
+            that ship in the installer now record Vosk and its Windows runtime alongside the fonts.
+          </li>
+          <li>
+            The dictation note in Settings says what happens with the LAN mirror on: dictated text
+            reaches its viewers as it is written, the same as anything you type.
+          </li>
+        </ul>
+      </article>
+
+      <article class="release">
         <h2>1.1.0</h2>
         <p class="date">2 August 2026 — dictation</p>
 

@@ -135,6 +135,61 @@ test.describe("FT-33 dictation — the record button", () => {
     await expect(page.getByTestId("dictate-toggle")).toHaveCount(0);
   });
 
+  /**
+   * The button's appearance is a specified feature, not decoration: a circle
+   * with a glyph and NO text, the instruction beside it, and a colour that
+   * follows the pointer as well as the state.
+   *
+   * The colour half is four cells (idle/recording × resting/hovered) and only
+   * two of them are React's business, so it is asserted through the computed
+   * style rather than through a class name — a class that stopped matching a
+   * rule would still be on the element.
+   */
+  test("it is a glyph in a circle, with the instruction beside it", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    const record = page.getByTestId("dictate-toggle");
+    const hint = page.getByTestId("dictate-hint");
+
+    // Nothing inside the button but the glyph — the words moved out of it.
+    await expect(record).toHaveText(/^\s*$/);
+    await expect(record).toHaveAccessibleName("Dictate");
+    await expect(hint).toHaveText("Press record to start dictation");
+
+    // The dark palette's three states. Read as the colour the glyph is drawn
+    // in (`bg-current`), which is also the border's.
+    const DEFAULT = "rgb(245, 247, 250)";
+    const GREEN = "rgb(52, 211, 153)";
+    const RED = "rgb(248, 113, 113)";
+    // Polled, not read once: the colour transitions over 150ms, so a single
+    // read lands on some colour part-way between the two.
+    const colour = () => record.evaluate((el) => getComputedStyle(el).color);
+
+    expect(await colour()).toBe(DEFAULT);
+    await record.hover();
+    await expect.poll(colour).toBe(GREEN);
+
+    await record.click();
+    await emit(page, "voice:dictating", true);
+    await expect(hint).toHaveText("Press stop to stop dictation");
+    await expect(record).toHaveAccessibleName("Stop dictating");
+
+    // The pointer has not moved, so this is the hovered STOP button: red.
+    await expect.poll(colour).toBe(RED);
+    // Move away and recording rests green — the state, without the warning.
+    await page.getByTestId("caesura-editor").hover();
+    await expect.poll(colour).toBe(GREEN);
+
+    // The light theme re-tints both colours, and nothing else can catch it if
+    // it stops: `theme:lint` only sees white-alpha UTILITIES, and this button
+    // is a bespoke class on purpose. Left unre-tinted, the dark green lands at
+    // ~2:1 on the near-white page — a recording indicator you cannot see.
+    await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
+    await expect.poll(colour).toBe("rgb(4, 120, 87)");
+  });
+
   test("press to record, press again to stop", async ({ page }) => {
     await mockTauri(page, ON);
     await page.goto("/");
@@ -205,6 +260,167 @@ test.describe("FT-33 dictation — the record button", () => {
     ]);
 
     await expect(page.getByTestId("caesura-editor")).toContainText("first line second line");
+  });
+
+  /**
+   * Ctrl+Z after dictating must take back ONE utterance.
+   *
+   * It used to take back the whole session. Dictation wrote to the script
+   * through `onScriptChange`, going around the editor entirely, so nothing it
+   * ever wrote entered the editor's own undo stack — and the first Ctrl+Z
+   * jumped to the last thing that HAD been snapshotted, the last keystroke,
+   * discarding every dictated word in one step with no way back.
+   *
+   * The fix is the seam this asserts: dictation goes in through the editor's
+   * `insertText` handle, which snapshots exactly as its paste path does.
+   */
+  test("undo takes back one utterance, not the whole session", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    const editor = page.getByTestId("caesura-editor");
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+    await emit(page, "voice:dictation", "first line");
+    await emit(page, "voice:dictation", "second line");
+    await expect(editor).toContainText("first line second line");
+
+    // The editor has to hold focus for its own Ctrl+Z to fire — the operator
+    // pressed a button, so the click is what they would do next anyway.
+    await editor.click();
+    await page.keyboard.press("Control+z");
+
+    await expect(editor).not.toContainText("second line");
+    await expect(editor).toContainText("first line");
+  });
+
+  /**
+   * Typing by hand while recording must not be thrown away by the next
+   * utterance.
+   *
+   * The same root cause as the undo case above: dictation chained from its own
+   * last write rather than from the editor, so anything typed in between was
+   * overwritten by the next thing said — and autosave then persisted the loss.
+   * Reading the live editor is what makes both go away.
+   */
+  test("text typed by hand mid-recording survives the next utterance", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    const editor = page.getByTestId("caesura-editor");
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+    await emit(page, "voice:dictation", "spoken one");
+    await expect(editor).toContainText("spoken one");
+
+    await editor.click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(" typed by hand");
+    await emit(page, "voice:dictation", "spoken two");
+
+    // ONE assertion covering both halves, deliberately. Asserting them
+    // separately passes against the broken code: `toContainText` retries until
+    // it matches, so "typed by hand" is satisfied by the frame BEFORE the
+    // overwrite lands and the test goes green on a bug it is meant to catch.
+    await expect(editor).toContainText("typed by hand spoken two");
+  });
+
+  /**
+   * Words land at the caret now, not always at the end — so they can land in
+   * FRONT of existing text, and the spacing on that side is ours to get right
+   * too. Speaking with the caret before a word used to give "spokenWelcome".
+   *
+   * `toContainText` collapses whitespace, which is exactly why this assertion
+   * works: a missing space cannot be collapsed into an existing one.
+   */
+  test("speaking in front of existing text does not run the words together", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    const editor = page.getByTestId("caesura-editor");
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+
+    // The caret at the very start of the script, in front of "Welcome…".
+    await editor.click();
+    await page.keyboard.press("Control+Home");
+    await emit(page, "voice:dictation", "spoken at the top");
+
+    await expect(editor).toContainText("spoken at the top Welcome");
+  });
+
+  /**
+   * An utterance arriving mid-IME-composition must WAIT, not land.
+   *
+   * Every other write path in the editor bails on `composing.current`; this one
+   * fires with no user action, so without the same guard it serializes the
+   * uncommitted preedit as if it were script text and tears down the very node
+   * the IME is composing into. Half the app's 18 locales are typed through an
+   * IME, so "rare" is not the same as "someone else's problem".
+   */
+  test("an utterance during IME composition waits for the composition", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    const editor = page.getByTestId("caesura-editor");
+    await page.getByTestId("dictate-toggle").click();
+    await emit(page, "voice:dictating", true);
+
+    await editor.click();
+    await editor.dispatchEvent("compositionstart");
+    await emit(page, "voice:dictation", "held for the composition");
+
+    // Proving an absence, so it needs a moment in which the write WOULD have
+    // happened — every other path here is synchronous, so this is generous.
+    await page.waitForTimeout(300);
+    await expect(editor).not.toContainText("held for the composition");
+
+    await editor.dispatchEvent("compositionend");
+    await expect(editor).toContainText("held for the composition");
+  });
+
+  /**
+   * Dictating into an editor nobody is in must not put a caret there.
+   *
+   * `apply` ends in `setCaret`, which calls `removeAllRanges`/`addRange`. The
+   * operator is somewhere else by definition — they just pressed record — so
+   * that would move the document selection into the script on every utterance.
+   * Where the engine also moves FOCUS on a selection change (Blink does; this
+   * headless Chromium does not, which is why the assertion below is on the
+   * selection and not on `activeElement`) the cost is worse than cosmetic: the
+   * rest of what the operator types lands in the script instead of in the
+   * Scripts dialog's filename field, and Space/Enter stop reaching the record
+   * button.
+   */
+  test("dictating puts no caret in an editor nobody is in", async ({ page }) => {
+    await mockTauri(page, ON);
+    await page.goto("/");
+    await waitForShell(page);
+
+    /** Where the document selection is: inside the editor, or anywhere else. */
+    const selectionHome = () =>
+      page.evaluate(() => {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return "nowhere";
+        const editor = document.querySelector('[data-testid="caesura-editor"]');
+        return editor?.contains(sel.getRangeAt(0).startContainer) ? "in-the-editor" : "elsewhere";
+      });
+
+    const record = page.getByTestId("dictate-toggle");
+    await record.click();
+    await emit(page, "voice:dictating", true);
+    await emit(page, "voice:dictation", "the caret stays put");
+
+    await expect(page.getByTestId("caesura-editor")).toContainText("the caret stays put");
+    expect(await selectionHome()).not.toBe("in-the-editor");
+    // And the button the operator is actually on still has focus.
+    expect(await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))).toBe(
+      "dictate-toggle",
+    );
   });
 
   /**

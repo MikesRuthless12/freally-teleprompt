@@ -11,6 +11,23 @@
  * below. `keywords` should include synonyms AND the problems a user might
  * type ("no sound", "black screen", "green screen") so autocomplete surfaces
  * the right section however they phrase it.
+ *
+ * ⚠️ ONLY APPS WHOSE DOCS SITE IS ACTUALLY LIVE BELONG HERE.
+ *
+ * This catalogue is written ahead of the family, so it listed five apps that do
+ * not exist yet — **39 of its 109 entries, better than a third of every result
+ * this box could return, went to a 404**. A search result that dead-ends is
+ * worse than one that is missing: the reader concludes the docs are broken
+ * rather than that the feature is unbuilt.
+ *
+ * Pulled on 2026-08-02, verified 404 at both the Pages URL and the repository:
+ *   Freally Studio (12 entries) · Freally Vault (15) · Freally AV (10) ·
+ *   Freally Player (1) · Freally Central (1)
+ *
+ * **Put each back the day its Pages site answers**, in the same PR that
+ * publishes it — entry text and keywords for all five are in this file's git
+ * history. Before adding any NEW app here, open its documentation URL and
+ * confirm it loads.
  */
 window.FREALLY_DOCS_INDEX = {
   // Every app in the family, for the "browse by app" affordance + app-level
@@ -18,13 +35,8 @@ window.FREALLY_DOCS_INDEX = {
   apps: [
     { name: "Freally Capture", tag: "Live studio", url: "https://mikesruthless12.github.io/freally-capture/documentation.html" },
     { name: "Freally Teleprompt", tag: "Teleprompter", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html" },
-    { name: "Freally Studio", tag: "Music / DAW", url: "https://mikesruthless12.github.io/freally-studio/documentation.html" },
-    { name: "Freally Player", tag: "Media player", url: "https://mikesruthless12.github.io/freally-player/documentation.html" },
     { name: "Freally Sourcerer", tag: "Instant search", url: "https://mikesruthless12.github.io/freally-sourcerer/documentation.html" },
     { name: "Freally File Manager", tag: "Files / backup", url: "https://mikesruthless12.github.io/freally-file-manager/documentation.html" },
-    { name: "Freally AV", tag: "Anti-virus", url: "https://mikesruthless12.github.io/freally-av/documentation.html" },
-    { name: "Freally Vault", tag: "Passwords", url: "https://mikesruthless12.github.io/freally-vault/documentation.html" },
-    { name: "Freally Central", tag: "App hub", url: "https://mikesruthless12.github.io/freally-central/documentation.html" },
   ],
 
   // Per-section entries. `app` matches an apps[].name. `url` is the full
@@ -60,18 +72,6 @@ window.FREALLY_DOCS_INDEX = {
     { app: "Freally Capture", title: "Project documents", desc: "README, license, security, privacy, EULA, third-party, changelog.", url: "https://mikesruthless12.github.io/freally-capture/documentation.html#documents", keywords: "readme license security policy privacy policy eula end user agreement third-party notices changelog documents governance" },
 
     // ===================== Freally Studio (music / DAW) =====================
-    { app: "Freally Studio", title: "Getting started / install", desc: "Download and launch in under two minutes.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#getting-started", keywords: "install download launch daw music production setup" },
-    { app: "Freally Studio", title: "Create your first project", desc: "Set up a session: key, scale, tempo.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#first-project", keywords: "project session new key scale tempo bpm" },
-    { app: "Freally Studio", title: "Generate a chord progression", desc: "Genre/key/scale-matched chords.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#chord-progression", keywords: "chord progression generate genre key scale harmony" },
-    { app: "Freally Studio", title: "Generate a melody / bassline", desc: "Scale-aware melody or chord-following bassline.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#melody-bassline", keywords: "melody bassline generate scale lead" },
-    { app: "Freally Studio", title: "Generate drums / a pattern", desc: "8-element drum pattern, 35+ genre presets.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#drums-patterns", keywords: "drums pattern beat kick snare hat genre preset rhythm" },
-    { app: "Freally Studio", title: "Use the sample library", desc: "Import, browse, tag, preview audio files.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#sample-library", keywords: "sample library import browse tag preview audio loops one-shot" },
-    { app: "Freally Studio", title: "Edit on the arrangement view", desc: "Arrange clips on a multi-track timeline.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#arrangement", keywords: "arrangement timeline clip multi-track edit song structure" },
-    { app: "Freally Studio", title: "Mixing & mastering", desc: "Balance levels, pan, effects, master bus.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#mix-master", keywords: "mix master level pan effect master bus loudness" },
-    { app: "Freally Studio", title: "Render & export your track", desc: "Export beat or stems as WAV/MP3/MIDI.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#render-export", keywords: "render export bounce wav mp3 midi stems" },
-    { app: "Freally Studio", title: "Collaborate", desc: "Real-time P2P session with another person.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#collaborate", keywords: "collaborate p2p real-time session share" },
-    { app: "Freally Studio", title: "Settings", desc: "Customize workflow and hardware.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#settings", keywords: "settings preferences hardware audio device workflow" },
-    { app: "Freally Studio", title: "Tips & troubleshooting", desc: "Common issues and performance tips.", url: "https://mikesruthless12.github.io/freally-studio/documentation.html#tips-troubleshooting", keywords: "troubleshooting tips performance latency problem fix" },
 
     // ===================== Freally Sourcerer (instant search) =====================
     { app: "Freally Sourcerer", title: "Install & first run", desc: "Sets up the background daemon and desktop app.", url: "https://mikesruthless12.github.io/freally-sourcerer/documentation.html#install", keywords: "install first run daemon index setup" },
@@ -107,16 +107,6 @@ window.FREALLY_DOCS_INDEX = {
     { app: "Freally File Manager", title: "Privacy", desc: "Local-first data and privacy posture.", url: "https://mikesruthless12.github.io/freally-file-manager/documentation.html#privacy", keywords: "privacy local first data no cloud" },
 
     // ===================== Freally AV (anti-virus) =====================
-    { app: "Freally AV", title: "Getting started", desc: "Install and complete first-run setup.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#getting-started", keywords: "install setup first run antivirus antimalware protect" },
-    { app: "Freally AV", title: "Run a quick scan", desc: "A fast, low-impact scan of commonly targeted locations.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#quick-scan", keywords: "quick scan fast malware virus check" },
-    { app: "Freally AV", title: "Run a full or custom scan", desc: "Full scans the whole disk; custom scans chosen folders.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#full-custom-scan", keywords: "full scan custom scan whole disk folder deep" },
-    { app: "Freally AV", title: "Handle a detection", desc: "Quarantine, delete, or restore a flagged file.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#handle-detection", keywords: "detection quarantine delete restore threat flagged infected" },
-    { app: "Freally AV", title: "Turn on real-time protection", desc: "Continuous monitoring flags threats as they appear.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#real-time-protection", keywords: "real-time protection continuous monitor shield live guard" },
-    { app: "Freally AV", title: "Update threat definitions", desc: "Keep the malware-recognition database current.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#update-definitions", keywords: "update definitions database signatures current threat" },
-    { app: "Freally AV", title: "Schedule scans", desc: "Recurring automatic scans on your schedule.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#schedule-scans", keywords: "schedule scan recurring automatic timer daily weekly" },
-    { app: "Freally AV", title: "Change settings", desc: "Tune protection, scanning, notifications, exclusions.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#settings", keywords: "settings protection notification exclusion whitelist configure" },
-    { app: "Freally AV", title: "Tips & troubleshooting", desc: "Common issues and how to resolve them.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#troubleshooting", keywords: "troubleshooting tips problem fix issue resolve" },
-    { app: "Freally AV", title: "Privacy & local-first", desc: "How the app protects your privacy in practice.", url: "https://mikesruthless12.github.io/freally-av/documentation.html#privacy", keywords: "privacy local first no cloud data protect" },
 
     // ===================== Freally Teleprompt (teleprompter) =====================
     { app: "Freally Teleprompt", title: "Getting started", desc: "Install on Windows/macOS/Linux and pass first-run setup.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#getting-started", keywords: "install download setup first run eula license accept launch tauri cross-platform wont open" },
@@ -128,30 +118,14 @@ window.FREALLY_DOCS_INDEX = {
     { app: "Freally Teleprompt", title: "Talent projector", desc: "External-display projector, mirror-flip for glass, LAN mirror.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#projector", keywords: "projector second screen external display mirror flip beam splitter glass lan remote phone tablet sync" },
     { app: "Freally Teleprompt", title: "Read aloud", desc: "OS speech synthesis previews the script, highlight following.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#read-aloud", keywords: "read aloud text to speech tts speech voice narrate speak sapi avspeech espeak spd-say no sound" },
     { app: "Freally Teleprompt", title: "Autocomplete", desc: "Ghost-text suggestions, Tab to accept, offline per-language dictionary.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#autocomplete", keywords: "autocomplete ghost text suggestions tab to accept predictive text dictionary per language offline suggest words" },
+    { app: "Freally Teleprompt", title: "Dictation", desc: "Write your script by speaking — on-device, off by default, nothing to train.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#voice-control", keywords: "dictation dictate speak talk speech to text voice typing write by speaking record button microphone mic vosk speech recognition offline on device no account undo my voice isnt working microphone not working voice control" },
     { app: "Freally Teleprompt", title: "Appearance, languages & settings", desc: "Fonts, margins, reading guide, 18 languages, themes, draft-apply.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#settings", keywords: "settings appearance font size color margins line height reading guide language locale theme dark mode light mode follow system apply preferences" },
     { app: "Freally Teleprompt", title: "Welcome tour & accessibility", desc: "The first-run tour, keyboard navigation, focus, and reduced motion.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#tour-accessibility", keywords: "tour onboarding welcome getting started intro walkthrough guide show tour again accessibility a11y keyboard tab focus ring screen reader shortcut reduced motion reduce animation prefers-color-scheme system theme dark mode light mode high contrast" },
     { app: "Freally Teleprompt", title: "Problems & updates", desc: "Crash reporting you send yourself, and the launch update check.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#problems", keywords: "bug report crash problem stopped unexpectedly github issue gmail email support update check for updates new version release notes upgrade" },
     { app: "Freally Teleprompt", title: "Privacy", desc: "Local-first, no AI, no account or telemetry, nothing sent anywhere.", url: "https://mikesruthless12.github.io/freally-teleprompt/documentation.html#privacy", keywords: "privacy local first no ai no account no telemetry offline security data private no cloud no model" },
 
     // ===================== Freally Vault (passwords / secrets) =====================
-    { app: "Freally Vault", title: "Getting started", desc: "Install, create your zero-knowledge vault, set a master password.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#getting-started", keywords: "install create vault master password argon2id first run download fvlt setup" },
-    { app: "Freally Vault", title: "Unlock & security", desc: "The encryption model, master password, biometrics, auto-lock.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#unlock-and-security", keywords: "unlock master password biometric windows hello touch id fprintd auto-lock clipboard clear xchacha20 aes-256-gcm zero-knowledge encryption cant unlock forgot" },
-    { app: "Freally Vault", title: "Add a login", desc: "Save a site's username, password, URLs and TOTP as a login.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#add-a-login", keywords: "add login save password username url match new item credentials" },
-    { app: "Freally Vault", title: "Passkeys", desc: "Create and use FIDO2/WebAuthn passkeys stored in your vault.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#passkeys", keywords: "passkey fido2 webauthn passwordless sign in private key" },
-    { app: "Freally Vault", title: "Authenticator (TOTP)", desc: "Built-in TOTP/HOTP authenticator with QR import for 2FA codes.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#authenticator", keywords: "totp hotp 2fa authenticator qr code otpauth two-factor verification code" },
-    { app: "Freally Vault", title: "Secure notes, cards & secrets", desc: "Notes, cards, identities, SSH keys, API/env secrets, seed phrases.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#secure-items", keywords: "secure note card identity ssh key api key env secret seed phrase attachment ssh agent" },
-    { app: "Freally Vault", title: "Password generator", desc: "Strong random passwords or diceware/pronounceable passphrases.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#password-generator", keywords: "generator strong password diceware passphrase pronounceable random password" },
-    { app: "Freally Vault", title: "Autofill & auto-type", desc: "Browser one-click autofill and desktop global auto-type.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#autofill", keywords: "autofill browser extension chrome firefox auto-type native messaging loopback bridge fill password" },
-    { app: "Freally Vault", title: "Security Dashboard", desc: "Watchtower flags weak, reused, old and breached passwords.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#security-dashboard", keywords: "security dashboard watchtower weak password reused breached have i been pwned hibp k-anonymity audit" },
-    { app: "Freally Vault", title: "KeePass & multiple vaults", desc: "Open/write .kdbx directly; manage multiple vaults, history, Trash.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#keepass", keywords: "keepass kdbx keepassxc import kdbx multiple vaults history versioning trash migration" },
-    { app: "Freally Vault", title: "Import & export", desc: "Import from Bitwarden/1Password/LastPass/Chrome/CSV; export.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#import-export", keywords: "import export bitwarden 1password lastpass chrome csv migrate backup" },
-    { app: "Freally Vault", title: "Sync you own", desc: "Optional zero-knowledge sync via a folder, WebDAV or self-hosted.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#sync", keywords: "sync dropbox google drive onedrive webdav nextcloud self-hosted conflict resolution ciphertext" },
-    { app: "Freally Vault", title: "Settings", desc: "Free; tune auto-lock, clipboard, biometrics, emergency access.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#settings", keywords: "settings free no account emergency access sharing cli ssh agent language preferences" },
-    { app: "Freally Vault", title: "Privacy", desc: "Zero-knowledge, no accounts, no telemetry; opt-in network only.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#privacy", keywords: "privacy no telemetry no account offline network actions audit status data" },
-    { app: "Freally Vault", title: "Project documents", desc: "README, security, privacy, EULA, license, changelog links.", url: "https://mikesruthless12.github.io/freally-vault/documentation.html#documents", keywords: "documents readme security policy privacy policy eula license changelog third-party notices" },
 
     // ============ Anchor-less docs: link to the app's doc page ============
-    { app: "Freally Player", title: "Freally Player documentation", desc: "The local-first media player that plays anything.", url: "https://mikesruthless12.github.io/freally-player/documentation.html", keywords: "media player video audio play open codec vlc mpv subtitles hardware accelerated no ads" },
-    { app: "Freally Central", title: "Freally Central documentation", desc: "The hub that browses, updates, and launches every Freally app.", url: "https://mikesruthless12.github.io/freally-central/documentation.html", keywords: "central hub launcher update download install app family store" },
   ],
 };

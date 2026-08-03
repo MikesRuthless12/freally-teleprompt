@@ -35,9 +35,19 @@ use tauri::{AppHandle, Manager, State};
 ///
 /// Falling through to (2) with no bundle present yields a path that does not
 /// exist, which is exactly what the capability check reports on.
+///
+/// ⚠️ (1) is taken only when it holds a model that can actually START, which is
+/// the SAME question `capability` asks — not merely "is there a directory of
+/// that name?". They have to agree, and when they did not, the weaker test here
+/// silently disabled the feature: an empty or half-copied `vosk-model-en` in
+/// the data directory was selected, the completeness check then failed on it,
+/// and dictation reported itself unavailable **on an installed build carrying a
+/// perfectly good bundled model**, with nothing on screen naming the stray
+/// folder as the cause. An escape hatch that is not a usable model is not a
+/// choice to respect; it is something to fall through.
 fn model_dir(app: &AppHandle) -> PathBuf {
     let user = crate::settings::project_dirs().map(|dirs| dirs.data_dir().join("vosk-model-en"));
-    if let Some(dir) = user.filter(|dir| dir.is_dir()) {
+    if let Some(dir) = user.filter(|dir| freally_speech::model_is_installed(dir)) {
         return dir;
     }
     app.path()
@@ -67,14 +77,40 @@ fn model_dir(app: &AppHandle) -> PathBuf {
 #[cfg_attr(not(feature = "vosk"), allow(dead_code))]
 fn model_path_for_ffi(dir: &std::path::Path) -> String {
     let text = dir.to_string_lossy().into_owned();
-    match text.strip_prefix(r"\\?\") {
-        // A UNC verbatim path (`\\?\UNC\server\share`) needs the real UNC form
-        // back, not a bare `UNC\…` which names nothing.
-        Some(rest) => rest
-            .strip_prefix("UNC\\")
-            .map_or_else(|| rest.to_string(), |share| format!(r"\\{share}")),
-        None => text,
+    let Some(rest) = text.strip_prefix(r"\\?\") else {
+        return text;
+    };
+    // A UNC verbatim path (`\\?\UNC\server\share`) needs the real UNC form
+    // back, not a bare `UNC\…` which names nothing.
+    //
+    // Matched case-INSENSITIVELY, like the volume arm below. Windows accepts
+    // `\\?\unc\…`, and a case-sensitive test drops it through both arms and
+    // hands libvosk `unc\server\share\…` — a relative path, the exact failure
+    // both arms exist to prevent.
+    if rest
+        .get(..4)
+        .is_some_and(|head| head.eq_ignore_ascii_case("UNC\\"))
+    {
+        return format!(r"\\{}", &rest[4..]);
     }
+    // A VOLUME GUID path (`\\?\Volume{…}\…`) is what canonicalisation returns
+    // for an install under a drive-letterless mounted folder, and it is the one
+    // verbatim form with NO plain equivalent: the prefix is the only thing
+    // making it absolute. Stripped, `Volume{…}\…` is a RELATIVE path that
+    // resolves against the working directory and names nothing anywhere — so
+    // this is the one case where the prefix must survive.
+    //
+    // That may still not be a path libvosk can open. It is the honest failure
+    // either way: it is the same path the capability check agreed exists, and a
+    // "could not load the model at \\?\Volume{…}" says what is wrong, where a
+    // silently-relative path would send the reader hunting in the wrong place.
+    if rest
+        .get(..7)
+        .is_some_and(|head| head.eq_ignore_ascii_case("Volume{"))
+    {
+        return text;
+    }
+    rest.to_string()
 }
 
 /// Dictation availability for the UI — a serialisable mirror of
@@ -210,23 +246,39 @@ fn run_dictation(_app: AppHandle, _model: PathBuf, _stop: Arc<AtomicBool>) {}
 mod tests {
     use super::*;
 
-    /// The `\\?\` prefix must never reach libvosk. This shipped once: the
+    /// The `\\?\` prefix must not reach libvosk. This shipped once: the
     /// capability check passed (Rust's `exists()` accepts the prefix), the
     /// record button appeared, and pressing it failed with "could not load the
     /// Vosk model at \\?\C:\…" — a path that was, in every other sense, correct.
+    ///
+    /// "Must not" rather than "never", because of the volume-GUID case below:
+    /// there the prefix is the only thing making the path absolute, so dropping
+    /// it turns a path that names the model into one that names nothing.
     #[test]
-    fn the_ffi_path_never_carries_the_windows_verbatim_prefix() {
+    fn the_ffi_path_is_one_a_c_library_can_open() {
         assert_eq!(
             model_path_for_ffi(std::path::Path::new(
                 r"\\?\C:\Program Files\App\vosk-model-en"
             )),
             r"C:\Program Files\App\vosk-model-en",
         );
-        // A verbatim UNC path has to come back as a real UNC path, not `UNC\…`.
-        assert_eq!(
-            model_path_for_ffi(std::path::Path::new(r"\\?\UNC\server\share\model")),
-            r"\\server\share\model",
-        );
+        // A verbatim UNC path has to come back as a real UNC path, not `UNC\…`
+        // — in either case, because Windows accepts either.
+        for verbatim in [r"\\?\UNC\server\share\model", r"\\?\unc\server\share\model"] {
+            assert_eq!(
+                model_path_for_ffi(std::path::Path::new(verbatim)),
+                r"\\server\share\model",
+            );
+        }
+        // ...but a volume GUID path KEEPS its prefix: there is no plain form of
+        // one, and stripping it leaves a relative path naming nothing. This is
+        // an install under a drive-letterless mounted folder.
+        for verbatim in [
+            r"\\?\Volume{b75e2c83-0000-0000-0000-602f00000000}\Apps\vosk-model-en",
+            r"\\?\volume{b75e2c83-0000-0000-0000-602f00000000}\Apps\vosk-model-en",
+        ] {
+            assert_eq!(model_path_for_ffi(std::path::Path::new(verbatim)), verbatim);
+        }
         // Anything already plain is left exactly as it is.
         for plain in [
             r"C:\Apps\model",

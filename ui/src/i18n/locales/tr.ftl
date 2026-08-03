@@ -47,6 +47,8 @@ transport-seek = Metinde ilerle
 editor-label = Metin
 editor-dictate = Dikte et
 editor-dictate-stop = Diktesi durdur
+editor-dictate-hint = Dikteye başlamak için kaydet düğmesine basın
+editor-dictate-hint-stop = Dikteyi bitirmek için durdur düğmesine basın
 editor-placeholder = Metninizi yazın veya yapıştırın. Duraklama için " -- ", 2 saniye beklemek için " --2 " kullanın.
 editor-caesura-hint = Duraklama için -- yazın
 editor-est-time = Okuma süresi { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt başlatılamadı.
 ## Voice control (FT-31)
 settings-cat-voice = Ses
 settings-dictation-enabled = Metnimi konuşarak yaz
-settings-dictation-note = Metnin üzerindeki kayıt düğmesine basın; söyledikleriniz metne yazılır. Tanıma bu cihazda yapılır — hesap yok, ağ yok ve söyledikleriniz hiçbir dosyaya kaydedilmez. Mikrofon yalnızca kayıt sırasında açıktır.
+settings-dictation-note = Metnin üzerindeki kayıt düğmesine basın; söyledikleriniz metne yazılır. Tanıma bu cihazda yapılır — hesap yok, ağ yok ve söyledikleriniz hiçbir dosyaya kaydedilmez. Mikrofon yalnızca kayıt sırasında açıktır. Metin ağınızdaki cihazlara yansıtılıyorsa, dikte edilen sözcükler yazıldıkları anda oraya da ulaşır — klavyeyle yazdığınız her şey gibi.
 settings-dictation-unavailable-model = Konuşma modeli kurulu değil, bu yüzden dikte çalışamaz.
 settings-dictation-unavailable-build = Bu sürümde dikte kullanılamıyor.

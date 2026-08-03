@@ -354,15 +354,24 @@ test.describe("FT-33 dictation — the record button", () => {
    * FRONT of existing text, and the spacing on that side is ours to get right
    * too. Speaking with the caret before a word used to give "spokenWelcome".
    *
-   * `toContainText` collapses whitespace, which is exactly why this assertion
-   * works: a missing space cannot be collapsed into an existing one.
+   * ⚠️ Asserted against the SCRIPT the engine was sent, not against the
+   * editor's rendered text — and that distinction is load-bearing. The caret
+   * ends up immediately after the inserted words, which is exactly where the
+   * editor draws a ghost-text suggestion (FT-21), and a ghost is a real DOM
+   * node inside the contenteditable. Reading the rendered text therefore
+   * yielded `spoken at the topic Welcome`: the script was perfectly correct and
+   * `ic` was a suggestion sitting between the two. It failed on the Linux
+   * runner only, because whether the suggestion has been drawn by the time the
+   * assertion runs is a race nobody should be testing here.
+   *
+   * The script is ghost-free by construction — `phase2.spec.ts` owns that
+   * property — so this reads the thing the test is actually about.
    */
   test("speaking in front of existing text does not run the words together", async ({ page }) => {
     await mockTauri(page, ON);
     await page.goto("/");
     await waitForShell(page);
 
-    const editor = page.getByTestId("caesura-editor");
     await page.getByTestId("dictate-toggle").click();
     await emit(page, "voice:dictating", true);
 
@@ -388,7 +397,11 @@ test.describe("FT-33 dictation — the record button", () => {
       );
     });
 
-    await expect(editor).toContainText("spoken at the top Welcome");
+    // The words really landed at the front — and with the space that used to
+    // be missing, which is the whole point ("spokenWelcome" was the bug).
+    await expect
+      .poll(async () => String((await lastCall(page, "teleprompter_set_script"))?.text ?? ""))
+      .toContain("spoken at the top Welcome");
   });
 
   /**

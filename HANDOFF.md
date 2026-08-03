@@ -446,6 +446,17 @@ Fourteen findings across an inline pass and a fan-out `/code-review`; these are 
 carrying forward. **Every one was found in code that had already passed the full gate**, which is
 the argument for running the passes rather than trusting green.
 
+- **A keystroke is not a portable way to say "go to the top".** `Control+Home` moves the caret on
+  Windows and Linux and does NOTHING on macOS (it is Cmd+Up there), so a test that pressed it and
+  then asserted where text landed passed twice and failed the macOS Playwright job — the one place
+  it had never run. The suite runs on three OSes: put the caret with a DOM `Range`, which means the
+  same thing everywhere. The same rule killed an `activeElement` assertion: macOS does not focus a
+  button when you click it.
+- **`offsetOf` could not read a caret on the root**, only inside its children — so `(root, 0)`,
+  which is exactly what a collapsed range at the very start looks like, fell through the walk and
+  came back as the length of the WHOLE script. A caret at the top read as a caret at the bottom,
+  and anything inserted there went to the end. Pre-existing, found by writing a test that placed
+  the caret honestly instead of by keystroke.
 - **A passive effect is not a guard.** `CaesuraEditor`'s "rebuild the DOM when `value` changes"
   effect ran after paint, and dictation writes from a Tauri event — an ordinary macrotask that can
   land in between. In that window `insertText` reads the PREVIOUS script out of the live DOM and

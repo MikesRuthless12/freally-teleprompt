@@ -150,6 +150,11 @@
             not open rather than quietly looking somewhere else.
           </li>
           <li>
+            Text inserted with the cursor at the <strong>very top</strong> of the script could land
+            at the bottom instead — the editor could not read a cursor sitting on the script as a
+            whole rather than inside a line of it, and answered with the length of everything.
+          </li>
+          <li>
             Dictation could report itself <strong>unavailable while a perfectly good model was
             installed</strong>: a stray or half-copied <code>vosk-model-en</code> in your data
             folder was preferred over the one inside the app, and then rejected for being

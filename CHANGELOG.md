@@ -43,6 +43,10 @@ The record button, and what happens to the words after you say them.
   nothing at all. It now names the model. Whether the recogniser then loads it
   is untested on such a setup — but a failure there says which model it could
   not open, instead of quietly looking somewhere else entirely.
+- Text inserted with the cursor at the **very top** of the script could land at
+  the bottom instead. The editor could not read a cursor position sitting on
+  the script as a whole rather than inside a line of it, and answered with the
+  length of everything — so a paste, or a dictated line, went to the end.
 - Dictation could report itself **unavailable while a perfectly good model was
   installed**: a stray or half-copied `vosk-model-en` in your data folder was
   preferred over the one inside the app, and then rejected for being

@@ -123,6 +123,19 @@ function nodeLen(node: Node): number {
  * this editor is always in a top-level text node or between top-level nodes, so a
  * single ordered pass over the children is exact. */
 function offsetOf(root: HTMLElement, container: Node, offsetInNode: number): number {
+  // The caret can sit on the ROOT itself — `(root, 0)` is what a browser gives
+  // for a collapsed range at the very start, and what `Range.selectNodeContents`
+  // + `collapse` produces. The walk below only ever visits root's DESCENDANTS,
+  // so such a position was never matched: `stop` stayed false, every child was
+  // counted, and the answer came back as the length of the WHOLE script. A
+  // caret at the top therefore read as a caret at the bottom, and anything
+  // inserted there — a paste, a dictated utterance — landed at the end instead.
+  if (container === root) {
+    const kids = Array.from(root.childNodes);
+    let before = 0;
+    for (let k = 0; k < offsetInNode && k < kids.length; k++) before += nodeLen(kids[k]);
+    return before;
+  }
   let total = 0;
   let stop = false;
   const rec = (node: Node) => {

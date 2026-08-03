@@ -52,6 +52,33 @@ async function emitAll(page: Page, events: Array<[string, unknown]>) {
   }, events);
 }
 
+/**
+ * Focus the editor and put the caret at the start or the end of the script.
+ *
+ * Deliberately NOT `Control+Home` / `Control+End`. Those are Windows and Linux
+ * conventions; macOS moves the caret to a document's ends with Cmd+Up / Cmd+Down
+ * and does nothing at all for Control+Home — so a keystroke that reads as
+ * "obviously go to the top" silently leaves the caret where the click put it,
+ * and the test then asserts against a position it never reached. This suite runs
+ * on all three OSes; the DOM Range API means the same thing on all three.
+ *
+ * `focus()` is part of the contract, not a nicety: dictation only inserts at the
+ * caret in an editor that HAS focus (see `CaesuraEditor.insertText`).
+ */
+async function caretAt(page: Page, where: "start" | "end") {
+  await page.evaluate((at) => {
+    const editor = document.querySelector<HTMLElement>('[data-testid="caesura-editor"]');
+    if (!editor) throw new Error("no editor");
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(at === "start");
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }, where);
+}
+
 async function openVoicePane(page: Page) {
   await page.getByTestId("titlebar-settings").click();
   await page.getByRole("tab", { name: "Voice" }).click();
@@ -315,8 +342,7 @@ test.describe("FT-33 dictation — the record button", () => {
     await emit(page, "voice:dictation", "spoken one");
     await expect(editor).toContainText("spoken one");
 
-    await editor.click();
-    await page.keyboard.press("Control+End");
+    await caretAt(page, "end");
     await page.keyboard.type(" typed by hand");
     await emit(page, "voice:dictation", "spoken two");
 
@@ -344,10 +370,27 @@ test.describe("FT-33 dictation — the record button", () => {
     await page.getByTestId("dictate-toggle").click();
     await emit(page, "voice:dictating", true);
 
-    // The caret at the very start of the script, in front of "Welcome…".
-    await editor.click();
-    await page.keyboard.press("Control+Home");
-    await emit(page, "voice:dictation", "spoken at the top");
+    // The caret at the very start of the script, in front of "Welcome…", and
+    // the utterance — in ONE evaluate, for the same reason `emitAll` exists.
+    // Split across two round-trips this was flaky: a React flush in between can
+    // rebuild the editor's DOM, which drops the range on the floor, and the
+    // utterance then appends at the end and fails the assertion for a reason
+    // that has nothing to do with what is under test.
+    await page.evaluate(() => {
+      const editor = document.querySelector<HTMLElement>('[data-testid="caesura-editor"]');
+      if (!editor) throw new Error("no editor");
+      editor.focus();
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(true);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      (window as unknown as { __emitTauri: (e: string, p: unknown) => void }).__emitTauri(
+        "voice:dictation",
+        "spoken at the top",
+      );
+    });
 
     await expect(editor).toContainText("spoken at the top Welcome");
   });
@@ -417,9 +460,13 @@ test.describe("FT-33 dictation — the record button", () => {
 
     await expect(page.getByTestId("caesura-editor")).toContainText("the caret stays put");
     expect(await selectionHome()).not.toBe("in-the-editor");
-    // And the button the operator is actually on still has focus.
-    expect(await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))).toBe(
-      "dictate-toggle",
+    // And focus did not move INTO the editor. Asserted as "not the editor"
+    // rather than "still the record button": macOS follows the platform
+    // convention that clicking a button does not focus it, so on that OS the
+    // click leaves focus on the body and the stricter assertion fails for a
+    // reason that has nothing to do with dictation.
+    expect(await page.evaluate(() => document.activeElement?.getAttribute("data-testid"))).not.toBe(
+      "caesura-editor",
     );
   });
 

@@ -264,6 +264,24 @@ jobs:
           # will find and then refuse, which is the safe direction.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Linux/AppImage only; inert on Windows and macOS.
+          #
+          # `linuxdeploy` is itself distributed AS an AppImage, so running it
+          # needs FUSE — and GitHub's ubuntu image dropped libfuse2. The symptom
+          # is uniquely unhelpful: tauri reports `failed to run linuxdeploy`
+          # with NO output whatsoever, because the tool never got as far as
+          # starting. 1.0.0 built an AppImage fine hours earlier; the runner
+          # image moved under us (the same run started warning about Node 20).
+          #
+          # This makes every AppImage extract itself and run from a temp dir
+          # instead of mounting, which needs no FUSE at all.
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          # The other silent linuxdeploy failure: it strips what it bundles, and
+          # a strip that fails aborts the whole run with equally little to say.
+          # `libvosk.so` is a large prebuilt GCC library and exactly the kind of
+          # thing that trips it. Skipping the strip costs bundle size, which for
+          # an AppImage already carrying a 40 MB speech model is noise.
+          NO_STRIP: "true"
           # No APPLE_* keys here on purpose — see the guard step above. Listing
           # one with an empty value is what breaks the macOS bundle; the guard
           # exports them to the environment only when they are real.

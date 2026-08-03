@@ -197,8 +197,8 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Voice-following's two third-party pieces: the native `libvosk` and the
-      # speech model (~115 MB together). Neither is in the repository — see
+      # Dictation's two third-party pieces: the native `libvosk` and the speech
+      # model (~115 MB together). Neither is in the repository — see
       # `scripts/fetch-vosk.mjs` for why, and for the version choices, which are
       # load-bearing rather than incidental.
       #
@@ -207,6 +207,19 @@ jobs:
       # to compile a feature it does not enable would be a poor trade. The FFI
       # itself is type-checked on every PR without any of this — `cargo check`
       # does not link, so `--features vosk` needs no native library.
+      #
+      # Cached because the two versions in the script ARE the whole identity of
+      # what gets downloaded, so a hit is always correct. Without this, every
+      # platform job of every attempt re-pulls 115 MB from two third-party
+      # hosts — 1.0.0 took five attempts, which is around a gigabyte of
+      # re-download for one shipped release, and it puts alphacephei.com on the
+      # critical path of every build. The fetch script no-ops when the
+      # directories are already there, so a hit costs nothing.
+      - name: Cache libvosk and the speech model
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/vendor/vosk
+          key: ${{ runner.os }}-vosk-0.3.42-model-small-en-us-0.15
       - name: Fetch libvosk and the speech model
         run: node scripts/fetch-vosk.mjs
 
@@ -305,7 +318,7 @@ jobs:
           # generic `windows-x86_64` key came out naming the .msi. The `publish`
           # job rewrites the file; see the step there.
           includeUpdaterJson: true
-          # `--features vosk` is what makes voice-following real instead of
+          # `--features vosk` is what makes dictation real instead of
           # "unavailable", and the overlay config adds the model and the native
           # libraries to the bundle. Both belong ONLY here: a default or CI build
           # has no `vendor/` directory and must never ask for one.

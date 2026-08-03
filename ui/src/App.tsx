@@ -237,33 +237,6 @@ export default function App() {
     [totalChars, state.speed, caesuras],
   );
 
-  // -- dictation (FT-33) -----------------------------------------------------
-  // Speak, and the words are written into the script. The recogniser runs in
-  // Rust behind the `vosk` feature and pushes completed utterances as events;
-  // `speechAvailable` is the capability check, so the record button is offered
-  // only where the model is actually present.
-  const [speechAvailable, setSpeechAvailable] = useState(false);
-  // A voice error (mic could not open, model could not load) — surfaced so a
-  // failed session does not leave a button showing "recording" over a dead engine.
-  const [voiceError, setVoiceError] = useState<string | null>(null);
-
-  useEffect(() => {
-    speechCapability()
-      .then((cap) => setSpeechAvailable(cap.available))
-      .catch(() => setSpeechAvailable(false));
-    const error = onVoiceError(setVoiceError);
-    return () => {
-      void error.then((un) => un()).catch(() => undefined);
-    };
-  }, []);
-
-  // A surfaced voice error clears itself after a few seconds.
-  useEffect(() => {
-    if (!voiceError) return;
-    const id = window.setTimeout(() => setVoiceError(null), 6000);
-    return () => window.clearTimeout(id);
-  }, [voiceError]);
-
   // -- speed: chars/sec or BPM (FT-14) ---------------------------------------
   // An operator-local DISPLAY toggle over the same authoritative chars/sec.
   const [bpmMode, setBpmMode] = useState(false);
@@ -381,17 +354,35 @@ export default function App() {
     }, AUTOSAVE_MS);
   };
 
-  // -- dictation -------------------------------------------------------------
+  // -- dictation (FT-33) -----------------------------------------------------
+  // Speak, and the words are written into the script. The recogniser runs in
+  // Rust behind the `vosk` feature and pushes completed utterances as events.
+  //
   // Each utterance is APPENDED: inserting at the caret would mean reaching into
   // the chip-aware contenteditable, whereas appending goes through the same
   // `onScriptChange` path as typing — so the engine, the projector and autosave
-  // all update exactly as they already do.
+  // all update exactly as they already do. (Which also means dictated text does
+  // not enter the editor's own undo stack; see the handoff.)
+  //
+  // Placed AFTER `onScriptChange` because it calls it.
   const [dictating, setDictating] = useState(false);
+  // The capability check: is the engine compiled in AND its model installed?
+  const [speechAvailable, setSpeechAvailable] = useState(false);
+  // A voice error (mic could not open, model could not load) — surfaced so a
+  // failed session does not leave a button showing "recording" over a dead engine.
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   // Offered only when switched on AND the model is present AND the agreement is
   // accepted. All three, because this opens a microphone.
   const dictationOn =
     (settings?.dictationEnabled ?? false) && speechAvailable && eula?.accepted === true;
+
+  // A surfaced voice error clears itself after a few seconds.
+  useEffect(() => {
+    if (!voiceError) return;
+    const id = window.setTimeout(() => setVoiceError(null), 6000);
+    return () => window.clearTimeout(id);
+  }, [voiceError]);
 
   // What dictation last wrote, so consecutive utterances chain.
   //
@@ -424,14 +415,23 @@ export default function App() {
     };
   });
 
+  // One mount-once subscription for the whole feature: the capability read and
+  // all three `voice:*` events share a lifetime, so they share an effect.
   useEffect(() => {
+    speechCapability()
+      .then((cap) => setSpeechAvailable(cap.available))
+      .catch(() => setSpeechAvailable(false));
     const text = onVoiceDictation((said) => dictateInsert.current(said));
     const running = onVoiceDictating(setDictating);
+    const error = onVoiceError(setVoiceError);
     return () => {
-      void text.then((un) => un()).catch(() => undefined);
-      void running.then((un) => un()).catch(() => undefined);
+      for (const sub of [text, running, error]) {
+        void sub.then((un) => un()).catch(() => undefined);
+      }
     };
   }, []);
+
+  const dictateLabel = dictating ? t("editor-dictate-stop") : t("editor-dictate");
 
   const toggleDictation = () => {
     if (dictating) {
@@ -544,20 +544,18 @@ export default function App() {
                 data-testid="dictate-toggle"
                 className={dictating ? PRIMARY : BUTTON}
                 aria-pressed={dictating}
-                title={dictating ? t("editor-dictate-stop") : t("editor-dictate")}
+                title={dictateLabel}
                 onClick={toggleDictation}
               >
+                {/* A square while recording (stop), a red circle when idle
+                    (record) — the two shapes every recorder uses. */}
                 <span
                   aria-hidden="true"
-                  className={
-                    dictating
-                      ? "inline-block h-2.5 w-2.5 bg-current align-middle"
-                      : "inline-block h-2.5 w-2.5 rounded-full bg-red-500 align-middle"
-                  }
+                  className={`inline-block h-2.5 w-2.5 align-middle ${
+                    dictating ? "bg-current" : "rounded-full bg-red-500"
+                  }`}
                 />
-                <span className="ml-1.5 align-middle">
-                  {dictating ? t("editor-dictate-stop") : t("editor-dictate")}
-                </span>
+                <span className="ml-1.5 align-middle">{dictateLabel}</span>
               </button>
             )}
           </div>

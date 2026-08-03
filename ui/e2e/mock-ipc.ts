@@ -207,8 +207,8 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     // its own tests on both sides of the IPC boundary.
     const engine = { ...data.teleprompter };
     // Event subscribers, keyed by event name. `teleprompter` carries the engine
-    // snapshot; `voice:command` / `voice:listening` are pushed by tests via
-    // `window.__emitTauri` to stand in for the recogniser (FT-31).
+    // snapshot; `voice:dictation` / `voice:dictating` are pushed by tests via
+    // `window.__emitTauri` to stand in for the recogniser (FT-33).
     type Handler = (event: { event: string; payload: unknown }) => void;
     const listeners: Record<string, Handler[]> = {};
     const emit = () => {
@@ -316,7 +316,8 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             return Promise.resolve({ ...data.settings });
           }
           // Dictation (FT-33). No audio here — a spec drives recognition by
-          // firing `voice:dictation` through `emitBackendEvent`.
+          // firing `voice:dictation` through `window.__emitTauri` (see the
+          // `emit` helper in `phase3.spec.ts`).
           case "speech_capability":
             return Promise.resolve(data.speechCapability);
           case "dictation_start":

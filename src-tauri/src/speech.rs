@@ -116,13 +116,18 @@ pub struct DictationState {
 /// Emits `voice:dictation` with each completed utterance for the UI to insert.
 #[tauri::command]
 pub fn dictation_start(app: AppHandle, state: State<'_, DictationState>) -> Result<(), String> {
-    let cap = freally_speech::capability(Some(&model_dir(&app)));
+    // Resolved ONCE and moved into the thread. `model_dir` stats the data
+    // directory and asks Tauri for the resource directory (which on Windows
+    // means `current_exe()` plus canonicalisation); doing that again inside the
+    // loop would be the same answer for more syscalls.
+    let dir = model_dir(&app);
+    let cap = freally_speech::capability(Some(&dir));
     if !cap.available {
         return Err(cap.detail);
     }
     state
         .session
-        .start(move |stop| std::thread::spawn(move || run_dictation(app, stop)));
+        .start(move |stop| std::thread::spawn(move || run_dictation(app, dir, stop)));
     Ok(())
 }
 
@@ -134,7 +139,7 @@ pub fn dictation_stop(state: State<'_, DictationState>) {
 
 /// The dictation loop — recognise freely and emit the text.
 #[cfg(feature = "vosk")]
-fn run_dictation(app: AppHandle, stop: Arc<AtomicBool>) {
+fn run_dictation(app: AppHandle, model: PathBuf, stop: Arc<AtomicBool>) {
     use std::sync::atomic::Ordering;
 
     use freally_speech::{SpeechRecognizer, VoskRecognizer};
@@ -142,14 +147,13 @@ fn run_dictation(app: AppHandle, stop: Arc<AtomicBool>) {
     use tauri::Emitter;
 
     const RATE: u32 = CANONICAL_SAMPLE_RATE;
-    let mut recognizer =
-        match VoskRecognizer::new(&model_path_for_ffi(&model_dir(&app)), RATE as f32) {
-            Ok(recognizer) => recognizer,
-            Err(err) => {
-                let _ = app.emit("voice:error", err);
-                return;
-            }
-        };
+    let mut recognizer = match VoskRecognizer::new(&model_path_for_ffi(&model), RATE as f32) {
+        Ok(recognizer) => recognizer,
+        Err(err) => {
+            let _ = app.emit("voice:error", err);
+            return;
+        }
+    };
     let mut source = match CpalSource::new() {
         Ok(source) => source,
         Err(err) => {
@@ -187,21 +191,12 @@ fn run_dictation(app: AppHandle, stop: Arc<AtomicBool>) {
 /// Without the `vosk` feature there is no recogniser — `dictation_start` already
 /// refuses via the capability check, so this is never reached.
 #[cfg(not(feature = "vosk"))]
-fn run_dictation(_app: AppHandle, _stop: Arc<AtomicBool>) {}
+fn run_dictation(_app: AppHandle, _model: PathBuf, _stop: Arc<AtomicBool>) {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// The capability CONTRACT — unavailable without a model, in both the
-    /// `vosk` and the default build — is tested in `freally-speech`, which owns
-    /// it and needs no Tauri app to do it. This module owns only the mapping
-    /// into the serialisable shape the UI reads, so that is what is tested here.
-    ///
-    /// (It used to call `speech_capability()` directly and assert the engine was
-    /// `"none"`. That stopped compiling the moment the command needed an
-    /// `AppHandle` to find the bundled model — and it had been asserting the
-    /// default build's answer as though it were the only one.)
     /// The `\\?\` prefix must never reach libvosk. This shipped once: the
     /// capability check passed (Rust's `exists()` accepts the prefix), the
     /// record button appeared, and pressing it failed with "could not load the
@@ -229,16 +224,33 @@ mod tests {
         }
     }
 
+    /// The capability CONTRACT — unavailable without a model, in both the `vosk`
+    /// and the default build — is tested in `freally-speech`, which owns it and
+    /// needs no Tauri app to do it. What this module owns is the SHAPE the UI
+    /// reads, and the only part of that with a real contract is the key naming:
+    /// `#[serde(rename_all = "camelCase")]` is what makes the payload match
+    /// `SpeechCapability` in `ui/src/api/types.ts`. Drop that attribute and the
+    /// UI silently reads `undefined` for every field — the record button would
+    /// simply never appear, with nothing logged anywhere.
+    ///
+    /// (Asserting the three fields survive a three-field move proved nothing;
+    /// that version could only fail if someone deliberately mis-wired it.)
     #[test]
-    fn the_dto_carries_the_capability_through_unchanged() {
-        let cap = freally_speech::SpeechCapability {
-            available: false,
+    fn the_capability_serialises_with_the_key_names_the_ui_reads() {
+        let dto: SpeechCapabilityDto = freally_speech::SpeechCapability {
+            available: true,
             engine: "vosk".into(),
-            detail: "no speech model configured".into(),
-        };
-        let dto: SpeechCapabilityDto = cap.clone().into();
-        assert_eq!(dto.available, cap.available);
-        assert_eq!(dto.engine, cap.engine);
-        assert_eq!(dto.detail, cap.detail);
+            detail: "ready".into(),
+        }
+        .into();
+
+        let json = serde_json::to_value(&dto).expect("the DTO is plain data");
+        let object = json.as_object().expect("serialises to an object");
+        let mut keys: Vec<&str> = object.keys().map(String::as_str).collect();
+        keys.sort_unstable();
+        assert_eq!(keys, ["available", "detail", "engine"]);
+        assert_eq!(object["available"], serde_json::json!(true));
+        assert_eq!(object["engine"], serde_json::json!("vosk"));
+        assert_eq!(object["detail"], serde_json::json!("ready"));
     }
 }

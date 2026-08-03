@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Fetch the native `libvosk` for THIS platform and the speech model, into
- * `src-tauri/vendor/vosk/` — the two things voice-following (FT-32/33/35) needs
- * and the repository deliberately does not carry.
+ * `src-tauri/vendor/vosk/` — the two things dictation (FT-33) needs and the
+ * repository deliberately does not carry.
  *
  * Neither is committed, for the same reason `.dict-cache/` is not: together they
  * are ~65 MB of third-party binary that is re-fetchable on demand. The build
@@ -17,18 +17,21 @@
  *   0.3.50 ships no binaries at all; 0.3.42 is the most recent release carrying
  *   Windows, macOS AND Linux. Its macOS `.dylib` is a genuine FAT binary
  *   (x86_64 + arm64), which is what lets the universal build link.
- * - **vosk-model-small-en-us-0.15**, and NOT one of the large models. Dynamic
- *   grammar — `Recognizer::new_with_grammar`, the whole point of the
- *   script-constrained window in `freally-speech` — works only on the small and
- *   `-lgraph` models. A big static-graph model would silently ignore the
- *   grammar and recognise against the full vocabulary.
+ * - **vosk-model-small-en-us-0.15**, and NOT one of the large models. Dictation
+ *   itself runs with a FREE grammar, so this looks like a free choice — it is
+ *   not. `freally-speech`'s script-constrained window
+ *   (`Recognizer::new_with_grammar`) works only on the small and `-lgraph`
+ *   models, and a big static-graph model ignores the grammar silently rather
+ *   than erroring. Swapping in a large model would appear to work and quietly
+ *   disable that capability for anything that uses it again.
+ *   The small model is also the only one whose size is sane to ship.
  *
  * Licences (re-read at the source per standing rule #7, not from a summary):
  * Vosk's code is Apache-2.0 and this model's weights are Apache-2.0. The
  * `daanzu` models are AGPL and the `zamia` one LGPL-3.0 — do not swap one in.
  */
-import { createWriteStream } from "node:fs";
-import { copyFile, mkdir, rm, readdir, rename, stat } from "node:fs/promises";
+import { createWriteStream, existsSync } from "node:fs";
+import { copyFile, mkdir, rm, readdir, rename } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { spawnSync } from "node:child_process";
@@ -80,15 +83,6 @@ if (!plat) {
   process.exit(1);
 }
 
-const exists = async (p) => {
-  try {
-    await stat(p);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 async function download(url, dest) {
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
@@ -129,12 +123,15 @@ function extract(archive, into) {
 async function soleDir(parent) {
   const entries = await readdir(parent, { withFileTypes: true });
   const dirs = entries.filter((e) => e.isDirectory());
-  if (dirs.length !== 1) throw new Error(`expected one directory in ${parent}, found ${dirs.length}`);
+  if (dirs.length !== 1)
+    throw new Error(
+      `expected one directory in ${parent}, found ${dirs.length}`,
+    );
   return join(parent, dirs[0].name);
 }
 
 async function fetchLib() {
-  if (!force && (await exists(LIB_DIR)) && (await exists(LINK_DIR))) {
+  if (!force && existsSync(LIB_DIR) && existsSync(LINK_DIR)) {
     console.log(`fetch-vosk: libvosk already present (${LIB_DIR})`);
     return;
   }
@@ -168,13 +165,17 @@ async function fetchLib() {
   }
   await rm(tmp, { recursive: true, force: true });
   if (!shipped || !linked) {
-    throw new Error(`archive layout changed — ${shipped} shippable, ${linked} linkable`);
+    throw new Error(
+      `archive layout changed — ${shipped} shippable, ${linked} linkable`,
+    );
   }
-  console.log(`fetch-vosk: ${shipped} runtime lib(s) -> lib/, ${linked} link target(s) -> link/`);
+  console.log(
+    `fetch-vosk: ${shipped} runtime lib(s) -> lib/, ${linked} link target(s) -> link/`,
+  );
 }
 
 async function fetchModel() {
-  if (!force && (await exists(MODEL_DIR))) {
+  if (!force && existsSync(MODEL_DIR)) {
     console.log(`fetch-vosk: model already present (${MODEL_DIR})`);
     return;
   }
@@ -197,13 +198,19 @@ async function fetchModel() {
 }
 
 await mkdir(VENDOR, { recursive: true });
-await fetchLib();
-await fetchModel();
+// Concurrently: two unrelated downloads from two different hosts, ~115 MB
+// between them, sharing nothing but the parent directory. Serially, a release
+// pays `lib + model`; the matrix is one-at-a-time, so that is three times per
+// release. The extractions still take turns — `spawnSync` blocks the loop —
+// but the downloads are the expensive half and they now overlap.
+await Promise.all([fetchLib(), fetchModel()]);
 
 // The one file the recogniser cannot start without; a truncated download is
 // otherwise only discovered at runtime, as "could not load the Vosk model".
-if (!(await exists(join(MODEL_DIR, "am", "final.mdl")))) {
-  console.error(`fetch-vosk: ${MODEL_DIR} has no am/final.mdl — the model looks incomplete`);
+if (!existsSync(join(MODEL_DIR, "am", "final.mdl"))) {
+  console.error(
+    `fetch-vosk: ${MODEL_DIR} has no am/final.mdl — the model looks incomplete`,
+  );
   process.exit(1);
 }
 console.log("fetch-vosk: ready");

@@ -1,8 +1,12 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 /**
- * Backend → UI events (FT-31 / FT-35). The recogniser and follower run on
- * background threads and push results here rather than being polled.
+ * Backend → UI events (FT-33). The recogniser runs on a background thread and
+ * pushes results here rather than being polled.
+ *
+ * The `voice:` prefix predates dictation — it was shared with voice commands and
+ * voice-following, both since removed. Kept because it is the wire contract
+ * between Rust and this file, and renaming it would buy nothing.
  *
  * Each helper resolves an unlisten function; on a host without the event bridge
  * (a unit test, a lost webview) it resolves a no-op instead of throwing, so the

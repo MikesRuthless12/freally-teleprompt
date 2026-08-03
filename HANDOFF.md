@@ -1,6 +1,6 @@
 # Freally Teleprompt — Handoff
 
-**Written 2026-08-01, after FT-50 (onboarding tour, themes, accessibility) + FT-51/52 prep.**
+**Written 2026-08-03, after `v1.1.0` — dictation replaces voice control.**
 Read this before the next session. It says where things actually stand, the traps this session
 paid for, and what is genuinely outstanding.
 
@@ -10,13 +10,29 @@ paid for, and what is genuinely outstanding.
 
 | | |
 |---|---|
-| Version | `1.0.0` — bumped from `0.300.0` in all four files. Clears the MSI ceiling (minor 0). |
-| Phase 0 / 1 / 2 / 3 | ✅ scaffold, teleprompter core, offline autocomplete, voice control |
-| **FT-50** | ✅ four-step first-run tour, a **system** theme, and the keyboard-accessibility floor |
-| FT-51 / FT-52 | ✅ **`v1.0.0` is published** — signed installers on all three OSes, updater endpoint live. macOS is **unsigned** (no Apple cert): Gatekeeper needs a right-click → Open. |
-| Crates | `freally-voice` (FT-30), `freally-align` (FT-34), `freally-speech` (FT-32) |
-| Tests | **121 Rust** · **100 vitest** · **129 Playwright** · per-OS launch screenshots |
-| Next | bundle the Vosk model so voice-following actually runs; FT-53 (site content), FT-54 |
+| Version | `1.1.0`, **published and Latest**. Ordinary semver from 1.0.0 on — the ×100 phase ladder is over, and it is what walked into the MSI ceiling. |
+| Phase 0 / 1 / 2 | ✅ scaffold, teleprompter core, offline autocomplete |
+| **Voice** | ✅ **dictation only.** Voice commands and voice-following were REMOVED in 1.1.0 — see below. |
+| FT-51 / FT-52 | ✅ signed installers on all three OSes, updater endpoint live and verified. macOS is **unsigned** (no Apple cert): Gatekeeper needs a right-click → Open. |
+| Crates | `freally-voice` (capture only now), `freally-align` (no longer used by the app), `freally-speech` |
+| Tests | **~121 Rust** · **93 vitest** · **~130 Playwright** · per-OS launch screenshots |
+| Next | the dictate button redesign (Outstanding #4 — specified in full), FT-53 (site content) |
+
+### What 1.1.0 changed, and why
+
+**Voice commands are gone.** They required recording every command in your own voice before any of
+them did anything, then holding a button while speaking. Until that training was done, holding the
+button opened the microphone and achieved nothing — silently, with no error, indistinguishable from
+a fault. That is exactly how it was reported.
+
+**Voice-following is gone too**, by the same decision: one clear way to use your voice beats three
+overlapping ones.
+
+**Dictation is what replaced them** — press record, talk, press stop, the words land in the script.
+No training, no setup, and the bundled model means it works the first time it is switched on.
+
+`freally-voice` **stays** (dictation uses its microphone capture; only the DTW command recogniser
+went unused). `freally-align` is no longer an app dependency but remains a crate.
 
 ### ⚠️ This machine had NO toolchain
 
@@ -51,24 +67,27 @@ npm run ci:local          # the full gate. RUN IT IN THE FOREGROUND (LNK1123 fla
 
 ---
 
-## ⚠️ Read this first: the `vosk` feature is OFF in CI
+## ⚠️ Read this first: the `vosk` feature is OFF except in a release build
 
-Track B's recogniser links a **native library (`libvosk`)** and needs a **~40–50 MB model**. Neither
-is in CI or the dev machine. So the **`vosk` Cargo feature is off by default**: the whole gate builds
-and passes with no `libvosk`, and voice-following reports itself **unavailable** via
-`speech_capability`.
+The recogniser links a **native library (`libvosk`)** and needs a **~40 MB model**. Neither is in the
+repository, so the **`vosk` Cargo feature is off by default**: the whole gate builds and passes with
+no `libvosk`, and dictation reports itself **unavailable** via `speech_capability`. Only
+`release.yml` turns it on, after `scripts/fetch-vosk.mjs` pulls both down.
 
-Compiled ONLY with `--features vosk` + `libvosk` present, and therefore **verified by the human drill,
-never CI**:
+That is why **a dev build cannot dictate** and its Settings toggle is disabled — see Outstanding #5.
 
-- `freally-speech/src/vosk_engine.rs` (`VoskRecognizer`)
-- `src-tauri/src/speech.rs::run_follow` (the recognise → align → emit loop)
+Two things now guard the gap that used to make this dangerous:
 
-They are written against the **`vosk` 0.3 crate's real source** (read from the cargo registry cache),
-not guessed — but **do not assume they compile until the drill runs**. The app turns the feature on
-through its own `vosk` feature (`src-tauri/Cargo.toml`), which a release build (FT-52) enables. The
-pure IP — the grammar-window builder, the aligner, the capability seam — is dependency-free and fully
-unit-tested without any of this.
+- `cargo check -p freally-speech --features vosk` runs in `ci.yml` and `ci-local`. **Checking does
+  not link**, so it needs no `libvosk`, no model and no download — but it compiles the FFI on every
+  PR. Before it existed, `vosk_engine.rs` went two phases without ever being built, and the first
+  compile found a broken test.
+- `freally-speech/tests/vosk_model.rs` is the drill, as two `#[ignore]`d tests. It has been **run**:
+  the model loads, a script grammar installs, and grammar replacement across windows works. Read its
+  module docs before running it — `RUSTFLAGS` will not survive a repository path containing a space.
+
+Still linked ONLY in a release build, and so proven by the drill and the release, never by the gate:
+`freally-speech/src/vosk_engine.rs` and `src-tauri/src/speech.rs::run_dictation`.
 
 ---
 
@@ -93,15 +112,17 @@ unit-tested without any of this.
 
 ## ⚠️ Outstanding
 
-### 1. Human drills — still NONE run
+### 1. Human drills — Phase 0/1/2 still NONE run
 
-`Live-To-Do-List.md` now carries Phase 0/1/2 drills **plus** Phase 3's, none run:
-- **Track A** — train commands in your own voice, drive the prompter hands-free, confirm a wrong word
-  is refused, confirm audio never hits disk (only `voice-model.json` = features).
-- **FT-32** — compile `freally-speech --features vosk` against a real `libvosk` (the FFI has never
-  been link-checked); recognise constrained words from a WAV.
-- **FT-35** — voice-following in a `vosk` build with a model: it follows, holds (not jumps) on a
-  skipped line, and never moves the projector.
+`Live-To-Do-List.md` carries the Phase 0/1/2 drills, none of which have been run.
+
+The Phase 3 voice drills are **retired**: the Track A and FT-35 ones describe features that no
+longer exist, and the FT-32 one (compile and link the FFI against a real `libvosk`) is **done** —
+it now lives as `freally-speech/tests/vosk_model.rs` and has passed.
+
+**Dictation itself is confirmed working end to end** on a real Windows install: model loads,
+microphone opens, speech lands in the script. Not yet exercised on macOS or Linux — the AppImage and
+`.deb` bundle `libvosk.so` via linuxdeploy, and nobody has installed either.
 
 ### 1b. FT-50's three drills (new)
 
@@ -167,14 +188,109 @@ was generated (outside the repo, never committed — `git grep` for key material
 it that way). If both are lost, every installed copy of the app refuses all future updates, because
 they verify against the `pubkey` baked into `tauri.conf.json`. Put the backup somewhere durable.
 
-### 3. Known edge — commands and following can both be on
+### 3. ✅ RESOLVED — the two-microphone edge
 
-In a `vosk` build, `voiceEnabled` (commands) and `voiceFollowEnabled` (following) are independent, so
-both can be on → **two mic sessions / two `CpalSource`s** at once. Not a crash (each is independent),
-but wasteful and the indicators can confuse. Mutual exclusion is a future refinement. In current
-builds (no `vosk`) following never runs, so there is no conflict today.
+Voice commands and voice-following could both be on at once, holding two `CpalSource`s. Both
+features are gone (see "What 1.1.0 changed"); dictation is the only thing that opens a microphone
+and it is a single session.
+
+### 4. 🔜 NEXT UP — the dictate button's redesign (specified, not built)
+
+**Requested directly, and to be built in the next phase.** The current button is a rectangle with a
+dot and the word "Dictate". What is wanted instead:
+
+- **Round.** Not square, not a rounded rectangle — a circle.
+- **Glyph only. NO text inside the button at all.** A ● record glyph, and a ■ stop glyph once
+  recording. The current `editor-dictate` / `editor-dictate-stop` strings move OUT of the button.
+- **A label to the LEFT of it**, which changes with the state:
+  - idle → **"Press record to start dictation"**
+  - recording → **"Press stop to stop dictation"**
+- **Colour follows the POINTER, not just the state** (this is the half that was chosen explicitly —
+  it was offered as an alternative to "just turn red while recording", and this is the one wanted):
+
+  | state | resting | hovered |
+  |---|---|---|
+  | idle (● record) | default | **green** |
+  | recording (■ stop) | **green** | **red** |
+
+  So: hover the record button and it greens; move away without clicking and it returns to default;
+  click and it stays green as it becomes the stop button; hover the stop button and it reds; move
+  away and it returns to green; click and it goes back to default.
+
+Notes for whoever builds it:
+
+- Two new i18n keys for the labels, ×18 locales, and the two existing in-button strings become the
+  `title`/`aria-label` rather than visible text — a glyph-only control still needs an accessible
+  name, and `phase3.spec.ts` finds the button by `data-testid`, not by text.
+- The colour rules are hover state, so they belong in CSS (`:hover`), not React state — but the
+  **idle vs recording** distinction is React state. Do not try to do all four cells in JS.
+- `theme:lint` will want any new colour utilities to have a light-theme re-tint, unless they are
+  deliberately outside the palette like `.proj-btn`.
+- The three e2e cases that assert `aria-pressed` and the start/stop IPC still apply unchanged; only
+  the appearance is moving.
+
+### 5. Dictation cannot be exercised in a dev build (a papercut, not a bug)
+
+`--features vosk` is release-only, so `npm run tauri dev` reports the engine absent and disables the
+toggle. That is honest, but it makes the feature awkward to iterate on.
+
+**The fallback in `model_dir` exists precisely for this**: a model in the user's data directory wins
+over the bundled one. So a dev loop is:
+
+```
+node scripts/fetch-vosk.mjs
+# copy src-tauri/vendor/vosk/vosk-model-en -> <data dir>/vosk-model-en
+npm run tauri dev -- --features vosk
+```
+
+On Windows the data dir is `%APPDATA%\Freally\Freally Teleprompt\data\`. `libvosk.dll` must also be
+findable — put `src-tauri/vendor/vosk/lib` on `PATH` for that shell. Worth wrapping in an
+`npm run dev:vosk` script; it was scoped and not built.
 
 ---
+
+## Traps paid shipping dictation and `v1.1.0`
+
+- **A dev build CANNOT dictate, and that is correct.** `--features vosk` is on only for release
+  builds, so a `tauri dev` / debug build reports `engine: "none"` and the Settings toggle is
+  **disabled** with "Dictation is not available in this build". This was reported as a bug twice.
+  It is not one — but if you are testing dictation, build the installer, or see the dev-loop note
+  in Outstanding #5.
+- **Windows' `\\?\` verbatim path prefix breaks C libraries.** `resource_dir()` is canonicalised,
+  and Rust canonicalisation on Windows always produces `\\?\C:\…`. Rust's own `exists()` accepts it,
+  so the capability check reported the model present and the record button appeared — then failed on
+  press with "could not load the Vosk model at \\?\C:\…", because **libvosk is C** and opens the
+  model with plain file calls. `model_path_for_ffi` strips it. **Only a real INSTALL shows this**: a
+  dev build's path comes from the manifest directory and has no prefix. Any future native library
+  handed a path from `resource_dir()` needs the same treatment.
+- **`set_grammar` contradicted its own documented contract.** The trait said an empty window frees
+  the vocabulary; the implementation appended `[unk]` unconditionally, so an empty window
+  **constrained the recogniser to nothing at all**. Nothing had ever passed an empty slice — only
+  dictation does — so the doc comment had been wrong and untested since it was written.
+- **`state.script` cannot be appended to twice in a row.** It round-trips through the engine, so two
+  utterances arriving before that returns both append to the same base and the first is **silently
+  lost**. Dictation chains from its own last write while recording. Caught by an e2e test, not by a
+  person, which is the only reason it was caught at all.
+- **`tar` is NOT a portable zip reader.** Windows 10+ and macOS ship **bsdtar** as `tar`, which reads
+  zip; **Linux ships GNU tar**, which cannot. `fetch-vosk.mjs` worked on the two platforms it was
+  written on and could never have worked on the third. It now tries `unzip` first and falls back to
+  `tar`.
+- **linuxdeploy walks the binary's ELF dependencies, and an unresolvable one kills the AppImage.**
+  The app links `libvosk.so`; our copy sits in the Tauri resource directory, which is on no library
+  search path, and `build.rs`'s rpath is a **runtime** hint that means nothing to a **build-time**
+  dependency walker. `LD_LIBRARY_PATH` in `release.yml` fixes it, and linuxdeploy then bundles the
+  library into the AppImage's own `usr/lib`.
+- **⚠️ The bundler SWALLOWS its tools' output — always build releases with `--verbose`.** The
+  AppImage failure above cost **three runs** reporting only `failed to run linuxdeploy`, with
+  nothing from linuxdeploy itself. Two hypotheses (missing FUSE, a failed strip) were spent on
+  guesswork and **both were wrong** — tauri already passes `--appimage-extract-and-run` itself.
+  Adding `--verbose` produced the real cause in one run. `release.yml` now always passes it. When a
+  bundler step fails opaquely, get the log before forming a theory.
+- **Re-tagging is the release repair loop.** `gh release delete vX --yes` → delete the remote tag →
+  re-tag the fixed commit. Safe only because the release is built as a **draft** and the publish job
+  is what makes it visible. `workflow_dispatch` with a `tag` input can also re-run the workflow
+  against an existing tag using the workflow file from `main` — useful for diagnostics without
+  moving the tag.
 
 ## Traps paid bundling the Vosk model (FT-33)
 
@@ -357,23 +473,27 @@ docs/index.html                     the download menu + real per-OS counts, reso
 - **`ui/e2e/mock-ipc.ts` mirrors that preserve rule.** If you add a fourth record field in Rust,
   add it there too, or every e2e spec becomes more permissive than the real app.
 
-## What Phase 3 added
+## What the voice stack is NOW (after 1.1.0)
 
 ```
-freally-voice/               FT-30  MFCC + DTW voice-command recognition; cpal behind `capture-cpal`
-freally-align/               FT-34  deterministic words -> visible-char offset; the differentiator
-freally-speech/              FT-32  Vosk recognition + grammar window; Vosk behind the `vosk` feature
-src-tauri/src/voice.rs       FT-31  command backend (train/forget/listen); model = FEATURES, never audio
-src-tauri/src/speech.rs      FT-35  voice-following (capability + feature-gated follow loop)
-src-tauri/src/session.rs            BackgroundSession — shared thread lifecycle for both loops
-ui/src/panels/Settings.tsx          the Voice pane (commands + the follow toggle, capability-gated)
-ui/src/App.tsx                      voice:command -> transport, voice:offset -> scroller, indicators
-ui/src/lib/voice.ts                 command -> transport mapping (pure, unit-tested)
-ui/src/api/events.ts                listenSafe + the voice:* subscriptions
-NOTICE                              Vosk code + weights (both Apache-2.0), shipped-with-the-feature
+freally-voice/                   microphone capture + resampling (cpal behind `capture-cpal`).
+                                 Its MFCC/DTW command recogniser is UNUSED by the app.
+freally-speech/                  Vosk recognition + the grammar window; Vosk behind `vosk`.
+freally-align/                   words -> visible-char offset. No longer an app dependency.
+src-tauri/src/speech.rs          dictation: capability, start/stop, the free-grammar loop,
+                                 and `model_path_for_ffi` (the `\\?\` fix — do not remove).
+src-tauri/src/session.rs         BackgroundSession — the dictation thread's lifecycle.
+src-tauri/tauri.vosk.conf.json   the OVERLAY that bundles the model + native libs. Separate
+                                 because `resources` paths are validated on EVERY build.
+src-tauri/build.rs               link search path + the per-platform runtime rpath.
+scripts/fetch-vosk.mjs           pulls libvosk + the model into src-tauri/vendor (gitignored).
+ui/src/panels/Settings.tsx       the Voice pane: ONE dictation toggle, capability-gated.
+ui/src/App.tsx                   the record/stop button; voice:dictation -> the script.
+NOTICE                           Vosk code + weights + the MinGW runtime DLLs shipped on Windows.
 ```
-Plus the docs site (voice-control section + changelog), 18-language i18n (**172 keys**), and per-OS
-capability matrices in the crate READMEs.
+
+Deleted in 1.1.0: `src-tauri/src/voice.rs`, `ui/src/lib/voice.ts` and its tests, the push-to-talk
+button, the training UI, the follow loop, and 23 i18n keys × 18 locales.
 
 ---
 
@@ -382,9 +502,14 @@ capability matrices in the crate READMEs.
 - **Vosk is bundled, not OS engines** — per the ROADMAP.md 2026-07-21 amendment (with the licensing
   research). `BUILD-PROMPTS.md`'s Phase 3 block is **stale** on this: it still says "delegate to the
   OS," which the amendment rejected. Trust the ROADMAP.
-- **Voice-following drives the `overrideOffset` seam** (the same one read-aloud FT-16 uses), so the
-  projector and shared scroll state are **untouched by design** (per FT-35). Losing confidence
-  **holds** the aligner's last position (the aligner never guesses — FT-34) with a green/grey
-  indicator; it does **not** snap back to shared state.
-- **Track A is model-free forever** (MFCC+DTW on your own recordings); **only Track B bundles Vosk**,
-  and only opt-in. Commands need no model, no network; following needs the model or reports itself off.
+- **Dictation FREES the grammar; it does not constrain it.** `freally-speech` can restrict the
+  vocabulary to a window of the script — far more accurate for reading aloud, and the reason the
+  grammar-window builder exists — but dictation writes words the script does not contain yet, so
+  constraining it would defeat the point. `set_grammar(&[])` is the seam, and the empty-slice
+  contract is now honoured (it was not; see the traps).
+- **Only the small and `-lgraph` Vosk models support dynamic grammar.** A large static-graph model
+  silently ignores the vocabulary and decodes against the full dictionary — no error, just much
+  worse results. `vosk-model-small-en-us-0.15` is required, not merely cheap.
+- **Dictation APPENDS, and never touches the scroll.** Inserting at the caret would mean reaching
+  into the chip-aware contenteditable; appending goes through the same `onScriptChange` path as
+  typing, so the engine, the projector and autosave all behave exactly as they already do.

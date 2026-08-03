@@ -147,14 +147,18 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace
-      # The voice-following FFI, which nothing above compiles: the `vosk` feature
-      # is off across the whole workspace, so `vosk_engine.rs` is invisible to
-      # clippy and to the test run. It sat unbuilt for two phases, and the first
-      # time anyone compiled it, a test that had never run turned red.
+      # The Vosk FFI in `freally-speech`, which nothing above compiles: the
+      # `vosk` feature is off across the whole workspace, so `vosk_engine.rs` is
+      # invisible to clippy and to the test run. It sat unbuilt for two phases,
+      # and the first time anyone compiled it, a test that had never run turned
+      # red.
       #
       # `check`, not `build` — checking does not link, so this needs no libvosk,
       # no model and no 115 MB download, while still catching every type and API
-      # error. Linking is proven by the release build.
+      # error.
+      #
+      # Scope note: `-p freally-speech` does not reach `src-tauri/src/speech.rs`,
+      # so the app-side dictation loop is compiled only by the release build.
       - name: Check the vosk feature compiles
         run: cargo check -p freally-speech --features vosk
 

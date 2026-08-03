@@ -30,6 +30,22 @@
      1.4.11 wants 3:1 against what it sits on. #6ea8fe manages 8.1:1 on the dark
      panel and only 2.4:1 on the light one, which is why these are two tokens. */
   --focus-ring: #6ea8fe;
+  /* The dictate button (see `.dictate-btn` below). Its resting border matches
+     the `border-white/10` every other control uses; the two live colours are
+     its own, because nothing else in the app means "recording".
+
+     ⚠️ The `-soft` fills are written out rather than mixed from the colour
+     beside them. `color-mix()` is Chrome 111 / Safari 16.2, and this app's
+     browserslist floor is Chrome 110 / Safari 15.4 — so the CSS pipeline
+     emitted a FALLBACK declaration ahead of it, and on any engine below that
+     floor the fallback is what renders: the tint at FULL strength, a solid
+     green or red disc under a `bg-current` glyph of the identical colour. The
+     glyph disappears exactly when it matters most. Keep these literal. */
+  --dictate-border: rgba(255, 255, 255, 0.1);
+  --dictate-live: #34d399;
+  --dictate-live-soft: rgba(52, 211, 153, 0.16);
+  --dictate-stop: #f87171;
+  --dictate-stop-soft: rgba(248, 113, 113, 0.16);
 }
 
 :root[data-theme="light"] {
@@ -42,6 +58,14 @@
   --modal-dim-flat: rgba(15, 20, 30, 0.55);
   /* ~7:1 on both the white panel and the near-white page. */
   --focus-ring: #1d4ed8;
+  /* The dark palette's green and red are tuned for near-black and manage ~2:1
+     on the near-white page — a glyph the operator cannot see is worse than no
+     colour at all. These two are the same hues at ~5:1 on #f7f8fa. */
+  --dictate-border: rgba(0, 0, 0, 0.12);
+  --dictate-live: #047857;
+  --dictate-live-soft: rgba(4, 120, 87, 0.12);
+  --dictate-stop: #b91c1c;
+  --dictate-stop-soft: rgba(185, 28, 28, 0.12);
 }
 
 html,
@@ -286,6 +310,72 @@ body {
 /* (`.proj-btn`'s own reduced-motion rule has gone the same way as the modal
    one — it carried no `!important`, so the app-wide rule at the top of this
    file already outranked it and it had stopped doing anything at all.) */
+
+/* ---------------------------------------------------------------------------
+   The dictate button (FT-33).
+
+   A circle with a glyph in it and no text at all — the label lives beside it,
+   in `App.tsx`, because it changes with the state and a button that resizes as
+   you press it is a button you miss.
+
+   Its colour follows the POINTER as well as the state, which is the half that
+   cannot be done in React:
+
+     | state             | resting | hovered |
+     |-------------------|---------|---------|
+     | idle    (record)  | default | green   |
+     | recording (stop)  | green   | red     |
+
+   So hovering the record button greens it as a promise, and hovering the stop
+   button reds it as a warning — and moving away puts each back without
+   changing what the button will do.
+
+   ⚠️ The four cells are three rules and one custom property, in this order,
+   and the order is load-bearing. `.dictate-btn:hover` and
+   `.dictate-btn[aria-pressed="true"]` have IDENTICAL specificity (0,2,0), so
+   only source order decides between them; they happen to set the same colour,
+   but the recording rule must stay after the hover one so that reads as
+   deliberate rather than as luck. The hovered-while-recording rule is (0,3,0)
+   and wins over both.
+
+   `aria-pressed` — not a second class — because the accessible state and the
+   visible state are the same fact, and this way they cannot disagree.
+   --------------------------------------------------------------------------- */
+
+.dictate-btn {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--dictate-tint, var(--dictate-border));
+  /* Two custom properties, set together by the rules below: `--dictate-tint` is
+     the full-strength colour the border and the glyph take, `--dictate-fill`
+     the same hue at low alpha. Unset — the idle, unhovered button — both fall
+     back and it is a plain outline, exactly like every other control. */
+  background: var(--dictate-fill, transparent);
+  color: var(--dictate-tint, var(--color-havoc-text));
+  transition:
+    color 150ms,
+    border-color 150ms,
+    background-color 150ms;
+}
+
+.dictate-btn:hover {
+  --dictate-tint: var(--dictate-live);
+  --dictate-fill: var(--dictate-live-soft);
+}
+
+.dictate-btn[aria-pressed="true"] {
+  --dictate-tint: var(--dictate-live);
+  --dictate-fill: var(--dictate-live-soft);
+}
+
+.dictate-btn[aria-pressed="true"]:hover {
+  --dictate-tint: var(--dictate-stop);
+  --dictate-fill: var(--dictate-stop-soft);
+}
 
 /* ---------------------------------------------------------------------------
    Light-theme re-tints.

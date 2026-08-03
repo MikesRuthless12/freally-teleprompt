@@ -1,6 +1,7 @@
 # Freally Teleprompt — Handoff
 
-**Written 2026-08-03, after `v1.1.0` — dictation replaces voice control.**
+**Written 2026-08-02, after `v1.1.0` — dictation replaces voice control.
+Updated the same day, once the queue's A and C items were built.**
 Read this before the next session. It says where things actually stand, the traps this session
 paid for, and what is genuinely outstanding.
 
@@ -8,63 +9,49 @@ paid for, and what is genuinely outstanding.
 
 # 🔜 START HERE — the work queue
 
-Everything below is real, scoped, and can be picked up cold. Ordered so that finishing one does not
-create rework in the next. **A1 and A2 share a fix and should be done together.**
+**Updated 2026-08-02.** The `A` and `C` items this queue used to carry are **built and green** —
+what they were, and what they cost, is in *What the last session built* directly below. What is left
+here is **verification I cannot do** (it needs your machines and your microphone) and **three
+decisions that are yours**, not mine.
 
-`v1.1.0` is published and healthy — nothing here is an emergency. Items marked **you only** need a
-machine or a microphone I do not have.
-
----
-
-## A. Do first — the dictate button, and the editor seam underneath it
-
-### A1 · Rebuild the dictate button (specified in full, not started)
-
-**What:** round, glyph-only button with a changing label to its LEFT and hover-driven colour.
-The complete spec — states, colours, both glyphs, the label strings — is **Outstanding #4** below.
-Do not re-derive it from this summary; the table there is the agreed behaviour.
-
-**Where:** `ui/src/App.tsx` (the `dictate-toggle` button), `ui/src/i18n/locales/*.ftl` (two new label
-keys × 18 locales), possibly `ui/src/components/styles.ts` if a round-button class is worth sharing.
-
-**Watch for:**
-- `i18n:lint` rejects any value identical to English — all 18 need real translations.
-- `theme:lint` fails a white-alpha utility with no light-theme re-tint. If the colours sit outside
-  the palette on purpose (like `.proj-btn`), say so in `global.css` where the linter can see it.
-- The button loses its visible text, so it needs `title`/`aria-label` — `phase3.spec.ts` finds it by
-  `data-testid`, so the tests keep working, but a glyph-only control still needs an accessible name.
-
-**Verify:** `npm run ci:local` green, and the three existing `aria-pressed` / start-stop e2e cases
-still pass unchanged.
-
-### A2 · Give `CaesuraEditor` an `insertText` handle — and put dictation through it
-
-**Why this is A2 and not "someday":** dictated text currently bypasses the editor entirely, so the
-**first Ctrl+Z after a dictation session throws the whole session away** and jumps back to the last
-keystroke. Same root cause: text typed by hand mid-recording is not merged.
-
-**The fix:** `useImperativeHandle` on `CaesuraEditor` exposing `insertText(said)`, doing exactly what
-its existing paste path already does — read `serialize(root)`, `snapshot(true)`, `apply(...)`.
-Dictation then becomes "a paste from a different source" and gains undo and caret placement for free.
-
-**What it deletes:** the `dictationBase` ref in `App.tsx`, its reset effect, the `?? state.script`
-fallback, and the whole "dictation owns the tail" comment block. That machinery exists only to work
-around not going through the editor.
-
-**Where:** `ui/src/components/CaesuraEditor.tsx` (the handle, near `onPaste`), `ui/src/App.tsx`
-(`dictateInsert`).
-
-**Verify:** the existing e2e cases *must still pass* — especially
-`consecutive utterances are separated, and neither is lost` and
-`switching scripts mid-recording does not overwrite the new one`. Then add one for undo:
-dictate, Ctrl+Z, assert only the last utterance is removed. **Prove it red first** against the
-current code, or it is not testing anything.
+`v1.1.0` is published and healthy. Everything the last session wrote is **unreleased** and sitting in
+the tree — so the next release is a `1.2.0`, and the DoD has not been run on it yet.
 
 ---
 
-## B. Verification only you can do
+## 0. What the last session built (all green, none of it released)
 
-### B1 · macOS dictation, end to end — **the one real unknown**
+| | | |
+|---|---|---|
+| **A1** | The dictate button, rebuilt to the spec in Outstanding #4 | `ui/src/App.tsx`, `ui/src/styles/global.css`, 18 catalogs |
+| **A2** | `CaesuraEditor.insertText`, and dictation put through it | `ui/src/components/CaesuraEditor.tsx`, `ui/src/App.tsx` |
+| **C1** | `npm run dev:vosk` | `scripts/dev-vosk.mjs` |
+| **C2** | `capability()` checks `am/final.mdl`, not the directory | `freally-speech/src/lib.rs` |
+| **C3** | `model_path_for_ffi` keeps the prefix on volume-GUID paths | `src-tauri/src/speech.rs` |
+| **C4** | Dictation is searchable; Vosk is attributed; the LAN-mirror sentence | `docs/`, `NOTICE`, `THIRD-PARTY.md`, 18 catalogs |
+
+**Three things worth knowing about that work, because they are not obvious from the diff:**
+
+- **`insertText` has no dependency array on purpose.** `useImperativeHandle(handle, () => ({...}))`
+  is refreshed every render because `apply` → `emit` → the CURRENT `onChange`. Freeze it with `[]`
+  and the handle holds the first render's `onChange`, which closes over the script that was open at
+  mount — so dictation would autosave into whichever file was open when the app started. The comment
+  is in the file; do not "optimise" it away.
+- **The button's four colour cells are three CSS rules, and their ORDER is load-bearing.**
+  `.dictate-btn:hover` and `.dictate-btn[aria-pressed="true"]` have identical specificity (0,2,0), so
+  only source order separates them. They set the same colour today, which is exactly why a reorder
+  would look harmless.
+- **Two of the new e2e cases were proven red first**, against the old code, and the transcript of the
+  failure is in their comments. One of them (`text typed by hand…`) **passed** in its first form:
+  `toContainText` retries until it matches, so asserting the two halves separately went green on the
+  frame before the overwrite landed. It asserts one combined string now. If you write another test
+  around dictation, assume this trap is waiting for you too.
+
+---
+
+## A. Verification only you can do
+
+### A1 · macOS dictation, end to end — **the one real unknown**
 
 The entitlement (`src-tauri/entitlements.plist`) and usage string (`src-tauri/Info.plist`) are
 correct as written, but **nobody has run them**. Under `hardenedRuntime`, getting this wrong means
@@ -77,62 +64,54 @@ Gatekeeper will object) → Settings → Voice → enable → press record.
 **If the app dies instantly instead**, the entitlement is not being applied — check the built
 `.app`'s `Contents/Info.plist` actually contains `NSMicrophoneUsageDescription`.
 
-### B2 · Linux dictation from the AppImage and the `.deb`
+### A2 · Linux dictation from the AppImage and the `.deb`
 
 `libvosk.so` is bundled by linuxdeploy into the AppImage's own `usr/lib`, and `build.rs` sets an
 rpath for the `.deb`. Both are correct in principle and **unproven in practice**. Install either,
 enable dictation, press record. A failure here looks like "could not load the Vosk model" or a
 missing-library error at launch.
 
-### B3 · The Phase 0/1/2 human drills — still none run
+### A3 · `npm run dev:vosk`, once, on a machine with a microphone
+
+**New, and unproven end to end.** The script fetches, copies the model into the app's data
+directory, puts `vendor/vosk/lib` on the loader path and runs `tauri dev --features vosk`. What has
+been checked here is everything short of running it: the syntax, and — empirically, against this
+machine — that the Windows data directory it computes is the one the app actually uses
+(`%APPDATA%\Freally\Freally Teleprompt\data`, which already existed with `config/` beside it).
+
+What has **not** been checked is the 115 MB download, the `--features vosk` link, and whether the
+loader finds `libvosk.dll` from `PATH` in the spawned process. Run it once; it is one command.
+
+⚠️ The macOS and Linux data-directory paths in that script are `directories` 6.0.0's own mangling
+(`com.Freally.Freally-Teleprompt` on macOS, `freallyteleprompt` on Linux) and are **derived from the
+crate's source, not observed**. The script prints the path it resolved — if the app still reports
+dictation unavailable on those two, that print is the first thing to read.
+
+### A4 · The Phase 0/1/2 human drills — still none run
 
 `Live-To-Do-List.md` carries them. Unrelated to dictation, still outstanding, and the reason the
 "every feature is either covered by Playwright or is a drill" rule currently has a gap.
 
----
+### A5 · Look at the new button on a real screen
 
-## C. Small, well-understood fixes
-
-Each is self-contained and none needs a release to verify.
-
-### C1 · `npm run dev:vosk` — stop the dev loop being a papercut
-
-A dev build cannot dictate (the feature is release-only), which was reported as a bug twice.
-`model_dir`'s user-data fallback exists precisely to solve this. Wrap it:
-
-```
-node scripts/fetch-vosk.mjs
-copy src-tauri/vendor/vosk/vosk-model-en -> <data dir>/vosk-model-en
-PATH += src-tauri/vendor/vosk/lib          # so libvosk.dll/.so resolves
-npm run tauri dev -- --features vosk
-```
-
-Windows data dir: `%APPDATA%\Freally\Freally Teleprompt\data\`. A small `scripts/dev-vosk.mjs` plus a
-`package.json` script. **This makes A1 and A2 far easier to build**, so consider doing it first.
-
-### C2 · `capability()` should check `am/final.mdl`, not just the directory
-
-`freally-speech/src/lib.rs` reports `available: true` when the model *directory* exists. An empty
-directory of that name therefore makes the record button appear and then fail on press. Check for the
-one file the recogniser cannot start without — `fetch-vosk.mjs` already uses exactly that check.
-
-### C3 · `model_path_for_ffi` and verbatim VOLUME paths
-
-`src-tauri/src/speech.rs` handles `\\?\C:\…` and `\\?\UNC\…`. It does **not** handle
-`\\?\Volume{GUID}\…` (an install under a drive-letterless mounted folder) — stripping leaves a
-relative path naming nothing. Rare, but the fix is one more branch and a test line beside the two
-that already exist.
-
-### C4 · Documentation and attribution loose ends
-
-- `docs/search-index.js` has **no dictation entry** — the feature is unsearchable on the site.
-- `THIRD-PARTY.md` has no Vosk entry while `NOTICE` does; both ship side by side in the installer.
-- `NOTICE` records the MinGW runtime DLLs as GPL-3.0 WITH GCC-exception-3.1 (correct) but gives no
-  upstream source pointer. Adding the mingw-w64/GCC source URL closes the question for free.
-- One sentence in the Settings dictation copy noting that, with the LAN mirror on, dictated text
-  reaches mirror viewers as it is written — same as typed text, but worth saying.
+`phase3.spec.ts` asserts the four colour cells and the light-theme re-tint through computed styles,
+which is the part a screenshot cannot check. What a test cannot tell you is whether a 1.75rem circle
+is the right size next to that label, in your app, at your DPI. Two minutes with `npm run dev`.
 
 ---
+
+## B. Do next — nothing is blocking it
+
+### B1 · Run the DoD on what is in the tree, then cut `1.2.0`
+
+`/simplify` → `/code-review` → `/security-review` → fix everything → `npm run ci:local` green →
+docs + `CHANGELOG.md` + `changelog.html` (the **Unreleased** sections are already written) → tag.
+
+That is the whole of it. The gate is green as the tree stands; the review passes are what has not
+been run, and on 1.1.0 they found four real bugs, so do not skip them.
+
+---
+
 
 ## D. Decisions, not code — do not "just clean these up"
 
@@ -168,13 +147,13 @@ step.
 
 | | |
 |---|---|
-| Version | `1.1.0`, **published and Latest**. Ordinary semver from 1.0.0 on — the ×100 phase ladder is over, and it is what walked into the MSI ceiling. |
+| Version | `1.1.0`, **published and Latest**. Ordinary semver from 1.0.0 on — the ×100 phase ladder is over, and it is what walked into the MSI ceiling. The tree is **ahead of it**: the dictate-button rebuild and the editor seam are written, tested and unreleased. |
 | Phase 0 / 1 / 2 | ✅ scaffold, teleprompter core, offline autocomplete |
 | **Voice** | ✅ **dictation only.** Voice commands and voice-following were REMOVED in 1.1.0 — see below. |
 | FT-51 / FT-52 | ✅ signed installers on all three OSes, updater endpoint live and verified. macOS is **unsigned** (no Apple cert): Gatekeeper needs a right-click → Open. |
 | Crates | `freally-voice` (capture only now), `freally-align` (no longer used by the app), `freally-speech` |
-| Tests | **~121 Rust** · **93 vitest** · **~130 Playwright** · per-OS launch screenshots |
-| Next | the dictate button redesign (Outstanding #4 — specified in full), FT-53 (site content) |
+| Tests | **~122 Rust** · **93 vitest** · **~133 Playwright** · per-OS launch screenshots |
+| Next | the DoD passes on the unreleased work, then `1.2.0`; after that FT-53 (site content) |
 
 ### What 1.1.0 changed, and why
 
@@ -352,10 +331,20 @@ Voice commands and voice-following could both be on at once, holding two `CpalSo
 features are gone (see "What 1.1.0 changed"); dictation is the only thing that opens a microphone
 and it is a single session.
 
-### 4. 🔜 NEXT UP — the dictate button's redesign (specified, not built)
+### 4. ✅ BUILT — the dictate button's redesign
 
-**Requested directly, and to be built in the next phase.** The current button is a rectangle with a
-dot and the word "Dictate". What is wanted instead:
+**Built to this spec, exactly as written below.** `.dictate-btn` in `ui/src/styles/global.css` owns
+the shape and all four colour cells; `App.tsx` owns only idle-vs-recording, which rides on the
+`aria-pressed` the button already needed. The two labels are `editor-dictate-hint` /
+`editor-dictate-hint-stop` in all 18 catalogs, and `editor-dictate` / `editor-dictate-stop` became
+the `title` and `aria-label` as planned. `phase3.spec.ts` asserts the glyph-only markup, the
+accessible name, both hint strings and the four colour cells through computed styles — plus the
+light-theme re-tint, which nothing else can catch.
+
+The spec is kept verbatim because it is the agreed behaviour, and a future change should have to
+argue with it rather than guess at it.
+
+The current button was a rectangle with a dot and the word "Dictate". What was wanted instead:
 
 - **Round.** Not square, not a rounded rectangle — a circle.
 - **Glyph only. NO text inside the button at all.** A ● record glyph, and a ■ stop glyph once
@@ -387,23 +376,32 @@ Notes for whoever builds it:
 - The three e2e cases that assert `aria-pressed` and the start/stop IPC still apply unchanged; only
   the appearance is moving.
 
-### 4b. Found by the 1.1.0 review passes and deliberately NOT fixed
+### 4b. Found by the 1.1.0 review passes — three now fixed, three still open by choice
 
-All of these were raised by `/simplify`, `/code-review` or `/security-review`, judged real, and left
-alone on purpose. None is a correctness bug in shipped behaviour.
+All of these were raised by `/simplify`, `/code-review` or `/security-review` and judged real. The
+first three have since been fixed; the rest are still deliberate.
 
-**This is the detail; the WORK QUEUE at the top of this file is the running order.** Each item below
-appears there as A2, C2, C3, D1, D2 or D3 — start from the queue, come here for the reasoning.
+**This is the detail; the WORK QUEUE at the top of this file is the running order.** The open ones
+appear there as D1, D2 or D3 — start from the queue, come here for the reasoning.
 
-- **Dictation bypasses the editor's undo stack.** It calls `onScriptChange` directly rather than the
-  editor's `snapshot()`, so the first Ctrl+Z after a session jumps back to the last *keystroke* and
-  discards the whole dictation in one step. The deeper fix is an imperative `insertText` handle on
-  `CaesuraEditor` (it already does exactly this for paste) — dictation then becomes a paste with a
-  different source, and gains caret placement and undo for free. That also removes the
-  `dictationBase` ref entirely. Worth doing with the button redesign in #4.
-- **Text typed by hand mid-recording is not merged** — the same root cause, same fix. The
-  destructive half of this (switching scripts mid-recording overwriting the new file) IS fixed and
-  has a test.
+- ✅ **FIXED — dictation bypassed the editor's undo stack.** It called `onScriptChange` directly
+  rather than the editor's `snapshot()`, so the first Ctrl+Z after a session jumped back to the last
+  *keystroke* and discarded the whole dictation in one step. `CaesuraEditor.insertText` was the fix
+  named here, and it was the right one: dictation is a paste from a different source, and it gained
+  caret placement and undo for free. The `dictationBase` ref is gone. Tested by
+  `undo takes back one utterance, not the whole session`, proven red first.
+- ✅ **FIXED — text typed by hand mid-recording is not merged.** Same root cause, same fix: the
+  editor's live DOM is now the only source of truth, so there is nothing left to keep in step.
+  Tested by `text typed by hand mid-recording survives the next utterance`, also proven red first.
+- ✅ **FIXED — `capability()` checked the model DIRECTORY, not `am/final.mdl`.** An empty directory
+  of that name made the record button appear and then fail on press. `model_is_installed` in
+  `freally-speech` now checks the one file the recogniser cannot start without — the same file
+  `fetch-vosk.mjs` validates a download against — and is compiled in both builds so its test runs in
+  the default gate.
+- ✅ **FIXED — `model_path_for_ffi` mishandled verbatim VOLUME paths** (`\\?\Volume{GUID}\…`, an
+  install under a drive-letterless mounted folder). It is the one verbatim form with no plain
+  equivalent, so the prefix is now KEPT there rather than stripped: stripping it left a relative
+  path resolving against the working directory. Covered by two more lines in the existing test.
 - **`ship`/`link` duplicates the shared object on Unix.** The two regexes are identical on macOS and
   Linux, so ~45 MB is copied twice. Fixing it means changing what `build.rs` puts on the link search
   path, which can only be proven by a release run — not worth destabilising a working release path
@@ -423,23 +421,106 @@ appears there as A2, C2, C3, D1, D2 or D3 — start from the queue, come here fo
   being wrong here means shipping installers with no licence files, and that cannot be verified
   without a full bundle on each platform. Left duplicated on purpose; keep them in step.
 
-### 5. Dictation cannot be exercised in a dev build (a papercut, not a bug)
+### 5. ✅ BUILT — `npm run dev:vosk`, the dev build that can dictate
 
-`--features vosk` is release-only, so `npm run tauri dev` reports the engine absent and disables the
-toggle. That is honest, but it makes the feature awkward to iterate on.
+`--features vosk` is release-only, so a plain `npm run tauri dev` reports the engine absent and
+disables the toggle. That is honest, and it made the feature miserable to iterate on — it was
+reported as a bug twice.
 
-**The fallback in `model_dir` exists precisely for this**: a model in the user's data directory wins
-over the bundled one. So a dev loop is:
+`scripts/dev-vosk.mjs` is the three steps that close the gap: fetch, copy the model into the app's
+**data directory** (where `model_dir` looks first, which is exactly what that fallback is for), and
+put `vendor/vosk/lib` on the loader path for the spawned process — `PATH` on Windows,
+`DYLD_LIBRARY_PATH` on macOS, `LD_LIBRARY_PATH` on Linux, because `build.rs`'s rpath describes the
+*installed* layout and a `target/debug` binary is not in it.
 
-```
-node scripts/fetch-vosk.mjs
-# copy src-tauri/vendor/vosk/vosk-model-en -> <data dir>/vosk-model-en
-npm run tauri dev -- --features vosk
-```
+⚠️ **Unproven end to end** — see the queue's A3. The Windows data directory it computes was checked
+against this machine; the macOS and Linux ones are read off `directories` 6.0.0's source. The script
+prints the path it resolved, which is the first thing to read if a dev build still says
+"unavailable".
 
-On Windows the data dir is `%APPDATA%\Freally\Freally Teleprompt\data\`. `libvosk.dll` must also be
-findable — put `src-tauri/vendor/vosk/lib` on `PATH` for that shell. Worth wrapping in an
-`npm run dev:vosk` script; it was scoped and not built.
+---
+
+## Traps paid by the 1.2.0 review passes
+
+Fourteen findings across an inline pass and a fan-out `/code-review`; these are the ones worth
+carrying forward. **Every one was found in code that had already passed the full gate**, which is
+the argument for running the passes rather than trusting green.
+
+- **A keystroke is not a portable way to say "go to the top".** `Control+Home` moves the caret on
+  Windows and Linux and does NOTHING on macOS (it is Cmd+Up there), so a test that pressed it and
+  then asserted where text landed passed twice and failed the macOS Playwright job — the one place
+  it had never run. The suite runs on three OSes: put the caret with a DOM `Range`, which means the
+  same thing everywhere. The same rule killed an `activeElement` assertion: macOS does not focus a
+  button when you click it.
+- **`offsetOf` could not read a caret on the root**, only inside its children — so `(root, 0)`,
+  which is exactly what a collapsed range at the very start looks like, fell through the walk and
+  came back as the length of the WHOLE script. A caret at the top read as a caret at the bottom,
+  and anything inserted there went to the end. Pre-existing, found by writing a test that placed
+  the caret honestly instead of by keystroke.
+- **A passive effect is not a guard.** `CaesuraEditor`'s "rebuild the DOM when `value` changes"
+  effect ran after paint, and dictation writes from a Tauri event — an ordinary macrotask that can
+  land in between. In that window `insertText` reads the PREVIOUS script out of the live DOM and
+  `App`'s autosave, already pointed at the newly opened file, persists it: the same
+  file-destroying bug the deleted `dictationBase` reset used to cover. It is now a
+  **`useLayoutEffect`**, which React flushes synchronously at commit, before the browser yields to
+  any event at all. If you add another "the DOM must agree with a prop before anything external
+  reads it" sync, it belongs at layout time too.
+- **Do not try to detect the stale DOM by comparing it to `value`.** The first attempt at the fix
+  above did exactly that, and it cannot work: the DOM is *ahead* of `value` immediately after our
+  own write (the engine has not echoed yet) and *behind* it after a script switch, and the two are
+  indistinguishable from inside the comparison. It ate the first of two rapid utterances, which the
+  existing `emitAll` test caught within a minute. Fix the ordering, not the symptom.
+- **A new write path has to re-earn every guard the old ones have.** `insertText` skipped
+  `composing.current`, which every other write path in that component checks. An utterance arriving
+  mid-IME-composition serialized the uncommitted preedit as script text and destroyed the node the
+  IME was composing into — and half of this app's 18 locales are typed through an IME. Held and
+  flushed on `compositionend` now, because dropping recognised speech is not an acceptable fix.
+- **`setCaret` is not free when nobody is in the editor.** It calls
+  `removeAllRanges`/`addRange`, which plants the document selection in the script — and in Blink
+  moves focus with it, so an operator naming a file in the Scripts dialog would have the rest of
+  their typing land in the script instead. Headless Chromium does **not** reproduce the focus move,
+  so the test asserts the selection instead; the assertion is on the thing the code actually
+  controls.
+- **Two places that must answer the same question must ask it the same way.** `capability` was
+  tightened to require `am/final.mdl` while `model_dir` still CHOSE a directory on `is_dir()` — so
+  a stray or half-copied folder in the data directory won the choice and then failed the check, and
+  dictation reported itself unavailable on an installed build carrying a perfectly good model.
+  `model_is_installed` is now `pub` and used by both.
+- **A completion marker that is written FIRST marks nothing.** `dev-vosk.mjs` guarded its copy on
+  `am/final.mdl`, but `fs.cp` walks the model alphabetically and `am/` is near the front — an
+  interrupted copy therefore looked finished to the script *and* to the app. It copies to a sibling
+  and renames now, so the destination is either absent or whole.
+- **macOS strips `DYLD_*` before your child process sees it.** SIP purges those variables for
+  protected binaries and their children, and `spawnSync(..., { shell: true })` goes through
+  `/bin/sh`, which is protected. The script was printing a reassuring line about an environment
+  variable that could not survive. It now copies the dylib to `target/Resources`, where the rpath
+  `build.rs` already records (`@executable_path/../Resources`) is looking.
+
+Three more found by reviewing the diff before it shipped, and one by actually resolving the links.
+
+- **A `color-mix()` you write by hand gets a FALLBACK you did not write.** `.dictate-btn` used
+  `color-mix(in srgb, var(--tint) 16%, transparent)` for its fill. Lightning CSS emitted a plain
+  `background: var(--tint, transparent)` declaration *ahead* of it — so on any engine below
+  Chrome 111 / Safari 16.2 (this app's browserslist floor is Chrome **110** / Safari **15.4**) the
+  fallback is what renders: the tint at FULL strength, a solid disc under a `bg-current` glyph of
+  the identical colour. The glyph vanishes on the recording state. Tailwind's own `/25` opacity
+  utilities are safe because it wraps them in `@supports (color: color-mix(in lab, red, red))`;
+  hand-written ones are not. **Read the built CSS, not the source, when a colour looks fine
+  locally.** `CaesuraEditor.buildChip` still uses unguarded `color-mix` in an inline style — it
+  degrades to no tint rather than to an invisible glyph, so it was left alone, but it is the same
+  trap.
+- **Moving an insert from "the end" to "the caret" changes the spacing problem on BOTH sides.**
+  `insertText` added a leading space and kept the old append-era logic otherwise, so speaking with
+  the caret in front of a word wrote `spokenWelcome`. Covered now by
+  `speaking in front of existing text does not run the words together`.
+- **`toContainText` retries until it matches, which makes an overwrite bug invisible.** Asserting
+  "the typed text is still there" and "the new utterance arrived" as two expectations passes
+  against the broken code — the first is satisfied by a frame that existed before the overwrite
+  landed. Assert ONE combined string.
+- **A third of the docs search results led to a 404.** `search-index.js` is a shared family
+  catalogue written ahead of the family: 39 of its 109 entries pointed at Studio, Vault, AV, Player
+  and Central, none of which have a Pages site *or a repository*. Pulled, with the restore rule in
+  the file's header. **Open the URL before adding an app to that file.**
 
 ---
 

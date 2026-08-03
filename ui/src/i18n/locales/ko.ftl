@@ -47,6 +47,8 @@ transport-seek = 대본 탐색
 editor-label = 대본
 editor-dictate = 받아쓰기
 editor-dictate-stop = 받아쓰기 중지
+editor-dictate-hint = 녹음을 누르면 받아쓰기가 시작됩니다
+editor-dictate-hint-stop = 정지를 누르면 받아쓰기가 끝납니다
 editor-placeholder = 대본을 입력하거나 붙여넣으세요. " -- "를 넣으면 잠시 멈추고, " --2 "를 넣으면 2초 동안 멈춥니다.
 editor-caesura-hint = 일시정지하려면 -- 입력
 editor-est-time = 읽는 시간 { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt를 시작할 수 없습니다.
 ## Voice control (FT-31)
 settings-cat-voice = 음성
 settings-dictation-enabled = 말해서 대본 쓰기
-settings-dictation-note = 대본 위의 녹음 버튼을 누르면 말한 내용이 그대로 입력됩니다. 인식은 이 기기에서 이루어지며 계정도 네트워크도 필요 없고, 말한 내용이 파일로 저장되지 않습니다. 마이크는 녹음 중에만 열립니다.
+settings-dictation-note = 대본 위의 녹음 버튼을 누르면 말한 내용이 그대로 입력됩니다. 인식은 이 기기에서 이루어지며 계정도 네트워크도 필요 없고, 말한 내용이 파일로 저장되지 않습니다. 마이크는 녹음 중에만 열립니다.대본을 같은 네트워크의 기기에 미러링 중이라면, 받아쓴 단어도 입력되는 즉시 그 기기에 전달됩니다. 직접 타이핑한 내용과 똑같습니다.
 settings-dictation-unavailable-model = 음성 모델이 설치되지 않아 받아쓰기를 실행할 수 없습니다.
 settings-dictation-unavailable-build = 이 빌드에서는 받아쓰기를 사용할 수 없습니다.

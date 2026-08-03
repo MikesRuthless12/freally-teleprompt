@@ -409,7 +409,7 @@
           <a href="#projector">Talent projector</a>
           <a href="#read-aloud">Read aloud</a>
           <a href="#autocomplete">Autocomplete</a>
-          <a href="#voice-control">Voice control</a>
+          <a href="#voice-control">Dictation</a>
           <a href="#settings">Appearance, languages &amp; settings</a>
           <a href="#tour-accessibility">Welcome tour &amp; accessibility</a>
           <a href="#problems">Problems &amp; updates</a>
@@ -425,7 +425,7 @@
           <h2>Getting started</h2>
           <p class="section-intro">Freally Teleprompt is a standalone, cross-platform teleprompter for creators, streamers, podcasters, rappers, singers, presenters, and actors. It runs on <strong>Windows, macOS, and Linux</strong>, opens as a single window — script library, editor, preview, and projector controls — and needs no account. One <strong>character-based scroll engine</strong> drives the preview, the talent projector, and the LAN mirror together, so they never drift, even at different font sizes.</p>
 
-          <div class="warn"><strong>Status:</strong> released. The current build is <strong>1.1.0</strong>, which adds <strong>dictation</strong> — write your script by speaking, on-device, with nothing to train. <strong>1.0.0</strong> was the first published build: signed installers for Windows, macOS and Linux, with the in-app updater live. Together they complete a phased roadmap: <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site), <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, LAN mirror, transport, chars/sec &amp; BPM, appearance, read-aloud), <strong>0.300.0</strong> (offline dictionary autocomplete) and <strong>1.0.0</strong> (the welcome tour, the accessibility pass, signing and release). Download from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
+          <div class="warn"><strong>Status:</strong> released. The current build is <strong>1.2.0</strong>, which finishes <strong>dictation</strong> — a round record button with the instruction beside it, words that land where your cursor is, and an undo that takes back one thing you said rather than the whole session. <strong>1.1.0</strong> introduced dictation itself — write your script by speaking, on-device, with nothing to train. <strong>1.0.0</strong> was the first published build: signed installers for Windows, macOS and Linux, with the in-app updater live. Together they complete a phased roadmap: <strong>0.100.0</strong> (scaffold + the ported char-based engine and docs site), <strong>0.200.0</strong> (the standalone teleprompter core: script library, caesura chips, projector, LAN mirror, transport, chars/sec &amp; BPM, appearance, read-aloud), <strong>0.300.0</strong> (offline dictionary autocomplete) and <strong>1.0.0</strong> (the welcome tour, the accessibility pass, signing and release). Download from the <a href="index.html" style="color:var(--accent)">Releases page</a>.</div>
 
           <h3>Install &amp; first run</h3>
           <ol class="steps">
@@ -573,9 +573,9 @@
 
           <ol class="steps">
             <li><span>Open <strong>Settings → Voice</strong> and tick <strong>"Write my script by speaking."</strong> Press <strong>Apply</strong>.</span></li>
-            <li><span>A <strong>● Record</strong> button appears above the script. Press it and start talking; what you say is added to the end of the script as you go.</span></li>
-            <li><span>Press <strong>■ Stop</strong> when you are done. The microphone is open only between those two presses.</span></li>
-            <li><span>Edit as normal afterwards — dictated text is ordinary script text, so you can add pause chips to it, reorder it, or delete it.</span></li>
+            <li><span>A round <strong>●</strong> record button appears above the script, with the instruction beside it. Press it and start talking; what you say is written in where your cursor is, or at the end of the script if you have not put it anywhere.</span></li>
+            <li><span>Press it again — it is a <strong>■</strong> stop button while recording — when you are done. The microphone is open only between those two presses.</span></li>
+            <li><span>Edit as normal afterwards — dictated text is ordinary script text, so you can type around it, add pause chips to it, reorder it, or delete it. <strong>Ctrl+Z</strong> takes back one thing you said, not the whole session.</span></li>
           </ol>
           <div class="warn"><strong>Note:</strong> dictation needs a microphone, and it writes what it hears — punctuation and proper nouns will need tidying up. It is a fast way to get a draft down, not a finished script.</div>
           <div class="tip"><strong>Private by construction:</strong> the recogniser and its speech model ship inside the app and run locally — <strong>nothing is uploaded, and nothing is downloaded at runtime</strong>. This works with the network cable pulled out. Audio is processed in memory; the only thing ever written down is the text you see appear.</div>

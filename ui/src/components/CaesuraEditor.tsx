@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 
 import { chipLabel, isChip, normalizePaste, tokenize } from "../lib/caesuraChips";
 import { complete, loadDict } from "../lib/suggest";
@@ -123,6 +123,19 @@ function nodeLen(node: Node): number {
  * this editor is always in a top-level text node or between top-level nodes, so a
  * single ordered pass over the children is exact. */
 function offsetOf(root: HTMLElement, container: Node, offsetInNode: number): number {
+  // The caret can sit on the ROOT itself — `(root, 0)` is what a browser gives
+  // for a collapsed range at the very start, and what `Range.selectNodeContents`
+  // + `collapse` produces. The walk below only ever visits root's DESCENDANTS,
+  // so such a position was never matched: `stop` stayed false, every child was
+  // counted, and the answer came back as the length of the WHOLE script. A
+  // caret at the top therefore read as a caret at the bottom, and anything
+  // inserted there — a paste, a dictated utterance — landed at the end instead.
+  if (container === root) {
+    const kids = Array.from(root.childNodes);
+    let before = 0;
+    for (let k = 0; k < offsetInNode && k < kids.length; k++) before += nodeLen(kids[k]);
+    return before;
+  }
   let total = 0;
   let stop = false;
   const rec = (node: Node) => {
@@ -227,6 +240,12 @@ function domChips(root: HTMLElement): string {
     .join(" ");
 }
 
+/** What a `ref` on this editor gets you — see `insertText` below. */
+export type CaesuraEditorHandle = {
+  /** Write `text` into the script as if it had been pasted there. */
+  insertText: (text: string) => void;
+};
+
 export function CaesuraEditor({
   value,
   onChange,
@@ -236,6 +255,7 @@ export function CaesuraEditor({
   placeholder,
   className,
   ariaLabelledBy,
+  ref: handle,
 }: {
   /** The script string (engine-authoritative; external changes rebuild the DOM). */
   value: string;
@@ -251,6 +271,8 @@ export function CaesuraEditor({
   className?: string;
   /** id of the visible label element (a contenteditable can't use <label for>). */
   ariaLabelledBy?: string;
+  /** Imperative handle — the one thing this editor cannot express as a prop. */
+  ref?: React.Ref<CaesuraEditorHandle>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const placeholderRef = useRef<HTMLDivElement>(null);
@@ -350,7 +372,18 @@ export function CaesuraEditor({
   // External value change (initial mount, a script opened from the library):
   // rebuild only when it differs from what's already shown, preserving the caret
   // if the editor is focused (so our own echoed edits don't disturb typing).
-  useEffect(() => {
+  //
+  // ⚠️ A LAYOUT effect, not a passive one, and that is a correctness rule
+  // rather than a paint-timing preference. A passive effect runs after paint,
+  // so a `voice:dictation` event — an ordinary macrotask — can land between the
+  // commit that changed `value` and the rebuild that honours it. `insertText`
+  // reads the live DOM, so in that window it would read the PREVIOUS script,
+  // write it back out, and `App`'s autosave — already pointed at the newly
+  // opened file — would persist Act One's text over Act Two. That is the
+  // file-destroying bug the deleted `dictationBase` reset used to guard, and
+  // running here closes the window instead of narrowing it: a layout effect is
+  // flushed synchronously before the browser yields to any event at all.
+  useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
     if (serialize(root) === value) {
@@ -530,6 +563,96 @@ export function CaesuraEditor({
     apply(root, raw.slice(0, start) + insert + raw.slice(end), start + insert.length);
   };
 
+  /**
+   * Write text into the script from OUTSIDE — dictation (FT-33) is the only
+   * caller.
+   *
+   * Deliberately the paste path with a different source: read the live DOM,
+   * `snapshot(true)`, `apply(...)`. That is what buys the three things
+   * dictation used to lack, none of which are worth reimplementing:
+   *
+   *   - **undo.** Writing straight to `onChange` went around this stack
+   *     entirely, so the first Ctrl+Z after a session jumped back to the last
+   *     keystroke and discarded every dictated word in one step.
+   *   - **whatever was typed by hand.** The old path chained from its own last
+   *     write, so anything typed between two utterances was overwritten by the
+   *     second one. Reading `serialize(root)` here is what makes the editor —
+   *     not the caller — the single source of truth.
+   *   - **the caret.** Text lands where the operator left it, not always at the
+   *     end.
+   *
+   * The ONE deliberate difference from `onPaste`: a selection is not REPLACED.
+   * Paste is an explicit "put this here" gesture, so overwriting a selection is
+   * what the operator asked for; speaking is not, and silently swallowing a
+   * selected paragraph because the microphone was open is not a trade worth
+   * making. So the insert goes in at the selection's start and the selected text
+   * is left where it is. (The selection itself still collapses — the DOM is
+   * rebuilt from the string, exactly as every other edit here does it.)
+   *
+   * Three guards, and every one of them is a bug that reached review:
+   *
+   *   1. **Mid-composition, do nothing yet.** Every other write path in this
+   *      component bails on `composing.current`; this one fires with no user
+   *      action at all, so without the guard an utterance arriving while a CJK
+   *      operator is mid-IME-preedit serializes the uncommitted text as script
+   *      and destroys the node the IME is composing into. The utterance is
+   *      HELD, not dropped, and flushed on `compositionend` — speech that was
+   *      recognised must not vanish because of when it arrived.
+   *   2. **An unfocused editor keeps its hands off the selection.** `setCaret`
+   *      calls `removeAllRanges`/`addRange`, and setting a selection inside an
+   *      editable host MOVES FOCUS to it in Blink — so a caret update here
+   *      would pull the operator out of the Scripts dialog's filename field
+   *      mid-sentence, or out of the record button, on every utterance.
+   */
+  /** Utterances that arrived mid-IME-composition, in order, awaiting its end. */
+  const pendingInsert = useRef<string[]>([]);
+
+  const insertText = (text: string) => {
+    const root = ref.current;
+    if (!root) return;
+    // (1) Held until the composition commits — see `onCompositionEnd`.
+    if (composing.current) {
+      pendingInsert.current.push(text);
+      return;
+    }
+    const focused = document.activeElement === root;
+    const raw = serialize(root);
+    // (3) An unfocused editor has no caret to insert at — and reading the
+    // selection would find whatever it was left on, in an editor nobody is
+    // looking at. Append, which is where dictation has always put it.
+    const start = (focused ? selectionOffsets(root)?.start : undefined) ?? raw.length;
+    const before = raw.slice(0, start);
+    const after = raw.slice(start);
+    // Dictation emits bare words with no separator, so the spacing is ours to
+    // get right — on BOTH sides. The trailing one is not symmetry for its own
+    // sake: text now lands at the caret rather than always at the end, so
+    // speaking with the caret in front of a word ("hello |world") would
+    // otherwise write "hello thereworld". Neither space is added where the
+    // neighbouring text already has whitespace, or where there is no
+    // neighbouring text at all.
+    const lead = before.length === 0 || /\s$/.test(before) ? "" : " ";
+    const trail = after.length === 0 || /^\s/.test(after) ? "" : " ";
+    snapshot(true);
+    const next = before + lead + text + trail + after;
+    if (focused) {
+      // The caret goes after the spoken words and BEFORE any trailing space, so
+      // the next utterance chains onto this one exactly as if it had been
+      // spoken in one breath.
+      apply(root, next, start + lead.length + text.length);
+      return;
+    }
+    // Unfocused: `apply` minus the caret. The selection is not ours to move.
+    render(root, next, caesuraSecsRef.current);
+    emit(root);
+  };
+
+  // Refreshed on EVERY render, with no dependency array, and that is the point:
+  // `apply` calls `emit`, which calls the CURRENT `onChange`. Frozen with `[]`,
+  // this would hold the first render's `onChange` — which in `App` closes over
+  // the script that was open at mount, so autosave would write dictated text
+  // into whichever file was open when the app started.
+  useImperativeHandle(handle, () => ({ insertText }));
+
   // Copy/cut serialize chips back to their token text (not the pill glyph) so the
   // clipboard round-trips into any editor.
   const onCopy = (e: React.ClipboardEvent<HTMLDivElement>) => {
@@ -578,6 +701,10 @@ export function CaesuraEditor({
         onCompositionEnd={() => {
           composing.current = false;
           if (ref.current) emit(ref.current);
+          // Anything dictation said while the IME held the DOM, now that it
+          // does not. `splice` drains it in place before the loop runs, so a
+          // re-entrant insert cannot see its own leftovers.
+          for (const text of pendingInsert.current.splice(0)) insertText(text);
         }}
         className={className}
         // No `outline: "none"` here any more (FT-50). An inline style beats

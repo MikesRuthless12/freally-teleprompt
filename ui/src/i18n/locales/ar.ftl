@@ -47,6 +47,8 @@ transport-seek = التنقل داخل النص
 editor-label = النص
 editor-dictate = إملاء
 editor-dictate-stop = إيقاف الإملاء
+editor-dictate-hint = اضغط على تسجيل لبدء الإملاء
+editor-dictate-hint-stop = اضغط على إيقاف لإنهاء الإملاء
 editor-placeholder = اكتب نصك أو الصقه هنا. استخدم " -- " لإضافة وقفة، أو " --2 " للتوقف مدة ثانيتين.
 editor-caesura-hint = اكتب -- لإضافة وقفة
 editor-est-time = زمن القراءة { $time }
@@ -206,6 +208,6 @@ startup-failed = تعذّر تشغيل Freally Teleprompt.
 ## Voice control (FT-31)
 settings-cat-voice = الصوت
 settings-dictation-enabled = اكتب النص بصوتي
-settings-dictation-note = اضغط زر التسجيل فوق النص وسيُكتب ما تقوله فيه. يتم التعرف على الكلام على هذا الجهاز — بلا حساب، وبلا اتصال بالشبكة، ولا يُحفظ ما تقوله في أي ملف. الميكروفون مفتوح أثناء التسجيل فقط.
+settings-dictation-note = اضغط زر التسجيل فوق النص وسيُكتب ما تقوله فيه. يتم التعرف على الكلام على هذا الجهاز — بلا حساب، وبلا اتصال بالشبكة، ولا يُحفظ ما تقوله في أي ملف. الميكروفون مفتوح أثناء التسجيل فقط. وإذا كان النص متزامنًا مع الأجهزة على شبكتك، فإن الكلمات المُملاة تصل إليها فور كتابتها، تمامًا مثل أي شيء تكتبه.
 settings-dictation-unavailable-model = نموذج الكلام غير مثبَّت، لذا لا يمكن تشغيل الإملاء.
 settings-dictation-unavailable-build = الإملاء غير متوفر في هذه النسخة.

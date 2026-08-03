@@ -47,6 +47,8 @@ transport-seek = Im Skript navigieren
 editor-label = Skript
 editor-dictate = Diktieren
 editor-dictate-stop = Diktat beenden
+editor-dictate-hint = Zum Diktieren auf Aufnahme drücken
+editor-dictate-hint-stop = Zum Beenden auf Stopp drücken
 editor-placeholder = Tippe oder füge dein Skript ein. Verwende " -- " für eine Pause oder " --2 " für 2 Sekunden.
 editor-caesura-hint = Für eine Pause -- eingeben
 editor-est-time = Lesezeit { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt konnte nicht gestartet werden.
 ## Voice control (FT-31)
 settings-cat-voice = Stimme
 settings-dictation-enabled = Mein Skript durch Sprechen schreiben
-settings-dictation-note = Drücken Sie die Aufnahmetaste über dem Skript, und was Sie sagen, wird hineingeschrieben. Die Erkennung läuft auf diesem Gerät — kein Konto, kein Netzwerk, und nichts von dem, was Sie sagen, wird je in eine Datei geschrieben. Das Mikrofon ist nur während der Aufnahme offen.
+settings-dictation-note = Drücken Sie die Aufnahmetaste über dem Skript, und was Sie sagen, wird hineingeschrieben. Die Erkennung läuft auf diesem Gerät — kein Konto, kein Netzwerk, und nichts von dem, was Sie sagen, wird je in eine Datei geschrieben. Das Mikrofon ist nur während der Aufnahme offen. Wird das Skript auf Geräte in Ihrem Netzwerk gespiegelt, erreichen diktierte Wörter diese, sobald sie geschrieben werden — genau wie alles, was Sie tippen.
 settings-dictation-unavailable-model = Das Sprachmodell ist nicht installiert, daher kann das Diktat nicht laufen.
 settings-dictation-unavailable-build = Diktat ist in dieser Version nicht verfügbar.

@@ -47,6 +47,8 @@ transport-seek = Scorri nel copione
 editor-label = Copione
 editor-dictate = Detta
 editor-dictate-stop = Interrompi dettatura
+editor-dictate-hint = Premi registra per iniziare a dettare
+editor-dictate-hint-stop = Premi ferma per interrompere la dettatura
 editor-placeholder = Scrivi o incolla il tuo copione. Usa " -- " per una pausa, oppure " --2 " per fermarti 2 secondi.
 editor-caesura-hint = Digita -- per una pausa
 editor-est-time = Tempo di lettura { $time }
@@ -206,6 +208,6 @@ startup-failed = Impossibile avviare Freally Teleprompt.
 ## Voice control (FT-31)
 settings-cat-voice = Voce
 settings-dictation-enabled = Scrivere il copione parlando
-settings-dictation-note = Premi il pulsante di registrazione sopra il copione e ciò che dici viene scritto al suo interno. Il riconoscimento avviene su questo dispositivo: nessun account, nessuna rete e nulla di ciò che dici viene mai salvato in un file. Il microfono è aperto solo durante la registrazione.
+settings-dictation-note = Premi il pulsante di registrazione sopra il copione e ciò che dici viene scritto al suo interno. Il riconoscimento avviene su questo dispositivo: nessun account, nessuna rete e nulla di ciò che dici viene mai salvato in un file. Il microfono è aperto solo durante la registrazione. Se il copione è rispecchiato sui dispositivi della tua rete, le parole dettate vi arrivano mentre vengono scritte, esattamente come tutto ciò che digiti.
 settings-dictation-unavailable-model = Il modello vocale non è installato, quindi la dettatura non può funzionare.
 settings-dictation-unavailable-build = La dettatura non è disponibile in questa versione.

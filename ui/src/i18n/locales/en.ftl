@@ -49,6 +49,8 @@ transport-seek = Seek through the script
 editor-label = Script
 editor-dictate = Dictate
 editor-dictate-stop = Stop dictating
+editor-dictate-hint = Press record to start dictation
+editor-dictate-hint-stop = Press stop to stop dictation
 editor-placeholder = Type or paste your script. Use " -- " for a pause, or " --2 " to hold for 2 seconds.
 editor-caesura-hint = Type -- for a pause
 editor-est-time = Read time { $time }
@@ -152,7 +154,7 @@ settings-apply = Apply
 ## Voice control (FT-31)
 settings-cat-voice = Voice
 settings-dictation-enabled = Write my script by speaking
-settings-dictation-note = Press the record button above the script and what you say is written into it. Recognised on this device — no account, no network, and nothing you say is ever saved to a file. The microphone is open only while recording.
+settings-dictation-note = Press the record button above the script and what you say is written into it. Recognised on this device — no account, no network, and nothing you say is ever saved to a file. The microphone is open only while recording. If the script is mirrored to devices on your network, dictated words reach them as they are written — the same as anything you type.
 settings-dictation-unavailable-model = The speech model isn't installed, so dictation can't run.
 settings-dictation-unavailable-build = Dictation is not available in this build.
 

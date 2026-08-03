@@ -39,12 +39,13 @@ here for the autocomplete tables: each additional source would be another
 obligation to honour in every release and to re-verify whenever they are rebuilt.
 
 
-Voice-following speech recognition (FT-32 / FT-33 / FT-35)
----------------------------------------------------------
+Speech recognition — dictation (FT-32 / FT-33)
+----------------------------------------------
 
-Included ONLY in builds that ship voice-following (the `vosk` Cargo feature plus
-the bundled model). The Track A voice COMMANDS (FT-30/FT-31) use neither and are
-always model-free; this section applies to the opt-in voice-FOLLOWING engine.
+Included ONLY in builds that ship dictation (the `vosk` Cargo feature plus the
+bundled model). Voice COMMANDS and voice-FOLLOWING were removed in 1.1.0;
+dictation — speak, and the words are written into the script — is the one
+feature this engine now serves, and it is off by default.
 
 Vosk has two separately-licensed parts, and both are recorded here because they
 routinely differ elsewhere — a clean code licence over non-commercial weights is
@@ -73,6 +74,18 @@ the trap Track B was written to avoid:
     distributing these runtime libraries with software that is not GPL. That
     exception is the whole reason this is recorded rather than a problem — it
     is not the bare GPL.
+    SOURCE — these three DLLs are redistributed exactly as they arrive inside
+    the upstream `vosk-win64-0.3.42.zip`
+    (https://github.com/alphacep/vosk-api/releases/tag/v0.3.42), which does not
+    record which toolchain build produced them. Their complete corresponding
+    source is published by the projects themselves:
+      libstdc++ and libgcc — GCC, https://gcc.gnu.org/ (releases:
+        https://ftp.gnu.org/gnu/gcc/)
+      libwinpthread — mingw-w64, https://www.mingw-w64.org/downloads/
+        (source: https://sourceforge.net/projects/mingw-w64/files/)
+    Recorded here so the directions to the source sit next to the binaries, as
+    GPL-3.0 section 6 asks. If a future release swaps in DLLs we build
+    ourselves, the exact version belongs here too.
 
 Apache-2.0 permits commercial use and redistribution with attribution and no
 share-alike term, for both the code and the weights. The model is CPU-only and

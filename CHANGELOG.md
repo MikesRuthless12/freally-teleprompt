@@ -11,6 +11,66 @@ and `docs/changelog.html` together — they are two renderings of the same histo
 
 _Nothing yet._
 
+## [1.2.0] — 2026-08-02
+
+The record button, and what happens to the words after you say them.
+
+### Changed
+
+- **The record button is a button, not a sentence.** It is now a circle with a
+  glyph in it — **●** to record, **■** to stop — with the instruction beside it
+  rather than inside it, so the control stops changing width as you use it. Its
+  colour follows your pointer as well as its state: hover the record button and
+  it turns green, and while it is recording, hovering it turns it red. Moving
+  away puts it back without changing what it will do.
+- **Dictated words now go through the editor**, which is where they always
+  should have gone. Three things follow from that, and each of them was a real
+  fault before:
+  - **Undo takes back one thing you said**, not the whole session. Ctrl+Z used
+    to jump past everything you had dictated in a single step.
+  - **Text you type while recording is kept.** The next thing you said used to
+    overwrite it.
+  - **Words land where your cursor is**, not always at the end of the script.
+
+### Fixed
+
+- Dictation reported itself ready when the speech-model **folder** existed,
+  even if the model inside it was missing or half-copied — which put a record
+  button on screen that could only fail when pressed. It now checks the one
+  file the recogniser cannot start without.
+- On an install under a **drive-letterless volume** (a folder-mounted drive),
+  the model path handed to the recogniser was turned into one that named
+  nothing at all. It now names the model. Whether the recogniser then loads it
+  is untested on such a setup — but a failure there says which model it could
+  not open, instead of quietly looking somewhere else entirely.
+- Text inserted with the cursor at the **very top** of the script could land at
+  the bottom instead. The editor could not read a cursor position sitting on
+  the script as a whole rather than inside a line of it, and answered with the
+  length of everything — so a paste, or a dictated line, went to the end.
+- Dictation could report itself **unavailable while a perfectly good model was
+  installed**: a stray or half-copied `vosk-model-en` in your data folder was
+  preferred over the one inside the app, and then rejected for being
+  incomplete. The app now passes over an unusable folder and uses the model it
+  shipped with.
+
+### Added
+
+- `npm run dev:vosk` for contributors — a development run that can actually
+  dictate. Dictation is release-only otherwise, which made it awkward to work on.
+
+### Documentation
+
+- The docs site's search finds **dictation** — the feature shipped in 1.1.0 and
+  was not in the index, so searching for it returned nothing. In the other
+  direction, search results that could only ever 404 are gone: the shared index
+  listed five Freally apps that have no site yet, which was 39 of its 109
+  entries.
+- `THIRD-PARTY.md` records **Vosk** (engine, model, and the Windows MinGW
+  runtime) alongside the fonts; `NOTICE` now carries the pointers to that
+  runtime's corresponding source. Both files ship inside the installer.
+- The Settings note for dictation says what happens when the **LAN mirror** is
+  on: dictated text reaches its viewers as it is written, the same as typing.
+
 ## [1.1.0] — 2026-08-02
 
 One way to use your voice, and it works the moment you switch it on.

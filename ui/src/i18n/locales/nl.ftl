@@ -47,6 +47,8 @@ transport-seek = Door het script bladeren
 editor-label = Script
 editor-dictate = Dicteren
 editor-dictate-stop = Dicteren stoppen
+editor-dictate-hint = Druk op opnemen om te dicteren
+editor-dictate-hint-stop = Druk op stoppen om het dicteren te beëindigen
 editor-placeholder = Typ of plak je script. Gebruik " -- " voor een pauze, of " --2 " om 2 seconden te wachten.
 editor-caesura-hint = Typ -- voor een pauze
 editor-est-time = Leestijd { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt kon niet starten.
 ## Voice control (FT-31)
 settings-cat-voice = Stem
 settings-dictation-enabled = Mijn script schrijven door te spreken
-settings-dictation-note = Druk op de opnameknop boven het script en wat je zegt wordt erin geschreven. De herkenning gebeurt op dit apparaat — geen account, geen netwerk, en niets van wat je zegt wordt ooit naar een bestand geschreven. De microfoon staat alleen open tijdens het opnemen.
+settings-dictation-note = Druk op de opnameknop boven het script en wat je zegt wordt erin geschreven. De herkenning gebeurt op dit apparaat — geen account, geen netwerk, en niets van wat je zegt wordt ooit naar een bestand geschreven. De microfoon staat alleen open tijdens het opnemen. Wordt het script naar apparaten in je netwerk gespiegeld, dan bereiken gedicteerde woorden ze zodra ze geschreven worden — net als alles wat je typt.
 settings-dictation-unavailable-model = Het spraakmodel is niet geïnstalleerd, dus dicteren kan niet werken.
 settings-dictation-unavailable-build = Dicteren is niet beschikbaar in deze versie.

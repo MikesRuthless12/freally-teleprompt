@@ -47,6 +47,8 @@ transport-seek = Se déplacer dans le script
 editor-label = Script
 editor-dictate = Dicter
 editor-dictate-stop = Arrêter la dictée
+editor-dictate-hint = Appuyez sur enregistrer pour démarrer la dictée
+editor-dictate-hint-stop = Appuyez sur arrêter pour terminer la dictée
 editor-placeholder = Saisissez ou collez votre script. Utilisez " -- " pour une pause, ou " --2 " pour marquer 2 secondes.
 editor-caesura-hint = Tapez -- pour une pause
 editor-est-time = Temps de lecture { $time }
@@ -206,6 +208,6 @@ startup-failed = Freally Teleprompt n'a pas pu démarrer.
 ## Voice control (FT-31)
 settings-cat-voice = Voix
 settings-dictation-enabled = Écrire mon texte en parlant
-settings-dictation-note = Appuyez sur le bouton d'enregistrement au-dessus du texte et ce que vous dites y est écrit. La reconnaissance a lieu sur cet appareil — sans compte, sans réseau, et rien de ce que vous dites n'est enregistré dans un fichier. Le microphone n'est ouvert que pendant l'enregistrement.
+settings-dictation-note = Appuyez sur le bouton d'enregistrement au-dessus du texte et ce que vous dites y est écrit. La reconnaissance a lieu sur cet appareil — sans compte, sans réseau, et rien de ce que vous dites n'est enregistré dans un fichier. Le microphone n'est ouvert que pendant l'enregistrement. Si le script est diffusé vers les appareils de votre réseau, les mots dictés y parviennent à mesure qu'ils s'écrivent, comme tout ce que vous tapez.
 settings-dictation-unavailable-model = Le modèle vocal n'est pas installé, la dictée ne peut donc pas fonctionner.
 settings-dictation-unavailable-build = La dictée n'est pas disponible dans cette version.

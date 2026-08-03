@@ -47,6 +47,8 @@ transport-seek = Przewijaj scenariusz
 editor-label = Scenariusz
 editor-dictate = Dyktuj
 editor-dictate-stop = Zakończ dyktowanie
+editor-dictate-hint = Naciśnij nagrywanie, aby zacząć dyktować
+editor-dictate-hint-stop = Naciśnij zatrzymaj, aby zakończyć dyktowanie
 editor-placeholder = Wpisz lub wklej swój scenariusz. Użyj " -- ", aby zrobić pauzę, albo " --2 ", aby zatrzymać się na 2 sekundy.
 editor-caesura-hint = Wpisz --, aby dodać pauzę
 editor-est-time = Czas czytania { $time }
@@ -206,6 +208,6 @@ startup-failed = Nie można uruchomić Freally Teleprompt.
 ## Voice control (FT-31)
 settings-cat-voice = Głos
 settings-dictation-enabled = Pisz scenariusz głosem
-settings-dictation-note = Naciśnij przycisk nagrywania nad scenariuszem, a to, co powiesz, zostanie w nim zapisane. Rozpoznawanie odbywa się na tym urządzeniu — bez konta, bez sieci, i nic z tego, co mówisz, nie trafia do pliku. Mikrofon jest otwarty tylko podczas nagrywania.
+settings-dictation-note = Naciśnij przycisk nagrywania nad scenariuszem, a to, co powiesz, zostanie w nim zapisane. Rozpoznawanie odbywa się na tym urządzeniu — bez konta, bez sieci, i nic z tego, co mówisz, nie trafia do pliku. Mikrofon jest otwarty tylko podczas nagrywania. Jeśli scenariusz jest odbijany na urządzenia w Twojej sieci, podyktowane słowa trafiają tam w chwili zapisania — tak samo jak wszystko, co wpiszesz.
 settings-dictation-unavailable-model = Model mowy nie jest zainstalowany, więc dyktowanie nie zadziała.
 settings-dictation-unavailable-build = Dyktowanie nie jest dostępne w tej wersji.

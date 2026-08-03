@@ -20,17 +20,30 @@ import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
 import { applySettingsToDocument, getLocale, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor, type CaesuraEditorHandle } from "./components/CaesuraEditor";
 import { BUTTON, ERROR_LINE } from "./components/styles";
+import { PaceWarning } from "./components/PaceWarning";
+import { TempoReadout } from "./components/TempoReadout";
 import { ResizeEdges, TitleBar } from "./components/TitleBar";
 import { Transport } from "./components/Transport";
-import { parseCaesuras, timeAtOffset, visibleChars } from "./lib/caesura";
-import { BPM_MAX, BPM_MIN, bpmFromSpeed, clampBpm, speedFromBpm } from "./lib/speed";
+import { timeAtOffset, timedRegions, visibleChars } from "./lib/caesura";
+import { Metronome } from "./lib/metronome";
+import type { Sample } from "./lib/rehearsal";
+import {
+  DEFAULT_CHARS_PER_BEAT,
+  bpmFromSpeed,
+  bpmRange,
+  clampBpm,
+  speedFromBpm,
+} from "./lib/speed";
+import { DEFAULT_BEATS_PER_BAR } from "./lib/tempo";
 import { fmtTime } from "./lib/time";
 import { readAloud, stopReading } from "./lib/tts";
+import { useRehearsal } from "./lib/useRehearsal";
 import { useTeleprompter } from "./lib/useTeleprompter";
 import { AboutDialog } from "./panels/About";
 import { BugReportDialog } from "./panels/BugReport";
 import { EulaGate } from "./panels/EulaGate";
 import { ProjectorSetup } from "./panels/ProjectorSetup";
+import { RehearsalReport } from "./panels/Rehearsal";
 import { ScriptLibrary } from "./panels/ScriptLibrary";
 import { SettingsDialog } from "./panels/Settings";
 import { TeleprompterScroller, TeleprompterSeekBar } from "./panels/Teleprompter";
@@ -223,9 +236,15 @@ export default function App() {
     [],
   );
 
-  const caesuras = useMemo(
-    () => parseCaesuras(state.script, state.caesuraSecs),
-    [state.script, state.caesuraSecs],
+  // Every region that changes the scroll's timing: caesura holds, and the
+  // labels a keyword marks as unperformed (FT-M02). The keyword list rides on
+  // the engine snapshot, not on `settings`, so this surface and the projector
+  // cannot parse the same script differently.
+  // `regions` times the scroll; `skips` says which characters read-aloud must
+  // not say. Both from one pass — see `ScriptTiming`.
+  const { regions: caesuras, skips } = useMemo(
+    () => timedRegions(state.script, state.caesuraSecs, state.skipWords),
+    [state.script, state.caesuraSecs, state.skipWords],
   );
   // Time to read the whole script at the current pace, caesura pauses counted —
   // it moves live with the speed control and with every edit. Memoised because
@@ -237,15 +256,40 @@ export default function App() {
     [totalChars, state.speed, caesuras],
   );
 
-  // -- speed: chars/sec or BPM (FT-14) ---------------------------------------
+  // -- speed: chars/sec or BPM (FT-14, calibratable since FT-N02) ------------
   // An operator-local DISPLAY toggle over the same authoritative chars/sec.
+  //
+  // The conversion needs the performer's own chars-per-beat. Where the settings
+  // read has not landed (or failed), the shipped default stands in — the same
+  // number Rust defaults the setting to, so the two cannot disagree.
   const [bpmMode, setBpmMode] = useState(false);
   const [bpmDraft, setBpmDraft] = useState<string | null>(null);
-  const displayBpm = clampBpm(bpmFromSpeed(state.speed));
+  const charsPerBeat = settings?.charsPerBeat ?? DEFAULT_CHARS_PER_BEAT;
+  // Calibration moves which BPMs the engine can actually take — see `bpmRange`.
+  const bpmLimits = bpmRange(charsPerBeat);
+  /**
+   * The tempo the scroll is ACTUALLY running at. Deliberately **not** clamped.
+   *
+   * `bpmRange` guards *entry* — it stops the operator typing a BPM the engine
+   * would refuse. It must not be applied to the *readout*, and this used to be:
+   * at the shipped calibration every speed above 14.58 chars/sec maps past
+   * `BPM_MAX`, so one press of Faster from the default pinned the click, the
+   * bar/beat counter and the seek bar's bar lines at a flat 250 while the
+   * scroll went on accelerating to four times that. That is precisely the
+   * failure the clamp exists to prevent, reached from the other end — a number
+   * on screen that does not describe what the scroll is doing.
+   *
+   * The chars/sec slider can therefore put the BPM field outside its own
+   * min/max. That is honest: the field says what the tempo is, and its bounds
+   * say what you may type.
+   */
+  const displayBpm = bpmFromSpeed(state.speed, charsPerBeat);
   const commitBpm = (raw: string) => {
     const n = Number.parseInt(raw, 10);
     if (Number.isFinite(n)) {
-      void teleprompterSetSpeed(speedFromBpm(clampBpm(n))).catch(() => undefined);
+      void teleprompterSetSpeed(speedFromBpm(clampBpm(n, charsPerBeat), charsPerBeat)).catch(
+        () => undefined,
+      );
     }
     setBpmDraft(null);
   };
@@ -282,10 +326,11 @@ export default function App() {
         raOffsetRef.current,
         (off) => setRaOffset(off),
         caesuras,
+        skips,
       );
     }, 100);
     return () => window.clearTimeout(id);
-  }, [readAloudMode, speaking, seekNonce, state.speed, state.script, caesuras]);
+  }, [readAloudMode, speaking, seekNonce, state.speed, state.script, caesuras, skips]);
 
   // Stop speech when the mode turns off, and on unmount.
   useEffect(() => {
@@ -338,6 +383,69 @@ export default function App() {
     (offset: number) => (readAloudMode ? raSeek(offset) : control("seek", offset)),
     [readAloudMode, raSeek, control],
   );
+
+  // -- musical time: the click and the counter (FT-N03 / FT-N04) -------------
+  // Both run off ONE clock — the read's own elapsed seconds, caesura holds
+  // counted — so the number on screen and the click in the ear can never
+  // disagree about where the script is. See `useReadClock`.
+  //
+  // Sits below read-aloud because it defers to it: that mode is the OS speaking
+  // the script out loud, and a click over the top of it is noise over the thing
+  // you asked to hear.
+  const beatsPerBar = settings?.beatsPerBar ?? DEFAULT_BEATS_PER_BAR;
+  const metronomeOn = settings?.metronome ?? false;
+  // Bars and beats are shown when the operator is actually working to a tempo.
+  // A bar number over a script being read at 12 characters a second is a number
+  // with nothing attached to it.
+  const tempoShown = bpmMode || metronomeOn;
+  const [rehearsing, setRehearsing] = useState(false);
+
+  // One instance for the app's life; it owns an AudioContext, and building a
+  // fresh one per play would leak an audio device every time.
+  const metronome = useRef<Metronome | null>(null);
+  useEffect(() => {
+    const click = (metronome.current ??= new Metronome());
+    if (!metronomeOn || !state.playing || readAloudMode) {
+      click.stop();
+      return;
+    }
+    // Re-anchored on every engine broadcast — a seek, a tempo change, a
+    // play-after-pause. `readSec` is deliberately NOT in the dep list: it ticks
+    // twenty times a second, and re-anchoring that often would re-derive the
+    // beat index from a moving position forever. The anchor is taken from the
+    // same quantities the scroller anchors on, which is what keeps the click
+    // and the scroll on one clock.
+    click.start({
+      bpm: displayBpm,
+      beatsPerBar,
+      readSec:
+        state.countdownRemaining > 0
+          ? -state.countdownRemaining
+          : timeAtOffset(state.offset, state.speed > 0 ? state.speed : 1, caesuras),
+    });
+  }, [
+    metronomeOn,
+    readAloudMode,
+    state.playing,
+    state.offset,
+    state.speed,
+    state.countdownRemaining,
+    caesuras,
+    displayBpm,
+    beatsPerBar,
+  ]);
+  // Releases the audio device when the window goes away.
+  useEffect(() => () => metronome.current?.stop(), []);
+
+  // -- rehearsal and the pace warning (FT-N01 / FT-N05) ----------------------
+  // Timings and nothing else: a list of "at this second, the read was here".
+  // No microphone is opened and no audio API is touched — see `useRehearsal`.
+  // The recording the report is built from — null while there is no report to
+  // show. A snapshot rather than a live reference: it is taken in the handler
+  // that asks for the report, so the dialog reads a set of samples that cannot
+  // change under it.
+  const [report, setReport] = useState<Sample[] | null>(null);
+  const rehearsal = useRehearsal(state, caesuras, rehearsing);
 
   // -- the editor + autosave (FT-10/FT-11) -----------------------------------
   // Edits go to the engine immediately (so the preview and the projector show
@@ -612,8 +720,8 @@ export default function App() {
             {bpmMode ? (
               <input
                 type="number"
-                min={BPM_MIN}
-                max={BPM_MAX}
+                min={bpmLimits.min}
+                max={bpmLimits.max}
                 step={1}
                 value={bpmDraft ?? displayBpm}
                 onChange={(e) => {
@@ -622,8 +730,13 @@ export default function App() {
                   // Commit live while in range so the spinner arrows take effect
                   // at once; anything typed out of range is clamped on blur/Enter.
                   const n = Number(raw);
-                  if (raw !== "" && Number.isFinite(n) && n >= BPM_MIN && n <= BPM_MAX) {
-                    void teleprompterSetSpeed(speedFromBpm(n)).catch(() => undefined);
+                  if (
+                    raw !== "" &&
+                    Number.isFinite(n) &&
+                    n >= bpmLimits.min &&
+                    n <= bpmLimits.max
+                  ) {
+                    void teleprompterSetSpeed(speedFromBpm(n, charsPerBeat)).catch(() => undefined);
                   }
                 }}
                 onBlur={(e) => {
@@ -671,11 +784,20 @@ export default function App() {
             <input
               type="checkbox"
               checked={readAloudMode}
-              disabled={engaged}
+              disabled={engaged || rehearsing}
               onChange={(e) => setReadAloudMode(e.target.checked)}
             />
             {/* Disabled while a read is engaged, so it cannot be flipped
                 mid-speech; Stop re-enables it.
+
+                ⚠️ And while rehearsing. The exclusion between these two has to
+                be stated on BOTH controls or it is not an exclusion: with it
+                only on the rehearse box, ticking Rehearse and then Read aloud
+                left both on — and the rehearse box, now disabled WHILE
+                CHECKED, could not be unticked, so the report could never be
+                opened. Read-aloud drives a preview-local offset and leaves the
+                shared scroll alone, so the recorder sat there sampling one
+                unmoving position and the pace warning climbed forever.
 
                 No emoji here. This label used to lead with a speaker glyph, and
                 the Linux CI screenshot showed it as a tofu box: the bundled Noto
@@ -683,8 +805,48 @@ export default function App() {
                 has no emoji font either. Bundling ~10 MB of Noto Color Emoji to
                 decorate one checkbox is not a trade worth making, and the label
                 says what it does without it. */}
-            <span className={engaged ? "opacity-40" : undefined}>{t("editor-read-aloud")}</span>
+            <span className={engaged || rehearsing ? "opacity-40" : undefined}>
+              {t("editor-read-aloud")}
+            </span>
           </label>
+
+          {/* Rehearsal (FT-N01). A checkbox beside read-aloud because it is the
+              same kind of thing — a way of running the script, not a setting.
+              Read-aloud drives the scroll itself, so the two are mutually
+              exclusive: a rehearsal of the machine reading to itself measures
+              nothing about the performer. */}
+          <div className="flex items-center justify-between gap-2 text-[11px]">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                data-testid="rehearse-toggle"
+                checked={rehearsing}
+                disabled={readAloudMode}
+                onChange={(e) => {
+                  setRehearsing(e.target.checked);
+                  // Leaving rehearsal offers the report; entering never does.
+                  // `rehearsal.started` is what tells a real read apart from a
+                  // toggle flipped twice by someone exploring the control.
+                  if (!e.target.checked && rehearsal.started) setReport(rehearsal.snapshot());
+                }}
+              />
+              <span className={readAloudMode ? "opacity-40" : undefined}>
+                {t("editor-rehearse")}
+              </span>
+            </label>
+            {/* The pace warning (FT-N05). Quiet — a line of text that appears,
+                not a colour over the script the talent is reading. Its own
+                component so its 20Hz clock re-renders one span rather than the
+                whole operator window. */}
+            {rehearsing && rehearsal.started && (
+              <PaceWarning
+                state={state}
+                caesuras={caesuras}
+                elapsedSec={rehearsal.elapsedSec}
+                startReadSec={rehearsal.startReadSec}
+              />
+            )}
+          </div>
         </section>
 
         {/* No "Preview" caption: a black scrolling script beside an editor does
@@ -693,11 +855,24 @@ export default function App() {
           <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-white/10">
             <TeleprompterScroller state={state} onSeek={seek} overrideOffset={scrollOverride} />
           </div>
+          {/* Musical time, over the scrubber it refers to. Shown only when the
+              operator is working to a tempo — see `TempoReadout`. */}
+          {tempoShown && (
+            <div className="flex items-center justify-end">
+              <TempoReadout
+                state={state}
+                caesuras={caesuras}
+                bpm={displayBpm}
+                beatsPerBar={beatsPerBar}
+              />
+            </div>
+          )}
           <TeleprompterSeekBar
             state={state}
             caesuras={caesuras}
             onSeek={seek}
             overrideOffset={scrollOverride}
+            bars={tempoShown ? { bpm: displayBpm, beatsPerBar } : undefined}
           />
         </section>
       </main>
@@ -754,6 +929,20 @@ export default function App() {
       {(manualUpdates || autoUpdateDue) && (
         <UpdatesDialog manual={manualUpdates} stacked={bugOpen} onClose={closeUpdates} />
       )}
+
+      <RehearsalReport
+        open={report !== null}
+        script={state.script}
+        samples={report ?? []}
+        caesuras={caesuras}
+        skipWords={state.skipWords}
+        speed={state.speed}
+        onClose={() => setReport(null)}
+        onApplySpeed={(next) => {
+          void teleprompterSetSpeed(next).catch(() => undefined);
+          setReport(null);
+        }}
+      />
 
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </>,

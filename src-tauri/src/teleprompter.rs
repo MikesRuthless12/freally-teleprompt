@@ -172,6 +172,220 @@ fn parse_caesuras(script: &str, default_secs: f32) -> Vec<Caesura> {
     out
 }
 
+// ---------------------------------------------------------------------------
+// Skipped words (FT-M02) — the twin of `parseSkips` in `ui/src/lib/caesura.ts`.
+// ---------------------------------------------------------------------------
+//
+// "Chorus", "Verse 2", "[Bridge]": landmarks a singer wants to SEE coming but
+// does not sing, and so must not be counted in the read's time. A performer
+// working to a DAW needs the lyrics to land on the bar they were written for,
+// and four label lines' worth of scroll time is four bars of drift.
+//
+// The whole feature rests on one observation: **a region that costs zero time
+// is a caesura with a duration of zero.** `offset()` steps straight to the end
+// of a zero-duration region without consuming any of `rem`. So skips need no
+// new timing maths on either side of the IPC boundary, and cannot drift from
+// the caesura model because they ARE the caesura model.
+//
+// CHANGING THIS MEANS CHANGING THE TYPESCRIPT TWIN — and re-running both
+// suites. The same standing rule as `parse_caesuras` above, for the same
+// reason: two surfaces reading one script differently is the bug this whole
+// architecture exists to prevent.
+
+/// Decoration stripped before a line is compared to a keyword, so `[Verse 1]`,
+/// `## Bridge` and `Chorus:` all match the bare words the user typed.
+///
+/// Dashes are deliberately NOT here. ` -- ` is a caesura, and stripping dashes
+/// off the ends would make `Chorus --` look like a bare label — silently
+/// swallowing a pause the writer asked for.
+/// ⚠️ The last two are **parity, not decoration**: `U+FEFF` (byte-order mark)
+/// and `U+0085` (next line) are the entire difference between Rust's
+/// `str::trim` (Unicode `White_Space`, which has NEL and not BOM) and
+/// JavaScript's `String.trim` (WhiteSpace ∪ LineTerminator, which has BOM and
+/// not NEL). Stripping both here, before either side's `trim` runs, is what
+/// keeps the two matchers agreeing — a differential fuzz over 6,000 cases found
+/// these two code points and nothing else.
+const LABEL_DECORATION: &str = "[](){}<>#*:;.,_|/\\\"'!?“”‘’ \t\u{feff}\u{0085}";
+
+/// Strip decoration from both ends, then a trailing number: `[Verse 1]` and
+/// `Verse 12` both reduce to `Verse`.
+fn label_core(line: &str) -> &str {
+    line.trim_matches(|c| LABEL_DECORATION.contains(c))
+        // Drop a trailing run of digits, then the space before it. The final
+        // `trim` covers that space, so no "did anything change?" test is needed.
+        .trim_end_matches(|c: char| c.is_ascii_digit())
+        .trim()
+}
+
+/// Merge overlapping or touching runs. The timing loop walks its regions in
+/// order and assumes they do not overlap; two keywords matching the same text
+/// (say `Verse` and `Verse 1`) would otherwise produce a pair that does.
+fn merge_runs(mut runs: Vec<(usize, usize)>) -> Vec<(usize, usize)> {
+    if runs.len() < 2 {
+        return runs;
+    }
+    runs.sort_by_key(|&(pos, _)| pos);
+    let mut out: Vec<(usize, usize)> = vec![runs[0]];
+    for &(pos, width) in &runs[1..] {
+        let last = out.last_mut().expect("seeded above");
+        let last_end = last.0 + last.1;
+        if pos <= last_end {
+            last.1 = last_end.max(pos + width) - last.0;
+        } else {
+            out.push((pos, width));
+        }
+    }
+    out
+}
+
+/// Find every run of visible characters a keyword marks as unperformed, as
+/// `(position, width)` pairs in visible-char coordinates.
+///
+/// The matching rule is automatic rather than a second setting:
+///
+/// * A line that is **nothing but** the keyword — allowing for brackets,
+///   hashes, a colon and a trailing number — is skipped **whole**. `Chorus`,
+///   `[Verse 1]`, `## Bridge`.
+/// * Otherwise the keyword is skipped **as a word, where it appears** — "and
+///   then back to the chorus" is a real lyric and must keep its time.
+///
+/// Matching is case-insensitive and whole-word, so `versed` never matches
+/// `verse`.
+/// Normalise a keyword list once — trimmed, lowercased, blanks dropped.
+///
+/// Kept apart from the matcher because `Inner` stores the result: `parse_skips`
+/// runs on every keystroke, and re-lowercasing up to `MAX_SKIP_WORDS` strings
+/// each time is an allocation per word per edit for an answer that only changes
+/// when the operator edits the list.
+fn normalise_keywords(words: &[String]) -> Vec<String> {
+    words
+        .iter()
+        .map(|w| w.trim().to_lowercase())
+        .filter(|w| !w.is_empty())
+        .collect()
+}
+
+/// `keywords` must already be normalised — see [`normalise_keywords`].
+fn parse_skips(script: &str, keywords: &[String]) -> Vec<(usize, usize)> {
+    if keywords.is_empty() {
+        return Vec::new();
+    }
+
+    let mut out = Vec::new();
+    let mut vis = 0usize;
+    for line in script.split('\n') {
+        let chars: Vec<char> = line.chars().collect();
+        let line_start = vis;
+        // Newlines are not visible chars, so a line IS a contiguous run.
+        vis += chars.len();
+        if chars.is_empty() {
+            continue;
+        }
+
+        // One lowercase per LINE, not per keyword — `label_core` borrows now, so
+        // this is the only allocation the whole-line branch makes.
+        let core = label_core(line).to_lowercase();
+        if !core.is_empty() && keywords.contains(&core) {
+            out.push((line_start, chars.len()));
+            continue;
+        }
+
+        // Not a bare label: skip the keyword itself wherever it is a word.
+        let lower: Vec<char> = chars.iter().flat_map(|c| c.to_lowercase()).collect();
+        // `to_lowercase` can widen a char, which would slide every index after
+        // it. Where that happens the line is left alone rather than matched at
+        // the wrong offset — a missed skip is a timing that is merely
+        // unhelpful, a wrong offset is a script that scrolls wrong.
+        //
+        // Exactly ONE code point does this: `İ` (U+0130) lowercases to `i` plus
+        // U+0307, verified across all 1,112,064 of them. (`ẞ` is not an example
+        // — that widens on UPPERCASE.) The TypeScript twin has the same guard,
+        // and must keep it: without it that side goes on matching other
+        // keywords on a line this one has abandoned.
+        if lower.len() != chars.len() {
+            continue;
+        }
+        // Which characters this line even contains. A keyword whose first
+        // character is absent cannot match anywhere on it, and skipping the
+        // scan for those is what keeps the cost off the common case: the full
+        // 64 keywords at their 48-character cap, scanned naively against a
+        // 200,000-character line, is most of a second — on every keystroke,
+        // while holding the engine mutex.
+        let present: std::collections::HashSet<char> = lower.iter().copied().collect();
+        let mut runs = Vec::new();
+        for keyword in keywords {
+            let needle: Vec<char> = keyword.chars().collect();
+            if needle.len() > lower.len() {
+                continue;
+            }
+            if !needle.first().is_some_and(|c| present.contains(c)) {
+                continue;
+            }
+            for i in 0..=(lower.len() - needle.len()) {
+                if lower[i..i + needle.len()] != needle[..] {
+                    continue;
+                }
+                // Whole word only — `versed` is not `verse`.
+                let before = i.checked_sub(1).map(|k| chars[k]);
+                let after = chars.get(i + needle.len()).copied();
+                if before.is_some_and(|c| c.is_alphanumeric())
+                    || after.is_some_and(|c| c.is_alphanumeric())
+                {
+                    continue;
+                }
+                runs.push((line_start + i, needle.len()));
+            }
+        }
+        out.extend(merge_runs(runs));
+    }
+    out
+}
+
+/// Every region that changes the scroll's timing: caesura holds, and skips.
+///
+/// A caesura falling inside a skipped run is **dropped** — the run costs no
+/// time, so a pause written inside a label line is a pause inside something
+/// nobody performs. It also keeps the regions non-overlapping, which
+/// [`Inner::offset`] relies on.
+/// `keywords` must already be normalised — see [`normalise_keywords`].
+fn timed_regions(script: &str, default_secs: f32, keywords: &[String]) -> Vec<Caesura> {
+    let skips = parse_skips(script, keywords);
+    let caesuras = parse_caesuras(script, default_secs);
+    if skips.is_empty() {
+        return caesuras;
+    }
+    // Drop any caesura that falls inside a skipped run, by a two-pointer walk.
+    //
+    // Both lists come out of their parsers sorted by position, and `skips` is
+    // non-overlapping (`merge_runs` guarantees it), so a cursor that only ever
+    // moves forward is enough. The obvious `caesuras.retain(|c| !skips.iter()
+    // .any(…))` is O(caesuras × skips) and both grow with the script: on a
+    // 200,000-char script alternating labels and holds — 22,000 of each — it
+    // measured half a second, on every keystroke, while holding the engine
+    // mutex that every other IPC command and the LAN mirror's poll wait on.
+    let mut out: Vec<Caesura> = Vec::with_capacity(caesuras.len() + skips.len());
+    let mut cursor = 0usize;
+    for c in caesuras {
+        while cursor < skips.len() && (skips[cursor].0 + skips[cursor].1) as f32 <= c.pos {
+            cursor += 1;
+        }
+        let inside = skips.get(cursor).is_some_and(|&(pos, width)| {
+            let (start, end) = (pos as f32, (pos + width) as f32);
+            c.pos < end && start < c.pos + c.width
+        });
+        if !inside {
+            out.push(c);
+        }
+    }
+    out.extend(skips.iter().map(|&(pos, width)| Caesura {
+        pos: pos as f32,
+        width: width as f32,
+        dur: 0.0,
+    }));
+    out.sort_by(|a, b| a.pos.total_cmp(&b.pos));
+    out
+}
+
 /// The reading appearance (FT-15), kept together so it can be validated,
 /// carried, and broadcast as one value instead of six loose parameters.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -258,9 +472,18 @@ struct Inner {
     play_started: Option<Instant>,
     /// The default pause (seconds) a bare ` -- ` uses — operator-settable.
     caesura_default: f32,
-    /// Caesuras parsed from the current script (sorted by position), where the
-    /// scroll crawls slowly to make a pause. Recomputed on script/default change.
+    /// Every region that changes the scroll's timing, sorted by position and
+    /// non-overlapping: caesura holds (`dur > 0`), where the scroll crawls to
+    /// make a pause, and skipped labels (`dur == 0`, FT-M02), which it crosses
+    /// in no time at all. Recomputed on a script, default, or keyword change.
     caesuras: Vec<Caesura>,
+    /// Words that mark text as read-but-not-performed (FT-M02), as the operator
+    /// wrote them — this is what the DTO carries to every surface.
+    skip_words: Vec<String>,
+    /// The same list, normalised once (see [`normalise_keywords`]). The matcher
+    /// runs on every keystroke; re-normalising there would allocate a string
+    /// per keyword per edit for an answer that only changes on an Apply.
+    skip_keywords: Vec<String>,
     /// Total visible characters (newlines excluded); the scroll caps here so the
     /// offset stops at the last line instead of counting past the end.
     total_chars: f32,
@@ -273,6 +496,16 @@ struct Inner {
 }
 
 impl Inner {
+    /// Recompute the timing regions from the script, the caesura default and
+    /// the skip words.
+    ///
+    /// One helper rather than the same line at each of the three call sites:
+    /// they must agree, and a fourth input added to the parse would otherwise
+    /// have to be remembered in every one of them.
+    fn reparse(&mut self) {
+        self.caesuras = timed_regions(&self.script, self.caesura_default, &self.skip_keywords);
+    }
+
     /// The current scroll offset (visible chars): the base plus what has
     /// scrolled since play began, or just the base while paused. Caesuras insert
     /// flat crawls: scrolling proceeds at `speed`, but each caesura region (its
@@ -404,6 +637,13 @@ pub struct TeleprompterDto {
     pub countdown_secs: f32,
     /// Seconds remaining in the current start countdown (0 when not counting).
     pub countdown_remaining: f32,
+    /// Words that mark text as read-but-not-performed (FT-M02).
+    ///
+    /// Carried on the snapshot rather than read from settings by each surface:
+    /// the projector is a separate window with its own settings read, and a
+    /// surface that computed its timing regions from a stale keyword list would
+    /// scroll a different script from the one the operator is watching.
+    pub skip_words: Vec<String>,
 }
 
 impl TeleprompterState {
@@ -419,6 +659,8 @@ impl TeleprompterState {
                 play_started: None,
                 caesura_default: CAESURA_DEFAULT_SECS,
                 caesuras: Vec::new(),
+                skip_words: Vec::new(),
+                skip_keywords: Vec::new(),
                 total_chars: 0.0,
                 countdown_secs: 0.0,
                 lead_in: 0.0,
@@ -440,6 +682,12 @@ impl TeleprompterState {
         self.set_speed(settings.speed);
         self.set_font(settings.font_size);
         self.set_caesura_secs(settings.caesura_secs);
+        // Re-parses the script a second time, after `set_caesura_secs` already
+        // did. Deliberately left that way: this runs on startup and on Apply,
+        // never on a keystroke, and collapsing the two into one inlined block
+        // bought a parse nobody can perceive at the cost of an entry point that
+        // then had no caller outside the tests.
+        self.set_skip_words(settings.skip_words.clone());
         self.set_countdown(settings.countdown_secs);
         self.set_mirror(settings.mirror);
         self.set_look(settings.look.clone());
@@ -465,6 +713,7 @@ impl TeleprompterState {
             caesura_secs: inner.caesura_default,
             countdown_secs: inner.countdown_secs,
             countdown_remaining: inner.countdown_remaining(),
+            skip_words: inner.skip_words.clone(),
         }
     }
 
@@ -476,9 +725,22 @@ impl TeleprompterState {
         } else {
             text
         };
-        inner.caesuras = parse_caesuras(&inner.script, inner.caesura_default);
+        inner.reparse();
         inner.total_chars = inner.script.chars().filter(|&c| c as u32 != 10).count() as f32;
         inner.rewind();
+    }
+
+    /// Set the words that mark text as read-but-not-performed (FT-M02) and
+    /// re-parse, so the change is reflected in the scroll's timing at once.
+    pub fn set_skip_words(&self, words: Vec<String>) {
+        let mut inner = self.lock();
+        // Freeze the current position first, exactly as `set_caesura_secs`
+        // does: the regions under the read are about to change length in time,
+        // and without a rebase the scroll would jump where it is standing.
+        inner.rebase();
+        inner.skip_keywords = normalise_keywords(&words);
+        inner.skip_words = words;
+        inner.reparse();
     }
 
     /// Set the default pause (seconds) a bare ` -- ` uses (clamped to the slider
@@ -489,7 +751,7 @@ impl TeleprompterState {
         // continuous (no visible jump), mirroring set_speed.
         inner.rebase();
         inner.caesura_default = secs.clamp(CAESURA_MIN_DEFAULT, CAESURA_MAX_DEFAULT);
-        inner.caesuras = parse_caesuras(&inner.script, inner.caesura_default);
+        inner.reparse();
     }
 
     /// Set the start-countdown pre-roll (seconds) before scrolling; 0 disables it.
@@ -787,6 +1049,233 @@ mod tests {
             s.apply("stepBack", None).unwrap();
         }
         assert_eq!(s.dto().offset, 0.0, "stepBack clamps at the top");
+    }
+
+    // -----------------------------------------------------------------------
+    // FT-M02 — skipped labels. The twin of `ui/src/lib/__tests__/skips.test.ts`,
+    // ported case for case, the same way the caesura suite below is. Change one
+    // suite, change the other.
+    // -----------------------------------------------------------------------
+
+    /// The keyword list every case here uses, as the operator typed it.
+    fn skip_words() -> Vec<String> {
+        ["Chorus", "Verse", "Bridge"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
+    }
+
+    /// The same list as the matcher actually receives it.
+    ///
+    /// `parse_skips` takes NORMALISED keywords — `set_skip_words` normalises
+    /// once and `Inner` stores the result, because the matcher runs on every
+    /// keystroke. Going through the same call the app does is the point: a test
+    /// that hand-lowercased its own list would keep passing if the app ever
+    /// stopped normalising at all.
+    fn skip_keywords() -> Vec<String> {
+        normalise_keywords(&skip_words())
+    }
+
+    #[test]
+    fn skips_a_whole_line_that_is_only_a_label() {
+        assert_eq!(parse_skips("Chorus", &skip_keywords()), vec![(0, 6)]);
+    }
+
+    #[test]
+    fn sees_through_the_decoration_labels_are_written_in() {
+        for line in [
+            "[Verse 1]",
+            "## Bridge",
+            "Chorus:",
+            "(chorus)",
+            "  Verse 12  ",
+        ] {
+            let skips = parse_skips(line, &skip_keywords());
+            assert_eq!(skips.len(), 1, "{line}");
+            // The WHOLE line goes — brackets and number are decoration on
+            // something nobody performs.
+            assert_eq!(skips[0], (0, line.chars().count()), "{line}");
+        }
+    }
+
+    /// The case the automatic rule exists for. "back to the chorus now" is a
+    /// lyric; skipping the whole line would take three sung words out of the
+    /// timing and put the song out by that much.
+    #[test]
+    fn skips_only_the_word_inside_a_real_lyric() {
+        assert_eq!(
+            parse_skips("and back to the chorus now", &skip_keywords()),
+            vec![(16, 6)]
+        );
+    }
+
+    #[test]
+    fn matches_whole_words_only() {
+        assert!(parse_skips("well versed in chorusing", &skip_keywords()).is_empty());
+    }
+
+    /// The TypeScript twin's boundary test is `\p{Alphabetic}`, not `\p{L}`,
+    /// precisely to agree with `is_alphanumeric()` here — a combining vowel
+    /// sign is Alphabetic but not a Letter.
+    #[test]
+    fn a_combining_mark_is_part_of_a_word() {
+        let verse = normalise_keywords(&["verse".to_string()]);
+        // U+093F DEVANAGARI VOWEL SIGN I directly after the keyword.
+        assert!(parse_skips("verseि", &verse).is_empty());
+        // A space after it is still a boundary.
+        assert_eq!(parse_skips("verse two", &verse), vec![(0, 5)]);
+    }
+
+    #[test]
+    fn skip_matching_is_case_insensitive_both_ways() {
+        assert_eq!(parse_skips("CHORUS", &skip_keywords()).len(), 1);
+        assert_eq!(parse_skips("Chorus", &["chorus".to_string()]).len(), 1);
+    }
+
+    /// Parity with the TypeScript twin, on the one input where naive
+    /// lowercasing diverges. `İ` (U+0130) lowercases to TWO chars, which would
+    /// slide every index after it — so both sides leave such a line's
+    /// word-matching alone rather than reporting a run at the wrong offset.
+    ///
+    /// The whole-line branch is unaffected: it compares strings, not indices.
+    #[test]
+    fn a_widening_character_leaves_the_line_alone() {
+        // A keyword really is present, and is still not matched — deliberately.
+        assert!(parse_skips("İstanbul chorus tonight", &skip_keywords()).is_empty());
+        // The same line without the widening character matches as normal.
+        assert_eq!(
+            parse_skips("Istanbul chorus tonight", &skip_keywords()),
+            vec![(9, 6)]
+        );
+        // And a bare label containing one is still a bare label.
+        assert_eq!(
+            parse_skips("İ", &normalise_keywords(&["İ".to_string()])),
+            vec![(0, 1)]
+        );
+    }
+
+    #[test]
+    fn no_keywords_skips_nothing() {
+        assert!(parse_skips("Chorus\nVerse", &[]).is_empty());
+        assert!(parse_skips("Chorus", &["".to_string(), "   ".to_string()]).is_empty());
+    }
+
+    #[test]
+    fn skips_are_indexed_in_visible_chars_across_lines() {
+        // "one" (3) + "Chorus" (6) + "two" (3)
+        assert_eq!(
+            parse_skips("one\nChorus\ntwo", &skip_keywords()),
+            vec![(3, 6)]
+        );
+    }
+
+    /// The one divergence a 6,000-case differential fuzz against the TypeScript
+    /// twin found, and it is reachable: Windows Notepad still writes "UTF-8
+    /// with BOM", and a byte-order mark is whitespace to JavaScript's
+    /// `String.trim` but NOT to `str::trim`. U+0085 is the same story the other
+    /// way round. Both are in `LABEL_DECORATION` now, so they are stripped
+    /// before either side's trim.
+    #[test]
+    fn a_label_is_seen_through_a_bom_or_a_next_line() {
+        assert_eq!(
+            parse_skips("\u{feff}Chorus", &skip_keywords()),
+            vec![(0, 7)]
+        );
+        assert_eq!(
+            parse_skips("\u{0085}Chorus,", &skip_keywords()),
+            vec![(0, 8)]
+        );
+        assert_eq!(
+            parse_skips("\u{feff}Verse 1\u{0085}", &skip_keywords()),
+            vec![(0, 9)]
+        );
+    }
+
+    /// Dashes are not decoration: stripping them would make `Chorus --` look
+    /// like a bare label and silently swallow a pause the writer asked for.
+    #[test]
+    fn a_trailing_caesura_does_not_make_a_line_a_label() {
+        assert_eq!(parse_skips("Chorus --", &skip_keywords()), vec![(0, 6)]);
+    }
+
+    /// Two keywords matching the same text must come back as one run — the
+    /// timing loop walks its regions in order assuming they do not overlap.
+    #[test]
+    fn overlapping_keyword_runs_are_merged() {
+        let words = vec!["verse".to_string(), "verse 1".to_string()];
+        let skips = parse_skips("sing the verse 1 line", &words);
+        for pair in skips.windows(2) {
+            assert!(pair[1].0 >= pair[0].0 + pair[0].1, "{skips:?} overlaps");
+        }
+    }
+
+    #[test]
+    fn a_skipped_label_costs_no_read_time() {
+        let s = TeleprompterState::new();
+        s.set_script("ab\nChorus\ncd".to_string());
+        s.set_speed(10.0);
+
+        // Without keywords the label is ordinary text and takes its 0.6s.
+        let plain = s.dto().skip_words.len();
+        assert_eq!(plain, 0);
+
+        s.set_skip_words(skip_words());
+        let regions = timed_regions("ab\nChorus\ncd", CAESURA_DEFAULT_SECS, &skip_keywords());
+        assert_eq!(regions.len(), 1);
+        assert_eq!(regions[0].dur, 0.0, "a skip costs no time");
+        assert_eq!(regions[0].pos, 2.0);
+        assert_eq!(regions[0].width, 6.0);
+        // And the snapshot carries the words, so every surface parses alike.
+        assert_eq!(s.dto().skip_words, skip_words());
+    }
+
+    /// A pause written inside a label is a pause inside something nobody
+    /// performs — and, more sharply, an overlapping pair of regions would
+    /// break `offset()`, which walks them in order.
+    #[test]
+    fn a_caesura_inside_a_skipped_label_is_dropped() {
+        let regions = timed_regions("go -- on\nChorus -- ", 5.0, &skip_keywords());
+        for pair in regions.windows(2) {
+            assert!(
+                pair[1].pos >= pair[0].pos + pair[0].width,
+                "{regions:?} overlaps"
+            );
+        }
+    }
+
+    /// The scroll steps straight over a skipped run: reaching it and reaching
+    /// its far side are the same instant.
+    #[test]
+    fn the_scroll_crosses_a_skip_in_no_time() {
+        let regions = timed_regions("ab\nChorus\ncd", CAESURA_DEFAULT_SECS, &skip_keywords());
+        let mut inner = Inner {
+            script: "ab\nChorus\ncd".to_string(),
+            speed: 10.0,
+            font_size: 48.0,
+            look: Look::default(),
+            mirror: false,
+            base_offset: 0.0,
+            play_started: Some(Instant::now()),
+            caesura_default: CAESURA_DEFAULT_SECS,
+            caesuras: regions,
+            skip_words: skip_words(),
+            skip_keywords: normalise_keywords(&skip_words()),
+            total_chars: 11.0,
+            countdown_secs: 0.0,
+            lead_in: 0.0,
+        };
+        inner.base_offset = 2.0;
+        inner.play_started = None;
+        // Parked at the start of the label, the offset is the label's start;
+        // the moment any time passes it is on the far side of it.
+        assert_eq!(inner.offset(), 2.0);
+        inner.play_started = Some(Instant::now());
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        assert!(
+            inner.offset() >= 8.0,
+            "expected to be past the label, got {}",
+            inner.offset()
+        );
     }
 
     #[test]

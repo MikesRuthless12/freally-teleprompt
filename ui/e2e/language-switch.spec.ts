@@ -66,8 +66,14 @@ const VISIBLE_KEYS: { key: string; at: (dialog: Locator) => Locator }[] = [
   // Index 1 is Editor (FT-20), which sits between General and Reading.
   { key: "settings-cat-editor", at: (d) => d.getByRole("tab").nth(1) },
   { key: "settings-cat-reading", at: (d) => d.getByRole("tab").nth(2) },
-  // Index 6 is Voice (FT-31), the last category.
-  { key: "settings-cat-voice", at: (d) => d.getByRole("tab").nth(6) },
+  // Index 3 is Timing (Phase A), which sits after Reading — the two are about
+  // the same thing, how long the read takes.
+  { key: "settings-cat-timing", at: (d) => d.getByRole("tab").nth(3) },
+  // Voice (FT-31) is the last category. Addressed as `.last()` rather than by
+  // index: it was nth(6) until Timing was inserted above it, and every one of
+  // these seventeen cases then failed for a reason that had nothing to do with
+  // the language switch they exist to check.
+  { key: "settings-cat-voice", at: (d) => d.getByRole("tab").last() },
   {
     key: "settings-language",
     at: (d) => d.locator('label:has(> [data-testid="settings-language"]) > span'),

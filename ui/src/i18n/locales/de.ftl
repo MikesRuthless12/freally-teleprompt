@@ -211,3 +211,41 @@ settings-dictation-enabled = Mein Skript durch Sprechen schreiben
 settings-dictation-note = Drücken Sie die Aufnahmetaste über dem Skript, und was Sie sagen, wird hineingeschrieben. Die Erkennung läuft auf diesem Gerät — kein Konto, kein Netzwerk, und nichts von dem, was Sie sagen, wird je in eine Datei geschrieben. Das Mikrofon ist nur während der Aufnahme offen. Wird das Skript auf Geräte in Ihrem Netzwerk gespiegelt, erreichen diktierte Wörter diese, sobald sie geschrieben werden — genau wie alles, was Sie tippen.
 settings-dictation-unavailable-model = Das Sprachmodell ist nicht installiert, daher kann das Diktat nicht laufen.
 settings-dictation-unavailable-build = Diktat ist in dieser Version nicht verfügbar.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Takt { $bar } · { $beat }
+tempo-count-in = Einzähler { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Proben und meinen Vortrag messen
+pace-behind = { $time } über der Zeit
+pace-ahead = { $time } unter der Zeit
+rehearsal-title = Probenbericht
+rehearsal-empty = Es wurde noch nichts gemessen. Schalte dies ein, spiele das Skript durch und schalte es wieder aus.
+rehearsal-col-section = Abschnitt
+rehearsal-col-planned = Geplant
+rehearsal-col-actual = Tatsächlich
+rehearsal-col-delta = Differenz
+rehearsal-unfinished = nicht beendet
+rehearsal-suggest = Du hast das mit etwa { $to } Zeichen pro Sekunde gelesen, nicht { $from }.
+rehearsal-suggest-apply = Dieses Tempo übernehmen
+rehearsal-close = Schließen
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Zeitmaß
+settings-tempo-section = Tempo
+settings-metronome = Klick im aktuellen Tempo abspielen
+settings-metronome-note = Ein leiser Tick auf jedem Schlag, während das Skript läuft, betont auf der Eins. Der Startcountdown wird zum Einzähler. Die App erzeugt den Ton selbst — es wird nichts heruntergeladen.
+settings-beats-per-bar = Schläge pro Takt
+settings-calibration-section = Dein eigenes Tempo
+settings-chars-per-beat = { $value } Zeichen pro Schlag
+settings-chars-per-beat-note = Ein Tempo wird über eine einzige Zahl zur Lesegeschwindigkeit: wie viele Zeichen du in einem Schlag schaffst. Tippe im Tempo mit, in dem du vorträgst, dann wird sie an deiner Lesegeschwindigkeit gemessen statt geschätzt.
+settings-tap-tempo = Tippen
+settings-tap-hint = Mindestens dreimal tippen
+settings-tap-bpm = Getippt: { $bpm } BPM
+settings-tap-apply = Dieses Tempo verwenden
+settings-tap-reset = Zurück zum Standard
+settings-skip-section = Wörter, die du nicht vorträgst
+settings-skip-words = Zu überspringende Wörter
+settings-skip-words-note = Eines pro Zeile. Eine Zeile, die nur aus einem davon besteht — Refrain, Strophe 1, Bridge — kostet überhaupt keine Zeit, sodass dein Text auf dem Takt bleibt, für den du ihn geschrieben hast. Dasselbe Wort mitten in einer echten Zeile überspringt nur sich selbst. Sie bleiben gedimmt sichtbar, und das Vorlesen spricht sie nie aus.
+settings-skip-words-placeholder = Ein Wort pro Zeile

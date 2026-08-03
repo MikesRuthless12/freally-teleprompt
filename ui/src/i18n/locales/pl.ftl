@@ -211,3 +211,41 @@ settings-dictation-enabled = Pisz scenariusz głosem
 settings-dictation-note = Naciśnij przycisk nagrywania nad scenariuszem, a to, co powiesz, zostanie w nim zapisane. Rozpoznawanie odbywa się na tym urządzeniu — bez konta, bez sieci, i nic z tego, co mówisz, nie trafia do pliku. Mikrofon jest otwarty tylko podczas nagrywania. Jeśli scenariusz jest odbijany na urządzenia w Twojej sieci, podyktowane słowa trafiają tam w chwili zapisania — tak samo jak wszystko, co wpiszesz.
 settings-dictation-unavailable-model = Model mowy nie jest zainstalowany, więc dyktowanie nie zadziała.
 settings-dictation-unavailable-build = Dyktowanie nie jest dostępne w tej wersji.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Takt { $bar } · { $beat }
+tempo-count-in = Odliczanie { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Próba z pomiarem czasu czytania
+pace-behind = Spóźnienie o { $time }
+pace-ahead = Wyprzedzenie o { $time }
+rehearsal-title = Raport z próby
+rehearsal-empty = Nic jeszcze nie zmierzono. Włącz to, odtwórz cały scenariusz, a potem wyłącz.
+rehearsal-col-section = Fragment
+rehearsal-col-planned = Planowany
+rehearsal-col-actual = Rzeczywisty
+rehearsal-col-delta = Różnica
+rehearsal-unfinished = nieukończony
+rehearsal-suggest = Przeczytałeś to z prędkością około { $to } znaków na sekundę, a nie { $from }.
+rehearsal-suggest-apply = Użyj tej prędkości
+rehearsal-close = Zamknij
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Czas
+settings-tempo-section = Tempo
+settings-metronome = Odtwarzaj klik w bieżącym tempie
+settings-metronome-note = Ciche tyknięcie na każdą miarę, gdy scenariusz się przewija, z akcentem na pierwszą miarę taktu. Odliczanie startowe staje się wprowadzeniem. Aplikacja sama tworzy dźwięk — nic nie jest pobierane.
+settings-beats-per-bar = Miary w takcie
+settings-calibration-section = Twoje własne tempo
+settings-chars-per-beat = { $value } znaków na miarę
+settings-chars-per-beat-note = Tempo staje się prędkością czytania dzięki jednej liczbie: ile znaków pokonujesz w jednej mierze. Wystukaj tempo, w którym wykonujesz, a zostanie zmierzone na podstawie twojej prędkości czytania, zamiast być założone.
+settings-tap-tempo = Stukaj
+settings-tap-hint = Stuknij co najmniej trzy razy
+settings-tap-bpm = Wystukane: { $bpm } BPM
+settings-tap-apply = Użyj tego tempa
+settings-tap-reset = Powrót do domyślnego
+settings-skip-section = Słowa, których nie wykonujesz
+settings-skip-words = Słowa do pominięcia
+settings-skip-words-note = Jedno w wierszu. Wiersz zawierający tylko jedno z nich — Refren, Zwrotka 1, Przejście — nie kosztuje żadnego czasu, więc tekst nadal trafia w takt, dla którego go napisałeś. To samo słowo wewnątrz prawdziwego wiersza pomija tylko siebie. Pozostają na ekranie, przygaszone, a czytanie na głos nigdy ich nie wypowiada.
+settings-skip-words-placeholder = Jedno słowo w wierszu

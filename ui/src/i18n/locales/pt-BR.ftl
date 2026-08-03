@@ -211,3 +211,41 @@ settings-dictation-enabled = Escrever meu roteiro falando
 settings-dictation-note = Pressione o botão de gravar acima do roteiro e o que você disser será escrito nele. O reconhecimento acontece neste dispositivo — sem conta, sem rede, e nada do que você diz é salvo em arquivo. O microfone fica aberto apenas durante a gravação. Se o roteiro estiver sendo espelhado para dispositivos na sua rede, as palavras ditadas chegam a eles conforme são escritas — igual a tudo o que você digita.
 settings-dictation-unavailable-model = O modelo de fala não está instalado, então o ditado não pode funcionar.
 settings-dictation-unavailable-build = O ditado não está disponível nesta versão.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Compasso { $bar } · { $beat }
+tempo-count-in = Contagem { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Ensaiar e cronometrar minha leitura
+pace-behind = { $time } além do tempo
+pace-ahead = { $time } adiantado
+rehearsal-title = Relatório de ensaio
+rehearsal-empty = Nada foi cronometrado ainda. Ative isto, reproduza o roteiro inteiro e desative de novo.
+rehearsal-col-section = Trecho
+rehearsal-col-planned = Previsto
+rehearsal-col-actual = Real
+rehearsal-col-delta = Diferença
+rehearsal-unfinished = não concluído
+rehearsal-suggest = Você leu isto a cerca de { $to } caracteres por segundo, não { $from }.
+rehearsal-suggest-apply = Usar essa velocidade
+rehearsal-close = Fechar
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Cronometragem
+settings-tempo-section = Andamento
+settings-metronome = Tocar um clique no andamento atual
+settings-metronome-note = Um tique discreto a cada tempo enquanto o roteiro rola, acentuado no primeiro tempo do compasso. A contagem regressiva inicial vira a contagem de entrada. O app gera o som — nada é baixado.
+settings-beats-per-bar = Tempos por compasso
+settings-calibration-section = Seu próprio andamento
+settings-chars-per-beat = { $value } caracteres por tempo
+settings-chars-per-beat-note = Um andamento vira velocidade de leitura por um único número: quantos caracteres você percorre em um tempo. Marque no andamento em que você canta e ele será medido pela sua velocidade de leitura em vez de suposto.
+settings-tap-tempo = Marcar
+settings-tap-hint = Marque três vezes ou mais
+settings-tap-bpm = Marcado: { $bpm } BPM
+settings-tap-apply = Usar este andamento
+settings-tap-reset = Voltar ao padrão
+settings-skip-section = Palavras que você não canta
+settings-skip-words = Palavras a pular
+settings-skip-words-note = Uma por linha. Uma linha que seja apenas uma delas — Refrão, Verso 1, Ponte — não custa tempo algum, então sua letra continua caindo no compasso para o qual você a escreveu. A mesma palavra dentro de uma linha de verdade pula apenas ela mesma. Elas continuam na tela, esmaecidas, e a leitura em voz alta nunca as pronuncia.
+settings-skip-words-placeholder = Uma palavra por linha

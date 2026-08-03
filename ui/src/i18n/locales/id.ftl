@@ -211,3 +211,41 @@ settings-dictation-enabled = Tulis naskah saya dengan berbicara
 settings-dictation-note = Tekan tombol rekam di atas naskah dan apa yang Anda ucapkan akan dituliskan ke dalamnya. Pengenalan berjalan di perangkat ini — tanpa akun, tanpa jaringan, dan tidak ada yang Anda ucapkan disimpan ke berkas. Mikrofon terbuka hanya selama merekam. Jika naskah sedang dicerminkan ke perangkat di jaringan Anda, kata-kata hasil dikte sampai ke sana begitu dituliskan — sama seperti apa pun yang Anda ketik.
 settings-dictation-unavailable-model = Model suara belum terpasang, jadi dikte tidak dapat berjalan.
 settings-dictation-unavailable-build = Dikte tidak tersedia pada versi ini.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Birama { $bar } · { $beat }
+tempo-count-in = Hitungan masuk { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Berlatih dan catat waktu baca saya
+pace-behind = Melebihi { $time }
+pace-ahead = Lebih cepat { $time }
+rehearsal-title = Laporan latihan
+rehearsal-empty = Belum ada yang diukur. Nyalakan ini, mainkan naskah sampai habis, lalu matikan lagi.
+rehearsal-col-section = Bagian
+rehearsal-col-planned = Rencana
+rehearsal-col-actual = Nyata
+rehearsal-col-delta = Selisih
+rehearsal-unfinished = belum selesai
+rehearsal-suggest = Anda membacanya sekitar { $to } karakter per detik, bukan { $from }.
+rehearsal-suggest-apply = Pakai kecepatan itu
+rehearsal-close = Tutup
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Pewaktuan
+settings-tempo-section = Tempo
+settings-metronome = Mainkan klik pada tempo saat ini
+settings-metronome-note = Tik lembut pada tiap ketukan saat naskah bergulir, ditekankan pada ketukan pertama birama. Hitung mundur awal menjadi hitungan masuknya. Aplikasi membuat suaranya sendiri — tidak ada yang diunduh.
+settings-beats-per-bar = Ketukan per birama
+settings-calibration-section = Tempo Anda sendiri
+settings-chars-per-beat = { $value } karakter per ketukan
+settings-chars-per-beat-note = Sebuah tempo menjadi kecepatan baca lewat satu angka: berapa karakter yang Anda lewati dalam satu ketukan. Ketuk mengikuti tempo yang Anda bawakan, dan angkanya diukur dari kecepatan baca Anda, bukan dikira-kira.
+settings-tap-tempo = Ketuk
+settings-tap-hint = Ketuk tiga kali atau lebih
+settings-tap-bpm = Terketuk: { $bpm } BPM
+settings-tap-apply = Pakai tempo ini
+settings-tap-reset = Kembali ke bawaan
+settings-skip-section = Kata yang tidak Anda bawakan
+settings-skip-words = Kata yang dilewati
+settings-skip-words-note = Satu per baris. Baris yang hanya berisi salah satunya — Reff, Bait 1, Bridge — sama sekali tidak memakan waktu, sehingga lirik Anda tetap jatuh pada birama yang Anda tuju. Kata yang sama di tengah baris sungguhan hanya melewati dirinya sendiri. Semuanya tetap tampil samar di layar, dan pembacaan lantang tidak pernah mengucapkannya.
+settings-skip-words-placeholder = Satu kata per baris

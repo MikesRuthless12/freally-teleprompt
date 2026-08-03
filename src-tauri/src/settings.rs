@@ -85,6 +85,42 @@ fn default_autocomplete_language() -> String {
     AUTO_LANGUAGE.to_string()
 }
 
+/// How many characters a performer gets through in one beat (FT-N02) — the one
+/// number the chars/sec ↔ BPM conversion needs.
+///
+/// **This is ROADMAP open question 4, answered.** It is not a universal
+/// constant: a rapper and a balladeer differ by an order of magnitude. So the
+/// app ships an assumed default — one beat ≈ one short word or syllable — and
+/// lets the performer measure their own with the tap-tempo pane. Mirrored in
+/// `ui/src/lib/speed.ts` as `DEFAULT_CHARS_PER_BEAT`; changing it here re-paces
+/// BPM mode for every existing install.
+pub(crate) const DEFAULT_CHARS_PER_BEAT: f32 = 3.5;
+/// The calibration's outer bounds — wide enough for a drone at one end and an
+/// auctioneer at the other, bounded so the settable BPM range the UI derives
+/// from it (`bpmRange` in `speed.ts`) can never collapse to nothing.
+const CHARS_PER_BEAT_MIN: f32 = 0.5;
+const CHARS_PER_BEAT_MAX: f32 = 40.0;
+
+fn default_chars_per_beat() -> f32 {
+    DEFAULT_CHARS_PER_BEAT
+}
+
+/// Beats in a bar (FT-N04). Four is 4/4 — by far the most common, and the one
+/// a user who never opens this setting should get.
+const BEATS_PER_BAR_MIN: u8 = 2;
+const BEATS_PER_BAR_MAX: u8 = 12;
+
+fn default_beats_per_bar() -> u8 {
+    4
+}
+
+/// Bounds on the skip-word list (FT-M02). It is matched against every line of
+/// the script on every re-parse — i.e. on every keystroke — so an unbounded
+/// list from a hand-edited file would make editing crawl. Both numbers are far
+/// above anything a song's section labels need.
+const MAX_SKIP_WORDS: usize = 64;
+const MAX_SKIP_WORD_CHARS: usize = 48;
+
 /// Every persisted preference. `#[serde(default)]` on each field means an older
 /// settings file missing a newly-added key loads with that key's default rather
 /// than failing to parse — settings written by any past version stay readable.
@@ -153,6 +189,29 @@ pub struct Settings {
     /// Only usable where the Vosk model is present; the UI says so otherwise.
     #[serde(default)]
     pub dictation_enabled: bool,
+    /// Characters per beat (FT-N02) — the performer's own chars/sec ↔ BPM
+    /// mapping, measured by the tap-tempo pane rather than assumed. See
+    /// [`DEFAULT_CHARS_PER_BEAT`].
+    #[serde(default = "default_chars_per_beat")]
+    pub chars_per_beat: f32,
+    /// Beats in a bar (FT-N04), for the bar/beat counter and the bar lines on
+    /// the seek bar. 4 = 4/4.
+    #[serde(default = "default_beats_per_bar")]
+    pub beats_per_bar: u8,
+    /// Click at the current BPM while the scroll runs (FT-N03). **Off by
+    /// default** — it makes noise, and the pre-roll countdown doubles as its
+    /// count-in. Synthesised in the webview; nothing is bundled or downloaded.
+    #[serde(default)]
+    pub metronome: bool,
+    /// Words that mark text as read-but-not-performed (FT-M02) — "Chorus",
+    /// "Verse", "Bridge". Where they match, the scroll costs no time, so a
+    /// lyric still lands on the bar it was written for.
+    ///
+    /// Empty by default: this changes how a script is timed, and an app that
+    /// silently decided some of your words did not count would be worse than
+    /// one that waited to be asked.
+    #[serde(default)]
+    pub skip_words: Vec<String>,
     /// Recently-opened scripts (FT-10), most recent first; the first entry is
     /// the script currently open.
     ///
@@ -197,6 +256,10 @@ impl Default for Settings {
             autocomplete: default_autocomplete(),
             autocomplete_language: default_autocomplete_language(),
             dictation_enabled: false,
+            chars_per_beat: default_chars_per_beat(),
+            beats_per_bar: default_beats_per_bar(),
+            metronome: false,
+            skip_words: Vec::new(),
             recent_scripts: Vec::new(),
             accepted_eula_version: None,
             onboarding_seen: false,
@@ -242,6 +305,26 @@ impl Settings {
         if self.autocomplete_language.trim().is_empty() {
             self.autocomplete_language = default_autocomplete_language();
         }
+        self.chars_per_beat = clamp_finite(
+            self.chars_per_beat,
+            CHARS_PER_BEAT_MIN,
+            CHARS_PER_BEAT_MAX,
+            default_chars_per_beat(),
+        );
+        // A u8 cannot be NaN, so a plain clamp is the whole check here.
+        self.beats_per_bar = self
+            .beats_per_bar
+            .clamp(BEATS_PER_BAR_MIN, BEATS_PER_BAR_MAX);
+        // Skip words are matched against every line of every script on every
+        // re-parse, so the list is bounded on both axes. A hand-edited file
+        // with ten thousand keywords would otherwise make editing crawl.
+        for word in &mut self.skip_words {
+            if word.chars().count() > MAX_SKIP_WORD_CHARS {
+                *word = word.chars().take(MAX_SKIP_WORD_CHARS).collect();
+            }
+        }
+        self.skip_words.retain(|word| !word.trim().is_empty());
+        self.skip_words.truncate(MAX_SKIP_WORDS);
         // A recents list is a record, but it is still read back off disk: cap it
         // and drop anything that is no longer a legal script name, so a
         // hand-edited file cannot smuggle a path into the library UI.
@@ -396,6 +479,10 @@ impl SettingsStore {
                 autocomplete: _,
                 autocomplete_language: _,
                 dictation_enabled: _,
+                chars_per_beat: _,
+                beats_per_bar: _,
+                metronome: _,
+                skip_words: _,
             } = std::mem::replace(&mut *guard, next);
             guard.accepted_eula_version = accepted_eula_version;
             guard.recent_scripts = recent_scripts;
@@ -749,6 +836,57 @@ mod tests {
             );
         }
         assert_eq!(serde_json::from_str::<Settings>(&text).unwrap(), s);
+    }
+
+    /// The Phase A tempo settings (FT-N02 / FT-N03 / FT-N04).
+    ///
+    /// `chars_per_beat` is the one that matters: the UI derives the settable
+    /// BPM range from it (`bpmRange` in `speed.ts`), and that derivation is
+    /// only safe over a bounded value. An unbounded one — from a hand-edited
+    /// file, or a UI a version ahead — collapses the range to nothing and
+    /// leaves BPM mode with no number it will accept.
+    #[test]
+    fn validate_clamps_the_tempo_settings() {
+        let mut s = Settings {
+            chars_per_beat: 9_000.0,
+            beats_per_bar: 200,
+            ..Settings::default()
+        };
+        s.validate();
+        assert_eq!(s.chars_per_beat, CHARS_PER_BEAT_MAX);
+        assert_eq!(s.beats_per_bar, BEATS_PER_BAR_MAX);
+
+        let mut s = Settings {
+            chars_per_beat: 0.0,
+            beats_per_bar: 0,
+            ..Settings::default()
+        };
+        s.validate();
+        assert_eq!(s.chars_per_beat, CHARS_PER_BEAT_MIN);
+        assert_eq!(s.beats_per_bar, BEATS_PER_BAR_MIN);
+
+        // Same NaN rule as every other f32 here: no usable intent, so the
+        // default, never an end of the range.
+        let mut s = Settings {
+            chars_per_beat: f32::NAN,
+            ..Settings::default()
+        };
+        s.validate();
+        assert_eq!(s.chars_per_beat, DEFAULT_CHARS_PER_BEAT);
+    }
+
+    /// A settings file written before Phase A must still load, and must come
+    /// back with the tempo defaults rather than failing to parse. Every field
+    /// carries `#[serde(default)]` for exactly this, and this is the test that
+    /// proves the newest three do.
+    #[test]
+    fn settings_from_before_phase_a_still_load() {
+        let older = r#"{"language":"en","theme":"dark","speed":14.0}"#;
+        let s: Settings = serde_json::from_str(older).unwrap();
+        assert_eq!(s.speed, 14.0);
+        assert_eq!(s.chars_per_beat, DEFAULT_CHARS_PER_BEAT);
+        assert_eq!(s.beats_per_bar, default_beats_per_bar());
+        assert!(!s.metronome, "the click stays off for an existing install");
     }
 
     /// Dictation is off by default — it opens a microphone, so it is opt-in.

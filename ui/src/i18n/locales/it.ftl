@@ -211,3 +211,41 @@ settings-dictation-enabled = Scrivere il copione parlando
 settings-dictation-note = Premi il pulsante di registrazione sopra il copione e ciò che dici viene scritto al suo interno. Il riconoscimento avviene su questo dispositivo: nessun account, nessuna rete e nulla di ciò che dici viene mai salvato in un file. Il microfono è aperto solo durante la registrazione. Se il copione è rispecchiato sui dispositivi della tua rete, le parole dettate vi arrivano mentre vengono scritte, esattamente come tutto ciò che digiti.
 settings-dictation-unavailable-model = Il modello vocale non è installato, quindi la dettatura non può funzionare.
 settings-dictation-unavailable-build = La dettatura non è disponibile in questa versione.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Battuta { $bar } · { $beat }
+tempo-count-in = Conteggio { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Prova e cronometra la mia lettura
+pace-behind = { $time } oltre il tempo
+pace-ahead = { $time } in anticipo
+rehearsal-title = Rapporto di prova
+rehearsal-empty = Non è ancora stato cronometrato nulla. Attivalo, riproduci il copione fino in fondo, poi disattivalo.
+rehearsal-col-section = Sezione
+rehearsal-col-planned = Previsto
+rehearsal-col-actual = Effettivo
+rehearsal-col-delta = Differenza
+rehearsal-unfinished = non completata
+rehearsal-suggest = L'hai letto a circa { $to } caratteri al secondo, non { $from }.
+rehearsal-suggest-apply = Usa quella velocità
+rehearsal-close = Chiudi
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Tempistica
+settings-tempo-section = Tempo
+settings-metronome = Riprodurre un clic al tempo attuale
+settings-metronome-note = Un tic discreto su ogni movimento mentre il copione scorre, accentato sul primo della battuta. Il conto alla rovescia iniziale diventa il suo conteggio. L'app genera il suono da sé — non si scarica nulla.
+settings-beats-per-bar = Movimenti per battuta
+settings-calibration-section = Il tuo tempo
+settings-chars-per-beat = { $value } caratteri per movimento
+settings-chars-per-beat-note = Un tempo diventa velocità di lettura tramite un solo numero: quanti caratteri percorri in un movimento. Batti al tempo con cui interpreti e verrà misurato sulla tua velocità di lettura invece che supposto.
+settings-tap-tempo = Batti
+settings-tap-hint = Batti almeno tre volte
+settings-tap-bpm = Battuto: { $bpm } BPM
+settings-tap-apply = Usa questo tempo
+settings-tap-reset = Torna al valore predefinito
+settings-skip-section = Parole che non interpreti
+settings-skip-words = Parole da saltare
+settings-skip-words-note = Una per riga. Una riga composta solo da una di queste — Ritornello, Strofa 1, Bridge — non costa alcun tempo, così il testo resta sulla battuta per cui l'hai scritto. La stessa parola dentro una riga vera salta solo se stessa. Restano a schermo, attenuate, e la lettura ad alta voce non le pronuncia mai.
+settings-skip-words-placeholder = Una parola per riga

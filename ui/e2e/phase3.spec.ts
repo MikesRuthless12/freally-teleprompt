@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { ipcCalls, lastCall, mockTauri } from "./mock-ipc";
+import { ipcCalls, lastCall, mockTauri, openSettingsPane } from "./mock-ipc";
 
 /**
  * Dictation (FT-33) — every behaviour Playwright can reach.
@@ -79,11 +79,7 @@ async function caretAt(page: Page, where: "start" | "end") {
   }, where);
 }
 
-async function openVoicePane(page: Page) {
-  await page.getByTestId("titlebar-settings").click();
-  await page.getByRole("tab", { name: "Voice" }).click();
-  return page.getByTestId("settings-dialog");
-}
+const openVoicePane = (page: Page) => openSettingsPane(page, "Voice");
 
 /** The app shell (and so the engine script) is ready to drive. */
 async function waitForShell(page: Page) {

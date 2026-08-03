@@ -211,3 +211,41 @@ settings-dictation-enabled = बोलकर अपनी स्क्रिप�
 settings-dictation-note = स्क्रिप्ट के ऊपर रिकॉर्ड बटन दबाएँ और आप जो कहेंगे वह उसमें लिखा जाएगा। पहचान इसी डिवाइस पर होती है — कोई खाता नहीं, कोई नेटवर्क नहीं, और आपकी कही बात कभी किसी फ़ाइल में सहेजी नहीं जाती। माइक्रोफ़ोन केवल रिकॉर्डिंग के दौरान खुला रहता है। यदि स्क्रिप्ट आपके नेटवर्क के उपकरणों पर मिरर हो रही है, तो बोले गए शब्द लिखे जाते ही वहाँ पहुँच जाते हैं — ठीक वैसे ही जैसे आपका टाइप किया हुआ कुछ भी।
 settings-dictation-unavailable-model = स्पीच मॉडल इंस्टॉल नहीं है, इसलिए डिक्टेशन नहीं चल सकता।
 settings-dictation-unavailable-build = इस बिल्ड में डिक्टेशन उपलब्ध नहीं है।
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = ताल { $bar } · { $beat }
+tempo-count-in = आरंभिक गिनती { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = रिहर्सल करें और मेरे पाठ का समय मापें
+pace-behind = { $time } पीछे
+pace-ahead = { $time } आगे
+rehearsal-title = रिहर्सल रिपोर्ट
+rehearsal-empty = अभी तक कुछ भी नहीं मापा गया। इसे चालू करें, स्क्रिप्ट पूरी चलाएँ, फिर बंद कर दें।
+rehearsal-col-section = खंड
+rehearsal-col-planned = नियोजित
+rehearsal-col-actual = वास्तविक
+rehearsal-col-delta = अंतर
+rehearsal-unfinished = पूरा नहीं हुआ
+rehearsal-suggest = आपने इसे लगभग { $to } अक्षर प्रति सेकंड की गति से पढ़ा, { $from } नहीं।
+rehearsal-suggest-apply = वही गति अपनाएँ
+rehearsal-close = बंद करें
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = समय-निर्धारण
+settings-tempo-section = लय
+settings-metronome = वर्तमान लय पर क्लिक बजाएँ
+settings-metronome-note = स्क्रिप्ट चलते समय हर मात्रा पर एक धीमी टिक, ताल की पहली मात्रा पर ज़ोर के साथ। शुरुआती उलटी गिनती ही उसकी आरंभिक गिनती बन जाती है। ध्वनि ऐप स्वयं बनाता है — कुछ भी डाउनलोड नहीं होता।
+settings-beats-per-bar = प्रति ताल मात्राएँ
+settings-calibration-section = आपकी अपनी लय
+settings-chars-per-beat = प्रति मात्रा { $value } अक्षर
+settings-chars-per-beat-note = एक लय केवल एक संख्या से पढ़ने की गति बन जाती है: आप एक मात्रा में कितने अक्षर तय करते हैं। जिस लय पर आप प्रस्तुति देते हैं उस पर थपथपाएँ, और यह संख्या अनुमान के बजाय आपकी पढ़ने की गति से मापी जाएगी।
+settings-tap-tempo = थपथपाएँ
+settings-tap-hint = तीन या अधिक बार थपथपाएँ
+settings-tap-bpm = मापा गया: { $bpm } BPM
+settings-tap-apply = यही लय अपनाएँ
+settings-tap-reset = डिफ़ॉल्ट पर लौटें
+settings-skip-section = वे शब्द जो आप नहीं गाते
+settings-skip-words = छोड़े जाने वाले शब्द
+settings-skip-words-note = हर पंक्ति में एक। जिस पंक्ति में इनमें से केवल एक ही हो — मुखड़ा, अंतरा 1, ब्रिज — वह बिलकुल समय नहीं लेती, इसलिए आपके बोल उसी ताल पर बने रहते हैं जिसके लिए आपने लिखे थे। असली पंक्ति के भीतर वही शब्द केवल स्वयं को छोड़ता है। वे स्क्रीन पर धुंधले दिखते रहते हैं, और ज़ोर से पढ़ना उन्हें कभी नहीं बोलता।
+settings-skip-words-placeholder = हर पंक्ति में एक शब्द

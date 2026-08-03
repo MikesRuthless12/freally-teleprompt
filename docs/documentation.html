@@ -404,6 +404,9 @@
           <a href="#write-a-script">Write a script</a>
           <a href="#pause-chips">Pause chips (caesuras)</a>
           <a href="#pacing">Pacing: chars/sec &amp; BPM</a>
+          <a href="#tempo">Tempo, bars &amp; the click</a>
+          <a href="#rehearsal">Rehearsal &amp; timing report</a>
+          <a href="#skip-words">Words you don't perform</a>
           <a href="#playback">Playback &amp; transport</a>
           <a href="#start-countdown">Start countdown</a>
           <a href="#projector">Talent projector</a>
@@ -485,6 +488,65 @@
             <li><span>Switch back to chars/sec at any time; the toggle just changes how the same engine is clocked.</span></li>
           </ol>
           <div class="tip"><strong>Live re-pacing:</strong> changing either the chars/sec value or the BPM re-paces the running scroll immediately — no need to stop and restart.</div>
+        </section>
+
+        <!-- Tempo, bars & the click -->
+        <section id="tempo">
+          <h2>Tempo, bars &amp; the click</h2>
+          <p class="section-intro">If you are reading to music, the prompter can keep time with you: calibrate the tempo to <em>your</em> delivery rather than an assumed one, count the bars on screen, and hear a click while you read. All of it lives under <strong>Settings → Timing</strong>.</p>
+
+          <h3>Calibrate the tempo to your own delivery</h3>
+          <ol class="steps">
+            <li><span>BPM becomes a reading speed through a single number: <strong>how many characters you get through in one beat</strong>. That is not a universal constant — a rapper and a balladeer are an order of magnitude apart — so the app ships a sensible default and lets you measure your own.</span></li>
+            <li><span>Under <strong>Settings → Timing → Your own tempo</strong>, press <strong>Tap</strong> three times or more, in time with the tempo you actually perform at. The reading takes a moment to settle, then shows a BPM; press <strong>Use this tempo</strong> and it is measured against your reading speed and stored. <strong>Back to the default</strong> undoes it.</span></li>
+            <li><span>Calibrating changes which tempos the engine can actually reach, so the BPM box <strong>narrows the range it offers</strong> to match. It will never show you a number it would silently change underneath you.</span></li>
+          </ol>
+
+          <h3>Bars and beats</h3>
+          <ol class="steps">
+            <li><span>With <strong>BPM mode</strong> on (or the click switched on), the current <strong>bar and beat</strong> appear above the seek bar, and the bar itself is <strong>ruled with bar lines</strong> — so "sixteen bars" is something you can see rather than something you count in your head.</span></li>
+            <li><span>Set <strong>beats in a bar</strong> under Settings → Timing — 4 for 4/4, 3 for a waltz, up to 12.</span></li>
+            <li><span>Bars are counted in <em>musical</em> time, so a pause chip keeps counting through and a seek lands on the bar that position really falls on.</span></li>
+          </ol>
+
+          <h3>The metronome</h3>
+          <ol class="steps">
+            <li><span>Tick <strong>Play a click at the current tempo</strong>. You get a quiet tick on every beat while the script scrolls, with the first beat of each bar pitched higher so a bar is audible as a bar.</span></li>
+            <li><span>If you have set a <a href="#start-countdown" style="color:var(--accent)">start countdown</a>, it <strong>doubles as the count-in</strong> — the last click before the script moves is the beat the first word lands on.</span></li>
+            <li><span>The click is <strong>synthesised by the app</strong>. There is no audio file in the installer and nothing is fetched, and each click is scheduled from its own beat number against the audio clock — so it does not drift away from the scroll over a long read.</span></li>
+          </ol>
+          <div class="tip"><strong>It stays out of read-aloud's way:</strong> with <a href="#read-aloud" style="color:var(--accent)">read aloud</a> engaged the click is silent, because that mode is your operating system speaking the script and a tick over the top of it is noise over the thing you asked to hear.</div>
+        </section>
+
+        <!-- Rehearsal -->
+        <section id="rehearsal">
+          <h2>Rehearsal &amp; the timing report</h2>
+          <p class="section-intro">Read the script through and find out where you ran long — before the take, not after it. Rehearsal records <strong>timings and nothing else</strong>: no microphone is opened and no audio of any kind is captured or stored.</p>
+
+          <ol class="steps">
+            <li><span>Tick <strong>Rehearse, and time my read</strong> under the transport, then press play and read along out loud as you normally would. Pause when you fall behind, scrub back to take a line again, change the speed — all of it is part of the measurement.</span></li>
+            <li><span>Untick it when you are done and the <strong>timing report</strong> opens: one row per section of your script, showing what it <strong>should</strong> have taken at your chosen pace against what it <strong>actually</strong> took, and the difference. A section you never finished says so rather than showing a zero.</span></li>
+            <li><span>Sections are your script's own <strong>paragraphs</strong> — the blank lines you already wrote. There is nothing new to mark up.</span></li>
+            <li><span>If the read came in at a different pace from the plan, the report offers <strong>the speed you actually delivered it at</strong>; one click applies it.</span></li>
+            <li><span>While you rehearse, a quiet <strong>pace warning</strong> appears once the read has slipped more than a few seconds from its plan — so an over-running section is visible before the end.</span></li>
+          </ol>
+          <div class="tip"><strong>Timings only, and that is testable:</strong> the rehearsal code names no audio-capture API at all, and a test in the build asserts exactly that against the source rather than taking it on trust. Rehearsal and read-aloud are mutually exclusive — a rehearsal of the machine reading to itself measures nothing about you.</div>
+        </section>
+
+        <!-- Skip words -->
+        <section id="skip-words">
+          <h2>Words you read but don't perform</h2>
+          <p class="section-intro">Section labels — <strong>Chorus</strong>, <strong>Verse 2</strong>, <strong>Bridge</strong> — are landmarks you want to see coming but never sing. Tell the prompter which words they are and they stop costing time, so your lyrics keep landing on the bar you wrote them for.</p>
+
+          <ol class="steps">
+            <li><span>Put them under <strong>Settings → Timing → Words you do not perform</strong>, one per line. It is empty to begin with: this changes how a script is timed, so nothing is decided for you.</span></li>
+            <li><span><strong>A line that is nothing but a label is skipped whole.</strong> Brackets, hashes, a colon and a trailing number are all seen through, so <code>Chorus</code>, <code>[Verse 1]</code>, <code>## Bridge</code> and <code>Chorus:</code> all match a keyword of "Chorus" or "Verse" or "Bridge".</span></li>
+            <li><span><strong>The same word inside a real line skips only itself.</strong> "and then back to the chorus" is a lyric — it keeps its timing, minus the one word.</span></li>
+            <li><span>Skipped text <strong>stays on screen, dimmed and italic</strong>, so the talent still sees the section coming. <a href="#read-aloud" style="color:var(--accent)">Read aloud</a> never speaks it.</span></li>
+            <li><span>Matching ignores capitals and only ever matches <strong>whole words</strong> — "versed" is never "verse".</span></li>
+          </ol>
+          <div class="tip"><strong>Why this matters for music:</strong> four label lines is four bars of drift against a backing track. With the labels costing nothing, the read time under the prompter and the position on the seek bar both describe only the words you are actually performing.</div>
+          <div class="warn"><strong>Note:</strong> because a label costs no time, the scroll passes over it instantly when it reaches it. That is the intended behaviour — you read it on the approach, not on the guide line.</div>
         </section>
 
         <!-- Playback & transport -->

@@ -1,7 +1,6 @@
 # Freally Teleprompt — Handoff
 
-**Written 2026-08-02, after `v1.1.0` — dictation replaces voice control.
-Updated the same day, once the queue's A and C items were built.**
+**Written 2026-08-02 after `v1.1.0`. Updated 2026-08-03, after Phase A.**
 Read this before the next session. It says where things actually stand, the traps this session
 paid for, and what is genuinely outstanding.
 
@@ -9,17 +8,92 @@ paid for, and what is genuinely outstanding.
 
 # 🔜 START HERE — the work queue
 
-**Updated 2026-08-02.** The `A` and `C` items this queue used to carry are **built and green** —
-what they were, and what they cost, is in *What the last session built* directly below. What is left
-here is **verification I cannot do** (it needs your machines and your microphone) and **three
-decisions that are yours**, not mine.
-
-`v1.1.0` is published and healthy. Everything the last session wrote is **unreleased** and sitting in
-the tree — so the next release is a `1.2.0`, and the DoD has not been run on it yet.
+**Updated 2026-08-03.** `v1.2.0` is published and healthy. Since then, **Phase A — Rehearsal &
+Timing Depth — is built, reviewed and green**, along with `FT-M02` (skipped labels), which was
+asked for mid-phase. All of it is **unreleased and sitting in the tree**.
 
 ---
 
-## 0. What the last session built (all green, none of it released)
+## 0. What THIS session built — Phase A + FT-M02 (all green, unreleased)
+
+| | | |
+|---|---|---|
+| **FT-N02** | Tap-tempo calibration. Closes ROADMAP open question 4 | `ui/src/lib/tempo.ts`, `speed.ts`, `panels/Settings.tsx` |
+| **FT-N03** | Metronome with count-in, lookahead-scheduled, proven not to drift | `ui/src/lib/metronome.ts` |
+| **FT-N04** | Bar/beat counter + bar lines on the seek bar | `ui/src/components/TempoReadout.tsx`, `panels/Teleprompter.tsx` |
+| **FT-N01** | Rehearsal mode + timing report | `ui/src/lib/rehearsal.ts`, `useRehearsal.ts`, `panels/Rehearsal.tsx` |
+| **FT-N05** | Pace warnings | `ui/src/lib/rehearsal.ts` (`paceDrift`), `App.tsx` |
+| **FT-M02** | Skipped labels — "Chorus" costs no time | `ui/src/lib/caesura.ts`, `src-tauri/src/teleprompter.rs` |
+
+**Five things worth knowing, because they are not obvious from the diff:**
+
+- **A skipped label is a caesura with `dur = 0`.** That is the whole of FT-M02's timing: a
+  zero-duration region is one `offset()` steps straight across without consuming any elapsed time,
+  and `timeAtOffset` adds `dur × fraction` = 0. **Neither timing twin needed one new line of
+  arithmetic.** The cost is that consumers of the region list must not assume `dur > 0` — `tts.ts`
+  takes the skip ranges separately for exactly this reason.
+- **`skipWords` rides on the teleprompter DTO, not on settings.** The projector is a separate
+  window with its own settings read; a surface computing its regions from a stale keyword list
+  would scroll a different script from the one the operator is watching. The `/simplify` pass found
+  `Projector.tsx` still on `parseCaesuras` and it was fixed — **if you add a fourth surface, it
+  reads `state.skipWords`.**
+- **The metronome computes each click from its beat INDEX**, never from the previous click. That
+  is the no-drift property and it is measured, not asserted: `tempo.test.ts` walks 2500 beats over
+  ten simulated minutes at 250 BPM and the worst error is under a microsecond. The
+  `next += 60/bpm` form reaches milliseconds over the same span.
+- **`useRehearsal` resets on START, never on stop.** The report is read *after* the mode is
+  switched off — switching it off is what asks for the report — so clearing on the way out hands
+  the report an empty recording. That was the first version, and `phaseA.spec.ts` caught it.
+- **`bpmRange` is derived from the calibration.** Once chars-per-beat is user-settable, the
+  musical 20–250 is no longer all reachable inside the engine's 1–60 chars/sec clamp, so the BPM
+  box narrows what it offers. Showing the full range and letting the clamp correct the ends
+  silently would be a number on screen that does not describe the scroll.
+
+### ⚠️ Two Unicode traps the new twin paid for — do not undo either
+
+FT-M02 added a **second** Rust/TypeScript twin (`parse_skips` / `parseSkips`). Both of these look
+like pedantry and are not: each was a real divergence where the preview and the projector would
+have skipped different characters of the same script.
+
+- **The word-boundary test is `\p{Alphabetic}`, NOT `\p{L}`.** Rust's `char::is_alphanumeric()` is
+  `is_alphabetic() || is_numeric()`, and the Unicode *Alphabetic property* is strictly wider than
+  category `L` — it includes the combining vowel signs used across the Indic scripts this app
+  ships in. With `\p{L}`, a keyword sitting immediately before a Devanagari vowel sign counted as
+  a word boundary in TypeScript and did not in Rust. `verseि` is the test case, on both sides.
+- **Lowercasing is done character by character and then LENGTH-CHECKED.** `İ` (U+0130) lowercases
+  to two code points, which slides every index after it. Rust bails out of the line's word-matching
+  when that happens; TypeScript now does the same. The first version used `chars.map(toLowerCase)`,
+  which kept the indices aligned but silently went on matching *other* keywords on a line Rust had
+  abandoned. `İstanbul chorus tonight` is the test case, on both sides.
+
+Note the whole-line label branch is immune to both — it compares strings, not indices.
+
+There is a **third**, found by a differential fuzz and reachable in practice: `U+FEFF` (byte-order
+mark) and `U+0085` (next line) are the *entire* difference between JavaScript's `String.trim` and
+Rust's `str::trim`. Windows Notepad still writes "UTF-8 with BOM", so a script saved there had its
+label lines classified differently on the two sides. Both code points are now in `LABEL_DECORATION`
+on both sides, and `scripts.rs::read_in` strips a leading BOM outright — it was a **visible
+character** to the engine, shifting every offset in the script by one.
+
+### What the DoD passes actually found
+
+Worth reading before the next phase, because the same shapes will come back.
+
+| Pass | Found |
+|---|---|
+| `/simplify` | `Projector.tsx` was never switched to `timedRegions`, so its seek bar charged time for labels the scroll skipped. A fresh `skipWords` array identity per broadcast defeated every timing memo — a full script re-parse per `pointermove` while scrubbing. `tts.ts` checked the caesura branch before the label branch. |
+| `/code-review` | **`useRehearsal` wiped the recording on every engine broadcast** — a pause, a seek, a speed change — i.e. on exactly the three things a rehearsal exists to measure. The read-aloud ↔ rehearsal lock was written on one control only, so the other order left both on and the report unreachable. `displayBpm` was clamped for the *readout*, pinning the click at 250 while the scroll ran four times faster. |
+| `/security-review` | `labelCore`'s `/[ \t]*\d+$/` backtracked catastrophically — **14 seconds** on a 200,000-character whitespace run, per line, per surface, per keystroke, from an ordinary `.txt` someone could be handed. The overlap filter was `O(caesuras × skips)` on both sides. |
+
+Two things generalise from that list. **A `useEffect` whose dep list is "when the engine
+broadcasts" is the wrong home for anything that should happen once** — the rehearsal reset is the
+second bug of that exact shape in this codebase. And **a clamp that guards input must not be reused
+to render output**; `bpmRange` exists so a typed BPM is always legal, and applying it to the
+readout produced precisely the lie it was written to prevent.
+
+---
+
+## 0b. What the previous session built (shipped as 1.2.0)
 
 | | | |
 |---|---|---|
@@ -147,13 +221,16 @@ step.
 
 | | |
 |---|---|
-| Version | `1.1.0`, **published and Latest**. Ordinary semver from 1.0.0 on — the ×100 phase ladder is over, and it is what walked into the MSI ceiling. The tree is **ahead of it**: the dictate-button rebuild and the editor seam are written, tested and unreleased. |
+| Version | `1.2.0`, **published and Latest**. Ordinary semver from 1.0.0 on — the ×100 phase ladder is over, and it is what walked into the MSI ceiling. The tree is **ahead of it**: Phase A and FT-M02 are written, reviewed, tested and unreleased. **Ship them as `1.3.0`, NOT `1.100.0`** — see the boxed warning in `Freally-Teleprompt-Feature-Roadmap.md` under *Post-stable phases*. |
 | Phase 0 / 1 / 2 | ✅ scaffold, teleprompter core, offline autocomplete |
 | **Voice** | ✅ **dictation only.** Voice commands and voice-following were REMOVED in 1.1.0 — see below. |
 | FT-51 / FT-52 | ✅ signed installers on all three OSes, updater endpoint live and verified. macOS is **unsigned** (no Apple cert): Gatekeeper needs a right-click → Open. |
+| FT-53 | ✅ site content. Mike's own work; verified 2026-08-03 — all four Pages URLs 200, every download link and `latest.json` resolve against `v1.2.0`. |
+| **Phase A** | ✅ **built, unreleased.** FT-N01…N05 — rehearsal report, tap-tempo calibration, metronome, bar/beat counter, pace warnings. |
+| **FT-M02** | ✅ **built, unreleased.** Skipped labels: "Chorus" costs no read time. Asked for mid-phase; shipped by keywords rather than the `[[ ]]` marker the roadmap proposed — the entry says why. |
 | Crates | `freally-voice` (capture only now), `freally-align` (no longer used by the app), `freally-speech` |
-| Tests | **~122 Rust** · **93 vitest** · **~133 Playwright** · per-OS launch screenshots |
-| Next | the DoD passes on the unreleased work, then `1.2.0`; after that FT-53 (site content) |
+| Tests | **77 Rust** · **149 vitest** · **151 Playwright** · per-OS launch screenshots |
+| Next | cut `1.3.0`; after that, pick from the Must-Have gate (`FT-M01`…, 14 left) or Phase B |
 
 ### What 1.1.0 changed, and why
 
@@ -248,6 +325,30 @@ Still linked ONLY in a release build, and so proven by the drill and the release
 ---
 
 ## ⚠️ Outstanding
+
+### 0. Phase A / FT-M02 — what the review passes found and deliberately did NOT fix
+
+Three things the `/simplify` pass raised, judged real but out of this phase's scope. None of them is
+a bug in what shipped; each is a place the next person should start.
+
+- **The LAN mirror does not dim skipped labels.** Its *timing* is correct — it renders the
+  authoritative `offset` and owns no timing model at all — but it cannot show which characters are
+  labels, because it has no matcher, and giving it one would be a **third** implementation of
+  `parseSkips` in vanilla JS, which is exactly the drift the twin architecture exists to prevent.
+  The talent's phone therefore shows "Chorus" as ordinary lyric text and the sweep jumps over it
+  with no visual cue. **The right fix is to carry the RESOLVED skip runs on the DTO** beside the
+  keywords: Rust already computes them in `timed_regions` and throws them away, and the dimming half
+  (unlike the timing half) is a static per-layout property that needs no twin.
+- **There are three copies of the "anchor + `performance.now()`" pattern.** `TeleprompterScroller`,
+  `TeleprompterSeekBar` and `useReadClock` each independently re-derive "wall time since the last
+  broadcast, minus the pre-roll". Phase A extracted `readSecAt` and `useBaseReadSec` so the new code
+  states the sign convention once, but the two rAF surfaces were left alone — they animate per
+  frame, not per tick, and converting them is a change to the two oldest, most load-bearing
+  components in the app. Do it when one of them next needs touching anyway.
+- **`parse_skips` allocates per line.** A `Vec<char>` and a lowercased `String` per line, on every
+  keystroke. The keyword list is now normalised once and stored in `Inner` (that part was fixed),
+  but the per-line buffers are still rebuilt. It only matters on a very large script with the
+  feature switched on; measure before bothering.
 
 ### 1. Human drills — Phase 0/1/2 still NONE run
 

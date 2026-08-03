@@ -8,12 +8,15 @@ import { BUTTON, DIALOG_TITLE, ERROR_LINE, FIELD, PRIMARY } from "../components/
 import { AUTO_LOCALE, PICKER_LOCALES } from "../i18n/locales";
 import { useT } from "../i18n/t";
 import { FONT_FAMILY_IDS } from "../lib/fonts";
+import { DEFAULT_CHARS_PER_BEAT } from "../lib/speed";
+import { BEATS_PER_BAR_MAX, BEATS_PER_BAR_MIN, charsPerBeatFrom, tapBpm } from "../lib/tempo";
 
 /** The sidebar, top to bottom. Every entry is a pane of REAL settings. */
 const CATEGORIES = [
   "general",
   "editor",
   "reading",
+  "timing",
   "appearance",
   "projector",
   "network",
@@ -25,6 +28,7 @@ const CATEGORY_LABELS: Record<CategoryId, string> = {
   general: "settings-cat-general",
   editor: "settings-cat-editor",
   reading: "settings-cat-reading",
+  timing: "settings-cat-timing",
   appearance: "settings-cat-appearance",
   projector: "settings-cat-projector",
   network: "settings-cat-network",
@@ -37,6 +41,7 @@ const CATEGORY_FIELDS: Record<CategoryId, Array<keyof Settings>> = {
   general: ["language", "theme", "minimizeToTray"],
   editor: ["autocomplete", "autocompleteLanguage"],
   reading: ["speed", "fontSize", "caesuraSecs", "countdownSecs"],
+  timing: ["metronome", "beatsPerBar", "charsPerBeat", "skipWords"],
   appearance: ["look"],
   projector: ["mirror"],
   network: ["lanEnabled", "lanAllInterfaces", "lanPort"],
@@ -54,6 +59,13 @@ const CATEGORY_KEYS: Record<CategoryId, string[]> = {
   ],
   editor: ["settings-autocomplete", "settings-autocomplete-language"],
   reading: ["settings-speed", "settings-font-size", "settings-caesura", "settings-countdown"],
+  timing: [
+    "settings-metronome",
+    "settings-beats-per-bar",
+    "settings-chars-per-beat",
+    "settings-tap-tempo",
+    "settings-skip-words",
+  ],
   appearance: [
     "settings-font-family",
     "settings-font-weight",
@@ -109,6 +121,86 @@ function Slider({
         onChange={(e) => onChange(Number(e.target.value))}
       />
     </label>
+  );
+}
+
+/**
+ * Tap-tempo calibration (FT-N02) — **ROADMAP open question 4, answered.**
+ *
+ * The chars/sec ↔ BPM conversion needs one number: how many characters this
+ * performer gets through in a beat. It is not a constant — a rapper and a
+ * balladeer differ by an order of magnitude — so the app ships an assumed
+ * default and measures the real one here.
+ *
+ * The measurement is deliberately arithmetic rather than a live take: tap the
+ * tempo you perform at, and against the reading speed you have already chosen
+ * that IS your characters-per-beat. Nothing has to be recorded, nothing has to
+ * be running, and the same taps give the same answer every time.
+ */
+function TapTempo({
+  speed,
+  charsPerBeat,
+  onCalibrate,
+}: {
+  /** The reading speed the calibration is measured against (chars/sec). */
+  speed: number;
+  charsPerBeat: number;
+  onCalibrate: (next: number) => void;
+}) {
+  const t = useT();
+  const [taps, setTaps] = useState<number[]>([]);
+  // `tapBpm` trims a run that was abandoned and picked up again, so a user who
+  // walks away mid-tap does not average two tempos together — which is why the
+  // list here is kept raw rather than trimmed on the way in as well.
+  const bpm = tapBpm(taps);
+  const measured = bpm === null ? null : charsPerBeatFrom(speed, bpm);
+
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          data-testid="settings-tap"
+          className={`${BUTTON} min-w-24`}
+          // `performance.now()` and not `Date.now()`: this measures intervals,
+          // and a wall clock can be stepped by an NTP correction mid-tap.
+          onClick={() => setTaps((previous) => [...previous, performance.now()])}
+        >
+          {t("settings-tap-tempo")}
+        </button>
+        <span data-testid="settings-tap-bpm" className="font-mono text-[11px] tabular-nums">
+          {bpm === null ? t("settings-tap-hint") : t("settings-tap-bpm", { bpm })}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          data-testid="settings-tap-apply"
+          className={BUTTON}
+          // Nothing to apply until there are enough taps to have a tempo.
+          disabled={measured === null}
+          onClick={() => {
+            if (measured !== null) onCalibrate(measured);
+            setTaps([]);
+          }}
+        >
+          {t("settings-tap-apply")}
+        </button>
+        <button
+          type="button"
+          data-testid="settings-tap-reset"
+          className={BUTTON}
+          disabled={charsPerBeat === DEFAULT_CHARS_PER_BEAT}
+          onClick={() => {
+            onCalibrate(DEFAULT_CHARS_PER_BEAT);
+            setTaps([]);
+          }}
+        >
+          {t("settings-tap-reset")}
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -504,6 +596,94 @@ export function SettingsDialog({
                   onChange={(countdownSecs) => patch({ countdownSecs })}
                 />
               </Section>
+            )}
+
+            {shown === "timing" && (
+              <>
+                <Section title={t("settings-tempo-section")}>
+                  <label className="flex items-center gap-2 text-[11px]">
+                    <input
+                      type="checkbox"
+                      data-testid="settings-metronome"
+                      checked={draft.metronome}
+                      onChange={(e) => patch({ metronome: e.target.checked })}
+                    />
+                    {t("settings-metronome")}
+                  </label>
+                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
+                    {t("settings-metronome-note")}
+                  </p>
+
+                  <label className="flex items-center justify-between gap-3">
+                    <span className="text-havoc-muted shrink-0 text-[11px]">
+                      {t("settings-beats-per-bar")}
+                    </span>
+                    <select
+                      data-testid="settings-beats-per-bar"
+                      className={FIELD}
+                      value={draft.beatsPerBar}
+                      onChange={(e) => patch({ beatsPerBar: Number(e.target.value) })}
+                    >
+                      {Array.from(
+                        { length: BEATS_PER_BAR_MAX - BEATS_PER_BAR_MIN + 1 },
+                        (_, i) => BEATS_PER_BAR_MIN + i,
+                      ).map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </Section>
+
+                <Section title={t("settings-skip-section")}>
+                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
+                    {t("settings-skip-words-note")}
+                  </p>
+                  {/* One keyword per line. A textarea rather than a chip editor
+                      because that is what a list of words IS, and it can be
+                      pasted in from wherever the song's structure was written
+                      down. Split on Apply, so a half-typed line is never a
+                      keyword. */}
+                  <textarea
+                    data-testid="settings-skip-words"
+                    aria-label={t("settings-skip-words")}
+                    rows={4}
+                    className={`${FIELD} resize-y font-mono`}
+                    placeholder={t("settings-skip-words-placeholder")}
+                    value={draft.skipWords.join("\n")}
+                    onChange={(e) =>
+                      patch({
+                        skipWords: e.target.value
+                          .split("\n")
+                          // Blank lines are not keywords — and an all-blank
+                          // list must come out empty, not as one empty string,
+                          // which would match nothing but would look like a
+                          // configured keyword in the settings file.
+                          .map((word) => word.trim())
+                          .filter((word) => word !== ""),
+                      })
+                    }
+                  />
+                </Section>
+
+                <Section title={t("settings-calibration-section")}>
+                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
+                    {t("settings-chars-per-beat-note")}
+                  </p>
+                  <p
+                    data-testid="settings-chars-per-beat"
+                    className="m-0 font-mono text-[11px] tabular-nums"
+                  >
+                    {t("settings-chars-per-beat", { value: draft.charsPerBeat.toFixed(2) })}
+                  </p>
+                  <TapTempo
+                    speed={draft.speed}
+                    charsPerBeat={draft.charsPerBeat}
+                    onCalibrate={(charsPerBeat) => patch({ charsPerBeat })}
+                  />
+                </Section>
+              </>
             )}
 
             {shown === "appearance" && (

@@ -156,4 +156,55 @@ describe("timeAtOffset — the seek bar's timestamp axis", () => {
       expect(liveOffset(0, seconds, 9, cs)).toBeCloseTo(target, 6);
     }
   });
+
+  /**
+   * **Half the hold per dash**, and the read-time counter under the prompter
+   * has to show it as it happens.
+   *
+   * A caesura is two characters wide and the crawl is spread evenly across
+   * them, so reaching the FIRST dash of a ` --2 ` has cost one second, not two
+   * and not none. That is what makes the counter usable while a caesura is
+   * being crossed: it climbs smoothly through the hold instead of standing
+   * still and then jumping.
+   *
+   * Untested until Phase A, and easy to break without noticing — a crawl
+   * written as "add `dur` once the token is passed" gives the same total for
+   * the whole script and is wrong at every instant in between.
+   */
+  it("charges half a caesura's hold to each of its two dashes", () => {
+    // "ab -- cd" with a 2-second hold: the token starts at visible char 3.
+    const cs = [{ pos: 3, width: 2, dur: 2 }];
+    const toStart = 3 / 10; // three chars at 10/sec, before the hold begins
+    expect(timeAtOffset(3, 10, cs)).toBeCloseTo(toStart, 10);
+    // Onto the first dash: half the hold spent.
+    expect(timeAtOffset(4, 10, cs)).toBeCloseTo(toStart + 1, 10);
+    // Past the second: all of it.
+    expect(timeAtOffset(5, 10, cs)).toBeCloseTo(toStart + 2, 10);
+    // And linearly in between — half a dash is a quarter of the hold.
+    expect(timeAtOffset(3.5, 10, cs)).toBeCloseTo(toStart + 0.5, 10);
+    expect(timeAtOffset(4.5, 10, cs)).toBeCloseTo(toStart + 1.5, 10);
+  });
+
+  /**
+   * The same property stated as the one that actually matters: the counter is
+   * the exact inverse of the animation at EVERY point of the timeline, not
+   * just at the handful of offsets sampled above.
+   *
+   * Swept densely and across several caesuras, including the fractional
+   * positions inside a hold — which is precisely where a counter that only
+   * accounts for whole tokens goes wrong, and precisely where the eye is when
+   * the scroll is crawling.
+   */
+  it("stays exact all the way along the timeline, holds included", () => {
+    const script = "the opening line -- a numbered hold --3 and then the close";
+    const cs = parseCaesuras(script, CAESURA_DEFAULT_SECS);
+    const total = visibleChars(script);
+    let worst = 0;
+    for (let target = 0; target <= total; target += 0.05) {
+      const seconds = timeAtOffset(target, 11, cs);
+      worst = Math.max(worst, Math.abs(liveOffset(0, seconds, 11, cs) - target));
+    }
+    // Float rounding only — nothing structural.
+    expect(worst).toBeLessThan(1e-9);
+  });
 });

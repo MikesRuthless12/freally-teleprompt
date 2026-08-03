@@ -4,7 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { teleprompterControl } from "../api/commands";
 import { Transport } from "../components/Transport";
 import { useT } from "../i18n/t";
-import { parseCaesuras } from "../lib/caesura";
+import { timedRegions } from "../lib/caesura";
 import { useTeleprompter } from "../lib/useTeleprompter";
 import { TeleprompterScroller, TeleprompterSeekBar } from "./Teleprompter";
 
@@ -27,9 +27,18 @@ export function Projector() {
   const [chromeVisible, setChromeVisible] = useState(true);
   const hideTimer = useRef<number | null>(null);
 
-  const caesuras = useMemo(
-    () => parseCaesuras(state.script, state.caesuraSecs),
-    [state.script, state.caesuraSecs],
+  // Every region that changes the scroll's timing — caesura holds AND the
+  // labels a keyword marks as unperformed (FT-M02).
+  //
+  // `timedRegions`, not `parseCaesuras`: this feeds the projector's own seek
+  // bar, and the scroller beside it in the same window computes its timing the
+  // same way. Left on `parseCaesuras` the two disagreed by exactly the labels —
+  // the script scrolled past them for free while the seek bar's clock charged
+  // for them. The keyword list rides on the engine snapshot precisely so this
+  // window does not have to read settings of its own to get it right.
+  const { regions: caesuras } = useMemo(
+    () => timedRegions(state.script, state.caesuraSecs, state.skipWords),
+    [state.script, state.caesuraSecs, state.skipWords],
   );
 
   const control = useCallback(

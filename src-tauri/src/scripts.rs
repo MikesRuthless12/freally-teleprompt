@@ -177,7 +177,17 @@ fn read_in(dir: &Path, name: &str) -> Result<String, String> {
     if meta.len() as usize > MAX_BYTES {
         return Err(format!("{name} is too large to open"));
     }
-    fs::read_to_string(&path).map_err(|err| format!("could not read {name}: {err}"))
+    let text = fs::read_to_string(&path).map_err(|err| format!("could not read {name}: {err}"))?;
+    // Drop a leading byte-order mark.
+    //
+    // Windows Notepad still writes "UTF-8 with BOM" and `read_to_string` keeps
+    // it, so without this the very first character of such a script is a
+    // zero-width U+FEFF. It is a **visible character** to the scroll engine, so
+    // it shifts every offset in the script by one and costs real read time; and
+    // it made the two skip-label parsers disagree, because `str::trim` does not
+    // treat it as whitespace and JavaScript's `String.trim` does. Nobody ever
+    // wants a BOM in the middle of their prompter text.
+    Ok(text.strip_prefix('\u{feff}').unwrap_or(&text).to_string())
 }
 
 /// Write a script's text atomically (temp file + rename).

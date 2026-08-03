@@ -211,3 +211,41 @@ settings-dictation-enabled = 用说话来写稿
 settings-dictation-note = 按下稿件上方的录音按钮，你说的话就会写进稿件。识别在本机完成——无需账户、无需联网，你说的内容也不会写入任何文件。麦克风仅在录音时开启。如果稿件正镜像到你网络中的设备，语音输入的文字一写进稿件就会传到那些设备，和你手动输入的内容一样。
 settings-dictation-unavailable-model = 尚未安装语音模型，无法进行语音输入。
 settings-dictation-unavailable-build = 此版本不支持语音输入。
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = 第 { $bar } 小节 · 第 { $beat } 拍
+tempo-count-in = 预备拍 { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = 排练并记录我的朗读用时
+pace-behind = 超时 { $time }
+pace-ahead = 提前 { $time }
+rehearsal-title = 排练报告
+rehearsal-empty = 还没有任何计时。打开这项，把稿子完整播放一遍，然后再关掉。
+rehearsal-col-section = 段落
+rehearsal-col-planned = 计划
+rehearsal-col-actual = 实际
+rehearsal-col-delta = 差值
+rehearsal-unfinished = 未读完
+rehearsal-suggest = 你实际上以每秒约 { $to } 个字符在读，而不是 { $from }。
+rehearsal-suggest-apply = 采用该速度
+rehearsal-close = 关闭
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = 计时
+settings-tempo-section = 速度
+settings-metronome = 按当前速度播放节拍声
+settings-metronome-note = 稿子滚动时每拍发出一声轻响，小节第一拍加重。开始前的倒计时正好充当预备拍。声音由应用自己合成，不下载任何文件。
+settings-beats-per-bar = 每小节拍数
+settings-calibration-section = 你自己的速度
+settings-chars-per-beat = 每拍 { $value } 个字符
+settings-chars-per-beat-note = 速度通过一个数字变成朗读速度：你在一拍里能读过多少字符。按你实际演唱的速度敲击，这个数字就会依据你的朗读速度测得，而不是凭空假设。
+settings-tap-tempo = 敲击
+settings-tap-hint = 敲击三次以上
+settings-tap-bpm = 已测：{ $bpm } BPM
+settings-tap-apply = 采用此速度
+settings-tap-reset = 恢复默认
+settings-skip-section = 你不演唱的词
+settings-skip-words = 要跳过的词
+settings-skip-words-note = 每行一个。整行只有其中一个词时 — 副歌、第一段、桥段 — 完全不占时间，歌词因此仍落在你写它时的那一小节上。同一个词出现在真正的歌词行里，则只跳过它本身。它们仍以暗色留在屏幕上，朗读功能也绝不会念出来。
+settings-skip-words-placeholder = 每行一个词

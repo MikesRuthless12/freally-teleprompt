@@ -9,7 +9,44 @@ and `docs/changelog.html` together — they are two renderings of the same histo
 
 ## [Unreleased]
 
-_Nothing yet._
+Reading to time — and the words that shouldn't count.
+
+### Added
+
+- **Tap a tempo, and the app learns yours.** BPM has always been turned into a
+  reading speed with one number: how many characters you get through in a beat.
+  It used to be a guess — the same guess for a balladeer and a rapper, who are
+  an order of magnitude apart. **Settings → Timing** now lets you tap along at
+  the tempo you actually perform at, and measures that number against your own
+  reading speed instead of assuming it.
+  - A calibration that puts part of the musical range out of the engine's reach
+    **narrows the range the BPM box offers** rather than showing you numbers it
+    would quietly change underneath you.
+- **A metronome.** An optional click on every beat while the script scrolls,
+  accented on the first beat of the bar, with the start countdown doubling as
+  its count-in. The app synthesises it — there is no audio file in the
+  installer and nothing is fetched. It is scheduled against the audio clock
+  from each beat's index, so it does not drift against the scroll: measured
+  over a ten-minute read at the fastest tempo the app offers, the last click is
+  still exact.
+- **A bar and beat counter**, beside the reading surface, with **bar lines
+  ruled on the seek bar** — so "sixteen bars" is something you can see rather
+  than something you count in your head. Both appear only when you are working
+  to a tempo.
+- **Rehearsal mode, with a timing report.** Read the script through and the app
+  tells you, section by section, what it should have taken against what it did,
+  and offers the pace you actually delivered it at. It records **timings and
+  nothing else** — there is no microphone in it and no audio path at all, which
+  is asserted by a test rather than only promised here.
+- **A quiet pace warning** while rehearsing, once the read has slipped more than
+  a few seconds from its plan — so an over-running section is visible before the
+  end rather than after it.
+- **Words you read but do not perform.** Put "Chorus", "Verse" or "Bridge" in
+  **Settings → Timing** and a line that is nothing but one of them — `Chorus`,
+  `[Verse 1]`, `## Bridge` — **costs no time at all**, so your lyrics still land
+  on the bar you wrote them for. The same word inside a real line skips only
+  itself, so "back to the chorus now" keeps its timing. They stay on screen,
+  dimmed, and read-aloud never says them.
 
 ## [1.2.0] — 2026-08-02
 

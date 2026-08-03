@@ -211,3 +211,41 @@ settings-dictation-enabled = اكتب النص بصوتي
 settings-dictation-note = اضغط زر التسجيل فوق النص وسيُكتب ما تقوله فيه. يتم التعرف على الكلام على هذا الجهاز — بلا حساب، وبلا اتصال بالشبكة، ولا يُحفظ ما تقوله في أي ملف. الميكروفون مفتوح أثناء التسجيل فقط. وإذا كان النص متزامنًا مع الأجهزة على شبكتك، فإن الكلمات المُملاة تصل إليها فور كتابتها، تمامًا مثل أي شيء تكتبه.
 settings-dictation-unavailable-model = نموذج الكلام غير مثبَّت، لذا لا يمكن تشغيل الإملاء.
 settings-dictation-unavailable-build = الإملاء غير متوفر في هذه النسخة.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = المازورة { $bar } · { $beat }
+tempo-count-in = العدّ التمهيدي { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = تدرَّب وقِس زمن قراءتي
+pace-behind = متأخر بمقدار { $time }
+pace-ahead = متقدم بمقدار { $time }
+rehearsal-title = تقرير التدريب
+rehearsal-empty = لم يُقَس شيء بعد. شغّل هذا، وشغّل النص كاملًا، ثم أوقفه.
+rehearsal-col-section = المقطع
+rehearsal-col-planned = المخطط
+rehearsal-col-actual = الفعلي
+rehearsal-col-delta = الفرق
+rehearsal-unfinished = لم يكتمل
+rehearsal-suggest = قرأت هذا بنحو { $to } حرفًا في الثانية، لا { $from }.
+rehearsal-suggest-apply = استخدم تلك السرعة
+rehearsal-close = إغلاق
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = التوقيت
+settings-tempo-section = الإيقاع
+settings-metronome = تشغيل نقرة على الإيقاع الحالي
+settings-metronome-note = نقرة خافتة على كل ضربة أثناء تمرير النص، مع تشديد على أول ضربة في المازورة. يتحول العد التنازلي للبدء إلى عدٍّ تمهيدي. التطبيق يولّد الصوت بنفسه — لا يُنزَّل أي شيء.
+settings-beats-per-bar = الضربات في المازورة
+settings-calibration-section = إيقاعك أنت
+settings-chars-per-beat = { $value } حرفًا لكل ضربة
+settings-chars-per-beat-note = يتحول الإيقاع إلى سرعة قراءة عبر رقم واحد: كم حرفًا تقطع في الضربة. انقر على الإيقاع الذي تؤدي به، فيُقاس الرقم من سرعة قراءتك بدل افتراضه.
+settings-tap-tempo = انقر
+settings-tap-hint = انقر ثلاث مرات أو أكثر
+settings-tap-bpm = المقيس: { $bpm } BPM
+settings-tap-apply = استخدم هذا الإيقاع
+settings-tap-reset = العودة إلى الافتراضي
+settings-skip-section = كلمات لا تؤديها
+settings-skip-words = كلمات تُتخطّى
+settings-skip-words-note = واحدة في كل سطر. السطر الذي لا يحوي سوى إحداها — اللازمة، المقطع 1، الجسر — لا يكلّف وقتًا البتة، فتبقى كلماتك على المازورة التي كتبتها لها. الكلمة نفسها داخل سطر حقيقي تتخطى نفسها فقط. تظل ظاهرة على الشاشة بلون باهت، والقراءة الجهرية لا تنطقها أبدًا.
+settings-skip-words-placeholder = كلمة واحدة في كل سطر

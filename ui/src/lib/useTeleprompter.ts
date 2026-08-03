@@ -25,7 +25,32 @@ const EMPTY: TeleprompterState = {
   caesuraSecs: 0.75,
   countdownSecs: 0,
   countdownRemaining: 0,
+  skipWords: [],
 };
+
+/**
+ * Take the new snapshot, but keep the PREVIOUS `skipWords` array when its
+ * contents have not changed.
+ *
+ * Every broadcast arrives as freshly-deserialised JSON, so `skipWords` is a new
+ * array identity each time even when it is the empty default. Surfaces put it
+ * in the dependency array of the memo that parses the script's timing regions —
+ * so without this, an identity that changes on every event defeats that memo
+ * entirely and re-parses the whole script per broadcast. Broadcasts are not
+ * rare: the seek bar fires one per `pointermove` while dragging, which turned
+ * a scrub of a long script into a full re-parse per frame, on two surfaces.
+ *
+ * Only this one field needs it. `script` and `look` are compared by the memos
+ * that use them (a string and a stable object), and everything else is a
+ * number or a boolean.
+ */
+function adopt(previous: TeleprompterState, next: TeleprompterState): TeleprompterState {
+  const before = previous.skipWords;
+  const after = next.skipWords;
+  const same =
+    before.length === after.length && before.every((word, index) => word === after[index]);
+  return same ? { ...next, skipWords: before } : next;
+}
 
 /**
  * The shared teleprompter snapshot: one initial read plus every `teleprompter`
@@ -42,7 +67,7 @@ export function useTeleprompter(): TeleprompterState {
     let alive = true;
     teleprompterGet()
       .then((snapshot) => {
-        if (alive) setState(snapshot);
+        if (alive) setState((previous) => adopt(previous, snapshot));
       })
       .catch(() => {
         // No backend (a unit test, or a webview that lost its host): keep the
@@ -50,7 +75,7 @@ export function useTeleprompter(): TeleprompterState {
       });
 
     const pending = listen<TeleprompterState>("teleprompter", (event) => {
-      if (alive) setState(event.payload);
+      if (alive) setState((previous) => adopt(previous, event.payload));
     });
     return () => {
       alive = false;

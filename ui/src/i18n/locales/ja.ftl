@@ -211,3 +211,41 @@ settings-dictation-enabled = 話して原稿を書く
 settings-dictation-note = 原稿の上にある録音ボタンを押すと、話した内容がそのまま書き込まれます。認識はこの端末で行われ、アカウントもネットワークも不要で、話した内容がファイルに保存されることはありません。マイクは録音中だけ開きます。台本を同じネットワークの端末にミラーしている場合、音声入力した語も書き込まれた時点でそちらに届きます。入力した文字とまったく同じ扱いです。
 settings-dictation-unavailable-model = 音声モデルが未インストールのため、音声入力を実行できません。
 settings-dictation-unavailable-build = このビルドでは音声入力を利用できません。
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = { $bar } 小節 · { $beat } 拍
+tempo-count-in = カウントイン { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = リハーサルして読みを計測する
+pace-behind = { $time } 遅れています
+pace-ahead = { $time } 先行しています
+rehearsal-title = リハーサル結果
+rehearsal-empty = まだ何も計測されていません。これをオンにして原稿を最後まで再生し、もう一度オフにしてください。
+rehearsal-col-section = セクション
+rehearsal-col-planned = 予定
+rehearsal-col-actual = 実際
+rehearsal-col-delta = 差
+rehearsal-unfinished = 未完了
+rehearsal-suggest = 実際には毎秒約 { $to } 文字で読んでいます。設定は { $from } です。
+rehearsal-suggest-apply = その速度を使う
+rehearsal-close = 閉じる
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = タイミング
+settings-tempo-section = テンポ
+settings-metronome = 現在のテンポでクリック音を鳴らす
+settings-metronome-note = 原稿が流れている間、各拍に控えめなクリック音が鳴り、小節の頭が強調されます。開始前のカウントダウンがそのままカウントインになります。音はアプリ自身が生成し、何もダウンロードしません。
+settings-beats-per-bar = 1 小節の拍数
+settings-calibration-section = あなた自身のテンポ
+settings-chars-per-beat = 1 拍あたり { $value } 文字
+settings-chars-per-beat-note = テンポは 1 つの数字で読み速度になります。1 拍で何文字進むか、です。実演するテンポでタップすれば、推測ではなくあなたの読み速度から測定されます。
+settings-tap-tempo = タップ
+settings-tap-hint = 3 回以上タップしてください
+settings-tap-bpm = タップ結果: { $bpm } BPM
+settings-tap-apply = このテンポを使う
+settings-tap-reset = 既定値に戻す
+settings-skip-section = 読み上げない語
+settings-skip-words = スキップする語
+settings-skip-words-note = 1 行に 1 語。その語だけの行 — サビ、1番、ブリッジ — は時間をまったく消費しないので、歌詞は書いたとおりの小節に残ります。実際の行の中にある同じ語は、その語だけがスキップされます。画面には薄く表示されたまま残り、読み上げが発声することはありません。
+settings-skip-words-placeholder = 1 行に 1 語

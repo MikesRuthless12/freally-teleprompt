@@ -1,8 +1,8 @@
 fn main() {
-    // Voice-following (FT-32/FT-35) links the native `libvosk`. Neither the
-    // library nor the model is in the repository — `scripts/fetch-vosk.mjs`
-    // puts them under `vendor/vosk/` — so none of this runs unless the `vosk`
-    // feature is on, and the default build stays dependency-free.
+    // Dictation (FT-33) links the native `libvosk`. Neither the library nor the
+    // model is in the repository — `scripts/fetch-vosk.mjs` puts them under
+    // `vendor/vosk/` — so none of this runs unless the `vosk` feature is on,
+    // and the default build stays dependency-free.
     if std::env::var_os("CARGO_FEATURE_VOSK").is_some() {
         link_vosk();
     }
@@ -51,9 +51,15 @@ fn link_vosk() {
         }
         "linux" => {
             // The .deb and the AppImage lay the tree out the same way, keyed on
-            // the binary name. `$ORIGIN` is a literal the linker records — it is
-            // not expanded here, and no shell is involved.
-            println!("cargo:rustc-link-arg-bins=-Wl,-rpath,$ORIGIN/../lib/freally-teleprompt");
+            // the binary name — read from cargo rather than written out, so a
+            // rename cannot leave a path that builds and installs cleanly and
+            // then fails to load the library on the user's machine, where
+            // nothing in CI would catch it.
+            //
+            // `$ORIGIN` is a literal the linker records; it is not expanded
+            // here, and no shell is involved.
+            let bin = std::env::var("CARGO_PKG_NAME").expect("cargo always sets this");
+            println!("cargo:rustc-link-arg-bins=-Wl,-rpath,$ORIGIN/../lib/{bin}");
             println!("cargo:rustc-link-arg-bins=-Wl,-rpath,$ORIGIN");
         }
         _ => {}

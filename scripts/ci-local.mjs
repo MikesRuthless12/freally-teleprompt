@@ -49,13 +49,18 @@ function step(name, cmd, cwd) {
 
 // Rust lives in a Cargo workspace at the repo root; the UI is the `ui` workspace.
 const hasRust =
-  existsSync(join(repoRoot, "Cargo.toml")) || existsSync(join(repoRoot, "src-tauri", "Cargo.toml"));
+  existsSync(join(repoRoot, "Cargo.toml")) ||
+  existsSync(join(repoRoot, "src-tauri", "Cargo.toml"));
 const hasUi = existsSync(join(uiDir, "package.json"));
 
 if (doInstall && hasUi) {
   // CI installs from the workspace root, then Playwright chromium from ui/.
   step("deps: npm ci", "npm ci", repoRoot);
-  step("deps: playwright chromium", "npx playwright install --with-deps chromium", uiDir);
+  step(
+    "deps: playwright chromium",
+    "npx playwright install --with-deps chromium",
+    uiDir,
+  );
 }
 
 if (!uiOnly && hasRust) {
@@ -65,24 +70,35 @@ if (!uiOnly && hasRust) {
   if (existsSync(join(repoRoot, "deny.toml")) && have("cargo deny --version")) {
     step("rust: cargo-deny", "cargo deny check", repoRoot);
   } else {
-    console.log("• note: cargo-deny not installed (or no deny.toml) — skipping (CI runs it on Linux).");
+    console.log(
+      "• note: cargo-deny not installed (or no deny.toml) — skipping (CI runs it on Linux).",
+    );
   }
   if (have("cargo audit --version")) {
     step("rust: cargo-audit", "cargo audit", repoRoot);
   } else {
-    console.log("• note: cargo-audit not installed — skipping (CI runs it on Linux).");
+    console.log(
+      "• note: cargo-audit not installed — skipping (CI runs it on Linux).",
+    );
   }
-  step("rust: clippy", "cargo clippy --workspace --all-targets -- -D warnings", repoRoot);
+  step(
+    "rust: clippy",
+    "cargo clippy --workspace --all-targets -- -D warnings",
+    repoRoot,
+  );
   step("rust: test", "cargo test --workspace", repoRoot);
-  // The voice-following FFI, which NO other step compiles: the `vosk` feature is
-  // off everywhere else, so `vosk_engine.rs` and `speech.rs`'s follow loop are
-  // invisible to the whole gate above. They sat unbuilt for two phases and the
-  // first compile found a broken test.
+  // The Vosk FFI in `freally-speech`, which NO other step compiles: the `vosk`
+  // feature is off everywhere else, so `vosk_engine.rs` is invisible to the
+  // whole gate above. It sat unbuilt for two phases and the first compile found
+  // a broken test.
   //
   // `check`, not `build`, and that is the trick that makes this affordable:
   // checking does not link, so it needs no `libvosk`, no model, and no 115 MB
-  // download — while still catching every type and API error. Linking is proven
-  // by the release build and by the drill in `Live-To-Do-List.md`.
+  // download — while still catching every type and API error.
+  //
+  // ⚠️ Scope: `-p freally-speech` does NOT reach `src-tauri/src/speech.rs`, so
+  // the app-side dictation loop is still compiled by nothing but the release
+  // build. Linking is proven there and by `freally-speech/tests/vosk_model.rs`.
   step(
     "rust: check (vosk feature)",
     "cargo check -p freally-speech --features vosk",
@@ -111,20 +127,32 @@ if (!rustOnly && hasUi) {
 // Runs in full and --rust-only modes; skip under --ui-only or --no-tauri-build.
 if (!uiOnly && hasRust && hasUi) {
   if (!noTauriBuild) {
-    step("tauri: debug build", "npm run tauri -- build --debug --no-bundle", repoRoot);
+    step(
+      "tauri: debug build",
+      "npm run tauri -- build --debug --no-bundle",
+      repoRoot,
+    );
     // Then actually RUN it and photograph it. This is the step that catches
     // "compiles fine, dies on launch" and "the webview paints nothing" — which
     // the compile smoke and the mocked Playwright gallery both sail past. CI
     // does the same on all three OSes and uploads the pictures; locally you get
     // your own platform's, in artifacts/.
-    step("tauri: launch screenshot", "node scripts/app-screenshot.mjs", repoRoot);
+    step(
+      "tauri: launch screenshot",
+      "node scripts/app-screenshot.mjs",
+      repoRoot,
+    );
   } else {
-    console.log("• note: --no-tauri-build — skipping Tauri debug compile (CI runs it per-OS).");
+    console.log(
+      "• note: --no-tauri-build — skipping Tauri debug compile (CI runs it per-OS).",
+    );
   }
 }
 
 if (steps.length === 0) {
-  console.error("ci-local: nothing to run (no Rust/UI detected, or filtered out).");
+  console.error(
+    "ci-local: nothing to run (no Rust/UI detected, or filtered out).",
+  );
   process.exit(1);
 }
 

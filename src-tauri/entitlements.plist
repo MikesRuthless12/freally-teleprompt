@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS hardened-runtime entitlements.
+
+  `hardenedRuntime` is on in tauri.conf.json, and under it audio input is denied
+  unless the binary carries `com.apple.security.device.audio-input`. Dictation
+  needs it; nothing else here does, so nothing else is granted — no camera, no
+  network client exception, no JIT, no disabled library validation.
+
+  Paired with `NSMicrophoneUsageDescription` in Info.plist: the entitlement is
+  what makes access POSSIBLE, the usage string is what makes the OS ask the user
+  first. Both are required, and shipping one without the other still fails.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+  </dict>
+</plist>

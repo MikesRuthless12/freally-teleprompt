@@ -197,8 +197,8 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Voice-following's two third-party pieces: the native `libvosk` and the
-      # speech model (~115 MB together). Neither is in the repository — see
+      # Dictation's two third-party pieces: the native `libvosk` and the speech
+      # model (~115 MB together). Neither is in the repository — see
       # `scripts/fetch-vosk.mjs` for why, and for the version choices, which are
       # load-bearing rather than incidental.
       #
@@ -207,6 +207,25 @@ jobs:
       # to compile a feature it does not enable would be a poor trade. The FFI
       # itself is type-checked on every PR without any of this — `cargo check`
       # does not link, so `--features vosk` needs no native library.
+      #
+      # Cached because the two versions in the script ARE the whole identity of
+      # what gets downloaded, so a hit is always correct. Without this, every
+      # platform job of every attempt re-pulls 115 MB from two third-party
+      # hosts — 1.0.0 took five attempts, which is around a gigabyte of
+      # re-download for one shipped release, and it puts alphacephei.com on the
+      # critical path of every build. The fetch script no-ops when the
+      # directories are already there, so a hit costs nothing.
+      # ⚠️ Keyed on the SCRIPT's hash, not on the versions written out by hand.
+      # The fetch step no-ops when the directories are already populated, so a
+      # stale hit is never re-checked: with a hand-maintained key, bumping
+      # `VOSK_VERSION` and forgetting the workflow would link and SIGN the old
+      # library with no error anywhere. Hashing the file that holds the versions
+      # (and now the checksums) makes the key change whenever they do.
+      - name: Cache libvosk and the speech model
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/vendor/vosk
+          key: ${{ runner.os }}-vosk-${{ hashFiles('scripts/fetch-vosk.mjs') }}
       - name: Fetch libvosk and the speech model
         run: node scripts/fetch-vosk.mjs
 
@@ -242,13 +261,21 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
             # Heredoc form, because a certificate is base64 that may be wrapped
             # and `KEY=value` cannot carry a newline.
+            #
+            # The delimiter is RANDOM per run, not a constant. A value containing
+            # a line equal to the delimiter would otherwise close the block early
+            # and let the rest be parsed as further `KEY=value` assignments —
+            # injecting environment into the step that signs and uploads. These
+            # secrets are maintainer-set, so this is belt-and-braces, but a fixed
+            # delimiter is the exact shape of the known `GITHUB_ENV` injection.
+            d="EOF_$(openssl rand -hex 16)"
             {
-              printf 'APPLE_CERTIFICATE<<__EOF__\n%s\n__EOF__\n' "$CERT"
-              printf 'APPLE_CERTIFICATE_PASSWORD<<__EOF__\n%s\n__EOF__\n' "$CERT_PW"
-              printf 'APPLE_SIGNING_IDENTITY<<__EOF__\n%s\n__EOF__\n' "$IDENTITY"
-              printf 'APPLE_ID<<__EOF__\n%s\n__EOF__\n' "$A_ID"
-              printf 'APPLE_PASSWORD<<__EOF__\n%s\n__EOF__\n' "$A_PW"
-              printf 'APPLE_TEAM_ID<<__EOF__\n%s\n__EOF__\n' "$TEAM"
+              printf 'APPLE_CERTIFICATE<<%s\n%s\n%s\n' "$d" "$CERT" "$d"
+              printf 'APPLE_CERTIFICATE_PASSWORD<<%s\n%s\n%s\n' "$d" "$CERT_PW" "$d"
+              printf 'APPLE_SIGNING_IDENTITY<<%s\n%s\n%s\n' "$d" "$IDENTITY" "$d"
+              printf 'APPLE_ID<<%s\n%s\n%s\n' "$d" "$A_ID" "$d"
+              printf 'APPLE_PASSWORD<<%s\n%s\n%s\n' "$d" "$A_PW" "$d"
+              printf 'APPLE_TEAM_ID<<%s\n%s\n%s\n' "$d" "$TEAM" "$d"
             } >> "$GITHUB_ENV"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
@@ -305,7 +332,7 @@ jobs:
           # generic `windows-x86_64` key came out naming the .msi. The `publish`
           # job rewrites the file; see the step there.
           includeUpdaterJson: true
-          # `--features vosk` is what makes voice-following real instead of
+          # `--features vosk` is what makes dictation real instead of
           # "unavailable", and the overlay config adds the model and the native
           # libraries to the bundle. Both belong ONLY here: a default or CI build
           # has no `vendor/` directory and must never ask for one.

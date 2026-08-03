@@ -63,7 +63,7 @@ fn the_model_loads_and_takes_a_script_grammar() {
 }
 
 /// Re-installing the grammar between utterances must not break the recogniser —
-/// this is what FT-35's follow loop does every time the reader advances, and the
+/// this is what a script-constrained caller does as the reader advances, and the
 /// engine is rebuilt underneath each time.
 #[test]
 #[ignore = "needs libvosk + a real model; see the module docs"]

@@ -67,7 +67,8 @@
     "macOS": {
       "minimumSystemVersion": "12.3",
       "signingIdentity": "-",
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.plist"
     },
     "linux": {
       "deb": {

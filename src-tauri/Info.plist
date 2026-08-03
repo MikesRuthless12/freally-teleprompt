@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS-only additions, merged into the generated Info.plist by Tauri.
+
+  `NSMicrophoneUsageDescription` is NOT optional and NOT cosmetic: without it
+  macOS terminates the process the moment it touches audio input, rather than
+  prompting. Dictation would therefore kill the app on the first press of
+  record, on every Mac, with nothing explaining why.
+
+  The string is what the user reads in the consent dialog, so it says what the
+  microphone is for and — because this app's whole posture is local-first —
+  that nothing leaves the machine.
+-->
+<plist version="1.0">
+  <dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Freally Teleprompt uses the microphone only while you are recording dictation, to write what you say into your script. Recognition happens entirely on this Mac — no audio and no text is ever sent anywhere.</string>
+  </dict>
+</plist>

@@ -66,6 +66,16 @@ fn main() {
         // defaults, and start the LAN mirror if it was left on. `settings_set`
         // runs the same two pushes on every Apply.
         .setup(|app| {
+            // Voice commands were removed in 1.1.0, but their trained model —
+            // MFCC features derived from recordings of the user's OWN VOICE —
+            // was left in the data directory, with no UI left that could reach
+            // or clear it. Voice-derived data must not outlive the feature that
+            // asked for it, so an upgraded install drops it on first launch.
+            // Best-effort: a failure here is not worth blocking startup for.
+            if let Some(dirs) = settings::project_dirs() {
+                let _ = std::fs::remove_file(dirs.data_dir().join("voice-model.json"));
+            }
+
             let settings = app.state::<SettingsStore>().get();
             teleprompter::apply_settings(app.handle(), &settings);
             lanmirror::apply_settings(app.handle(), &settings);

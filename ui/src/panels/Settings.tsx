@@ -674,30 +674,28 @@ export function SettingsDialog({
             )}
 
             {shown === "voice" && (
-              <>
-                <Section title={t("settings-cat-voice")}>
-                  {/* Disabled where the engine or its model is absent, so the
+              <Section title={t("settings-cat-voice")}>
+                {/* Disabled where the engine or its model is absent, so the
                       toggle can never be switched on over something that cannot
                       run — the note below says which half is missing. */}
-                  <label className="flex items-center gap-2 text-[11px]">
-                    <input
-                      type="checkbox"
-                      data-testid="settings-dictation-enabled"
-                      disabled={!speechCap?.available}
-                      checked={draft.dictationEnabled}
-                      onChange={(e) => patch({ dictationEnabled: e.target.checked })}
-                    />
-                    {t("settings-dictation-enabled")}
-                  </label>
-                  <p className="text-havoc-muted m-0 text-[10px] leading-snug">
-                    {speechCap && !speechCap.available
-                      ? speechCap.engine === "vosk"
-                        ? t("settings-dictation-unavailable-model")
-                        : t("settings-dictation-unavailable-build")
-                      : t("settings-dictation-note")}
-                  </p>
-                </Section>
-              </>
+                <label className="flex items-center gap-2 text-[11px]">
+                  <input
+                    type="checkbox"
+                    data-testid="settings-dictation-enabled"
+                    disabled={!speechCap?.available}
+                    checked={draft.dictationEnabled}
+                    onChange={(e) => patch({ dictationEnabled: e.target.checked })}
+                  />
+                  {t("settings-dictation-enabled")}
+                </label>
+                <p className="text-havoc-muted m-0 text-[10px] leading-snug">
+                  {speechCap && !speechCap.available
+                    ? speechCap.engine === "vosk"
+                      ? t("settings-dictation-unavailable-model")
+                      : t("settings-dictation-unavailable-build")
+                    : t("settings-dictation-note")}
+                </p>
+              </Section>
             )}
           </div>
         </div>

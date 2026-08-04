@@ -213,3 +213,41 @@ updates-checking = Checking for updates…
 
 ## Startup
 startup-failed = Freally Teleprompt could not start.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Bar { $bar } · { $beat }
+tempo-count-in = Count-in { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Rehearse, and time my read
+pace-behind = Running long by { $time }
+pace-ahead = Ahead by { $time }
+rehearsal-title = Rehearsal report
+rehearsal-empty = Nothing has been timed yet. Turn this on, play the script through, then turn it off.
+rehearsal-col-section = Section
+rehearsal-col-planned = Planned
+rehearsal-col-actual = Actual
+rehearsal-col-delta = Difference
+rehearsal-unfinished = not finished
+rehearsal-suggest = You read this at about { $to } characters a second, not { $from }.
+rehearsal-suggest-apply = Use that speed
+rehearsal-close = Close
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Timing
+settings-tempo-section = Tempo
+settings-metronome = Play a click at the current tempo
+settings-metronome-note = A quiet tick on every beat while the script scrolls, accented on the first beat of the bar. The start countdown becomes its count-in. The app makes the sound itself — nothing is downloaded.
+settings-beats-per-bar = Beats in a bar
+settings-calibration-section = Your own tempo
+settings-chars-per-beat = { $value } characters per beat
+settings-chars-per-beat-note = A tempo becomes a reading speed through one number: how many characters you get through in a beat. Tap along at the tempo you perform at, and it is measured against your reading speed instead of assumed.
+settings-tap-tempo = Tap
+settings-tap-hint = Tap three times or more
+settings-tap-bpm = Tapped: { $bpm } BPM
+settings-tap-apply = Use this tempo
+settings-tap-reset = Back to the default
+settings-skip-section = Words you do not perform
+settings-skip-words = Words to skip
+settings-skip-words-note = One per line. A line that is nothing but one of these — Chorus, Verse 1, Bridge — costs no time at all, so your lyrics stay on the bar you wrote them for. The same word inside a real line skips only itself. They stay on screen, dimmed, and read-aloud never says them.
+settings-skip-words-placeholder = One word per line

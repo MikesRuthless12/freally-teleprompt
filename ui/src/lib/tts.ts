@@ -23,7 +23,7 @@
  * Ported from Freally Capture.
  */
 import { ttsSpeakNative, ttsStopNative } from "../api/commands";
-import { CAESURA_DEFAULT_SECS, type Caesura, scanCaesuraAt } from "./caesura";
+import { CAESURA_DEFAULT_SECS, type Caesura, type Skip, scanCaesuraAt } from "./caesura";
 
 // At Web-Speech rate 1.0 a voice utters roughly this many characters per second
 // (including spaces). Mapping the teleprompter's chars/sec onto the rate keeps
@@ -63,10 +63,20 @@ function buildChunks(
   script: string,
   startOffset: number,
   caesuras: Caesura[],
+  skips: Skip[],
 ): { chunks: Chunk[]; total: number } {
   const chars = Array.from(script);
   const total = chars.filter((c) => c.charCodeAt(0) !== 10).length;
   const durByPos = new Map(caesuras.map((c) => [c.pos, c.dur]));
+  // Which visible characters are labels rather than lines to perform (FT-M02).
+  // A flat lookup rather than a range walk: the read can be started from any
+  // offset, including one INSIDE a label, and a lookup keyed on a run's start
+  // would speak the rest of a label that the reader happened to seek into.
+  const skipped = new Uint8Array(total);
+  for (const skip of skips) {
+    const end = Math.min(total, skip.pos + skip.width);
+    for (let k = Math.max(0, skip.pos); k < end; k++) skipped[k] = 1;
+  }
   const start = Math.floor(Math.max(0, startOffset));
   const chunks: Chunk[] = [];
   let text = "";
@@ -91,6 +101,20 @@ function buildChunks(
         text += ch;
         map.push(vis);
       }
+      i++;
+      continue;
+    }
+    // A label is seen, never said (FT-M02). Its characters are still counted,
+    // so the highlight stays aligned with the scroll — they simply produce no
+    // speech.
+    //
+    // ⚠️ BEFORE the caesura branch, not after. `timedRegions` DROPS any caesura
+    // that falls inside a skipped run, so a ` -- ` in there is absent from
+    // `durByPos` and the `??` fallback below would give it the default 0.75 s —
+    // read-aloud dwelling at a token the scroll crosses in no time at all.
+    // Checking the label first means such a token is never reached.
+    if (skipped[vis]) {
+      vis++;
       i++;
       continue;
     }
@@ -175,9 +199,11 @@ export async function readAloud(
   startOffset = 0,
   onProgress?: (visibleOffset: number) => void,
   caesuras: Caesura[] = [],
+  /** Labels the reader sees but does not perform (FT-M02) — never spoken. */
+  skips: Skip[] = [],
 ): Promise<void> {
   stopReading();
-  const { chunks, total } = buildChunks(script, startOffset, caesuras);
+  const { chunks, total } = buildChunks(script, startOffset, caesuras, skips);
   if (chunks.length === 0) {
     onEnd();
     return;

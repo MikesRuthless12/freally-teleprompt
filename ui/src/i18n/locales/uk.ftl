@@ -211,3 +211,41 @@ settings-dictation-enabled = Писати сценарій голосом
 settings-dictation-note = Натисніть кнопку запису над сценарієм, і сказане буде записано в нього. Розпізнавання відбувається на цьому пристрої — без облікового запису, без мережі, і нічого зі сказаного не зберігається у файл. Мікрофон відкритий лише під час запису. Якщо сценарій транслюється на пристрої у вашій мережі, продиктовані слова потрапляють туди одразу після запису — так само, як усе, що ви набираєте.
 settings-dictation-unavailable-model = Мовну модель не встановлено, тож диктування не працюватиме.
 settings-dictation-unavailable-build = Диктування недоступне в цій збірці.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Такт { $bar } · { $beat }
+tempo-count-in = Відлік { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Репетирувати та вимірювати моє читання
+pace-behind = Відставання на { $time }
+pace-ahead = Випередження на { $time }
+rehearsal-title = Звіт про репетицію
+rehearsal-empty = Поки нічого не виміряно. Увімкніть це, прогоніть сценарій повністю, потім вимкніть.
+rehearsal-col-section = Фрагмент
+rehearsal-col-planned = План
+rehearsal-col-actual = Факт
+rehearsal-col-delta = Різниця
+rehearsal-unfinished = не завершено
+rehearsal-suggest = Ви прочитали це приблизно на { $to } символах за секунду, а не на { $from }.
+rehearsal-suggest-apply = Узяти цю швидкість
+rehearsal-close = Закрити
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Хронометраж
+settings-tempo-section = Темп
+settings-metronome = Клацання в поточному темпі
+settings-metronome-note = Тихе клацання на кожну долю, поки триває прокручування, з акцентом на першій долі такту. Зворотний відлік перед стартом стає вступним відліком. Звук створює сам застосунок — нічого не завантажується.
+settings-beats-per-bar = Долей у такті
+settings-calibration-section = Ваш власний темп
+settings-chars-per-beat = { $value } символів на долю
+settings-chars-per-beat-note = Темп перетворюється на швидкість читання через одне число: скільки символів ви проходите за долю. Відстукайте темп, у якому виступаєте, і його виміряють за вашою швидкістю читання, а не візьмуть навмання.
+settings-tap-tempo = Відстукати
+settings-tap-hint = Відстукайте три рази або більше
+settings-tap-bpm = Відстукано: { $bpm } BPM
+settings-tap-apply = Узяти цей темп
+settings-tap-reset = Повернути типове
+settings-skip-section = Слова, які ви не виконуєте
+settings-skip-words = Пропущені слова
+settings-skip-words-note = По одному в рядку. Рядок, що складається лише з такого слова — Приспів, Куплет 1, Брідж — не коштує жодного часу, тож текст лишається на тому такті, для якого написаний. Те саме слово всередині справжнього рядка пропускає лише себе. Вони лишаються на екрані приглушеними, і читання вголос їх ніколи не вимовляє.
+settings-skip-words-placeholder = По одному слову в рядку

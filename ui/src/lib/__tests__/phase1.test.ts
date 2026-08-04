@@ -6,7 +6,6 @@ import { resolve } from "node:path";
 import { chipLabel, isChip, normalizePaste, tokenize } from "../caesuraChips";
 import { parseCaesuras, scanCaesuraAt } from "../caesura";
 import { FONT_FAMILY_IDS, FONT_STACKS, fontStack } from "../fonts";
-import { BPM_MAX, BPM_MIN, bpmFromSpeed, clampBpm, speedFromBpm } from "../speed";
 import { fmtTime } from "../time";
 import { paceToRate } from "../tts";
 
@@ -112,34 +111,10 @@ describe("caesura chips (FT-11)", () => {
   });
 });
 
-describe("the speed model (FT-14)", () => {
-  it("BPM and chars/sec round-trip", () => {
-    for (const bpm of [BPM_MIN, 60, 120, 205, BPM_MAX]) {
-      expect(bpmFromSpeed(speedFromBpm(bpm))).toBe(bpm);
-    }
-  });
-
-  /**
-   * The load-bearing property: every BPM the user can enter maps to a speed the
-   * ENGINE will accept unchanged (it clamps to 1–60 chars/sec). If this fails,
-   * typing a legal BPM would be silently altered by a clamp underneath, and the
-   * number on screen would stop meaning anything.
-   */
-  it("the whole BPM range lands inside the engine's chars/sec clamp", () => {
-    for (let bpm = BPM_MIN; bpm <= BPM_MAX; bpm++) {
-      const speed = speedFromBpm(bpm);
-      expect(speed, `bpm ${bpm}`).toBeGreaterThanOrEqual(1);
-      expect(speed, `bpm ${bpm}`).toBeLessThanOrEqual(60);
-    }
-  });
-
-  it("clamps out-of-range entry to the settable range", () => {
-    expect(clampBpm(0)).toBe(BPM_MIN);
-    expect(clampBpm(-40)).toBe(BPM_MIN);
-    expect(clampBpm(9000)).toBe(BPM_MAX);
-    expect(clampBpm(120)).toBe(120);
-  });
-});
+// The speed model (FT-14) moved to `tempo.test.ts` when FT-N02 made the
+// chars/sec ↔ BPM mapping calibratable. Its three cases live on there in
+// generalised form — over every calibration rather than the one constant — so
+// keeping a copy here would be two statements of one rule, free to disagree.
 
 describe("typefaces (FT-15)", () => {
   it("every id Rust validates has a CSS stack here", () => {

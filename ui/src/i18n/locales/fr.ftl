@@ -211,3 +211,41 @@ settings-dictation-enabled = Écrire mon texte en parlant
 settings-dictation-note = Appuyez sur le bouton d'enregistrement au-dessus du texte et ce que vous dites y est écrit. La reconnaissance a lieu sur cet appareil — sans compte, sans réseau, et rien de ce que vous dites n'est enregistré dans un fichier. Le microphone n'est ouvert que pendant l'enregistrement. Si le script est diffusé vers les appareils de votre réseau, les mots dictés y parviennent à mesure qu'ils s'écrivent, comme tout ce que vous tapez.
 settings-dictation-unavailable-model = Le modèle vocal n'est pas installé, la dictée ne peut donc pas fonctionner.
 settings-dictation-unavailable-build = La dictée n'est pas disponible dans cette version.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Mesure { $bar } · { $beat }
+tempo-count-in = Décompte { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Répéter et chronométrer ma lecture
+pace-behind = { $time } de retard
+pace-ahead = { $time } d'avance
+rehearsal-title = Rapport de répétition
+rehearsal-empty = Rien n'a encore été chronométré. Activez ceci, jouez le script en entier, puis désactivez-le.
+rehearsal-col-section = Section
+rehearsal-col-planned = Prévu
+rehearsal-col-actual = Réel
+rehearsal-col-delta = Écart
+rehearsal-unfinished = non terminée
+rehearsal-suggest = Vous avez lu à environ { $to } caractères par seconde, et non { $from }.
+rehearsal-suggest-apply = Utiliser cette vitesse
+rehearsal-close = Fermer
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Minutage
+settings-tempo-section = Tempo
+settings-metronome = Jouer un clic au tempo actuel
+settings-metronome-note = Un tic discret sur chaque temps pendant le défilement, accentué sur le premier temps de la mesure. Le décompte de départ lui sert de décompte préparatoire. L'application produit le son elle-même — rien n'est téléchargé.
+settings-beats-per-bar = Temps par mesure
+settings-calibration-section = Votre propre tempo
+settings-chars-per-beat = { $value } caractères par temps
+settings-chars-per-beat-note = Un tempo devient une vitesse de lecture grâce à un seul nombre : combien de caractères vous parcourez en un temps. Tapez au tempo auquel vous interprétez et il sera mesuré d'après votre vitesse de lecture au lieu d'être supposé.
+settings-tap-tempo = Taper
+settings-tap-hint = Tapez au moins trois fois
+settings-tap-bpm = Tapé : { $bpm } BPM
+settings-tap-apply = Utiliser ce tempo
+settings-tap-reset = Revenir à la valeur par défaut
+settings-skip-section = Mots que vous n'interprétez pas
+settings-skip-words = Mots à ignorer
+settings-skip-words-note = Un par ligne. Une ligne qui ne contient que l'un d'eux — Refrain, Couplet 1, Pont — ne coûte aucun temps, si bien que vos paroles restent sur la mesure pour laquelle vous les avez écrites. Le même mot au milieu d'une vraie ligne n'ignore que lui-même. Ils restent affichés, atténués, et la lecture à voix haute ne les prononce jamais.
+settings-skip-words-placeholder = Un mot par ligne

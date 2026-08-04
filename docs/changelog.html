@@ -110,6 +110,59 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>Unreleased</h2>
+        <p class="date">Reading to time — and the words that shouldn't count</p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Tap a tempo, and the app learns yours.</strong> BPM has always become a reading
+            speed through one number: how many characters you get through in a beat. It used to be
+            a guess — the same guess for a balladeer and a rapper, who are an order of magnitude
+            apart. <strong>Settings → Timing</strong> now lets you tap along at the tempo you
+            actually perform at, and measures that number against your own reading speed instead of
+            assuming it. A calibration that puts part of the musical range beyond the engine's
+            reach <strong>narrows the range the BPM box offers</strong>, rather than showing you
+            numbers it would quietly change underneath you.
+          </li>
+          <li>
+            <strong>A metronome.</strong> An optional click on every beat while the script scrolls,
+            accented on the first beat of the bar, with the start countdown doubling as its
+            count-in. The app synthesises it — there is no audio file in the installer and nothing
+            is fetched. Each click is scheduled against the audio clock from its own beat number,
+            so it cannot drift against the scroll: measured over a ten-minute read at the fastest
+            tempo the app offers, the last click is still exact.
+          </li>
+          <li>
+            <strong>A bar and beat counter</strong> beside the reading surface, with
+            <strong>bar lines ruled on the seek bar</strong> — so "sixteen bars" is something you
+            can see rather than something you count in your head. Both appear only when you are
+            working to a tempo.
+          </li>
+          <li>
+            <strong>Rehearsal mode, with a timing report.</strong> Read the script through and the
+            app tells you, section by section, what it should have taken against what it did, and
+            offers the pace you actually delivered it at. It records
+            <strong>timings and nothing else</strong> — there is no microphone in it and no audio
+            path at all, which is asserted by a test rather than only promised here.
+          </li>
+          <li>
+            <strong>A quiet pace warning</strong> while rehearsing, once the read has slipped more
+            than a few seconds from its plan — so an over-running section is visible before the end
+            rather than after it.
+          </li>
+          <li>
+            <strong>Words you read but do not perform.</strong> Put "Chorus", "Verse" or "Bridge"
+            in <strong>Settings → Timing</strong> and a line that is nothing but one of them —
+            <code>Chorus</code>, <code>[Verse 1]</code>, <code>## Bridge</code> —
+            <strong>costs no time at all</strong>, so your lyrics still land on the bar you wrote
+            them for. The same word inside a real line skips only itself, so "back to the chorus
+            now" keeps its timing. They stay on screen, dimmed, and read-aloud never says them.
+          </li>
+        </ul>
+      </article>
+
+      <article class="release">
         <h2>1.2.0</h2>
         <p class="date">2 August 2026 — dictation, finished properly</p>
 

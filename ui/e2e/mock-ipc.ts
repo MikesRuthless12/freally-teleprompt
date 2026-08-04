@@ -66,6 +66,15 @@ export type MockState = {
   mirror?: { running: boolean; url: string | null; error: string | null };
   /** Dictation on/off (FT-33); off by default, as the app ships. */
   dictationEnabled?: boolean;
+  /** The performer's chars-per-beat calibration (FT-N02); the shipped default
+   * unless a spec is specifically about calibration. */
+  charsPerBeat?: number;
+  /** Beats in a bar (FT-N04). */
+  beatsPerBar?: number;
+  /** The metronome click (FT-N03); off by default, as the app ships. */
+  metronome?: boolean;
+  /** Words that mark text as read-but-not-performed (FT-M02); none by default. */
+  skipWords?: string[];
   /** What `speech_capability` reports (FT-33); unavailable by default. */
   speechCapability?: { available: boolean; engine: string; detail: string };
   /**
@@ -159,6 +168,10 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       autocomplete: state.autocomplete ?? true,
       autocompleteLanguage: state.autocompleteLanguage ?? "auto",
       dictationEnabled: state.dictationEnabled ?? false,
+      charsPerBeat: state.charsPerBeat ?? 3.5,
+      beatsPerBar: state.beatsPerBar ?? 4,
+      metronome: state.metronome ?? false,
+      skipWords: state.skipWords ?? [],
       recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
       onboardingSeen: state.onboardingSeen !== false,
@@ -179,6 +192,9 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       caesuraSecs: 0.75,
       countdownSecs: 0,
       countdownRemaining: 0,
+      // Carried on the snapshot, exactly as Rust does it — the projector reads
+      // its keyword list from here, not from its own settings query (FT-M02).
+      skipWords: state.skipWords ?? [],
     },
     scripts: state.scripts ?? [],
     displays: state.displays ?? [],
@@ -206,6 +222,9 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
     // It models only what the UI observes — never the caesura timing, which has
     // its own tests on both sides of the IPC boundary.
     const engine = { ...data.teleprompter };
+    /** Mirror of Rust's `MIN_SPEED`/`MAX_SPEED`, so a speed change under test
+     * lands where the real engine would put it. */
+    const clampSpeed = (value: number) => Math.max(1, Math.min(60, value));
     // Event subscribers, keyed by event name. `teleprompter` carries the engine
     // snapshot; `voice:dictation` / `voice:dictating` are pushed by tests via
     // `window.__emitTauri` to stand in for the recogniser (FT-33).
@@ -285,7 +304,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             return Promise.resolve(null);
           }
           case "teleprompter_set_speed":
-            engine.speed = Number(args.speed);
+            engine.speed = clampSpeed(Number(args.speed));
             emit();
             return Promise.resolve(null);
           case "teleprompter_set_mirror":
@@ -293,6 +312,14 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
             emit();
             return Promise.resolve(null);
           case "teleprompter_control":
+            // Faster / slower were missing here, so the transport's two speed
+            // buttons silently did nothing under test — and a bug where the
+            // BPM readout stopped tracking the scroll above a certain speed
+            // was invisible for exactly that reason. Mirrors `SPEED_STEP` and
+            // the 1–60 clamp in `teleprompter.rs`.
+            if (args.action === "faster") engine.speed = clampSpeed(engine.speed * 1.25);
+            if (args.action === "slower") engine.speed = clampSpeed(engine.speed / 1.25);
+            if (args.action === "setSpeed") engine.speed = clampSpeed(Number(args.value ?? 0));
             if (args.action === "toggle") engine.playing = !engine.playing;
             if (args.action === "play") engine.playing = true;
             if (args.action === "pause") engine.playing = false;
@@ -360,4 +387,18 @@ export async function lastCall(
 ): Promise<Record<string, unknown> | undefined> {
   const calls = await ipcCalls(page);
   return calls.filter((c) => c.cmd === cmd).pop()?.args;
+}
+
+/**
+ * Open Settings on a named category and return the dialog.
+ *
+ * Here rather than in one spec because three of them need it. `phase3.spec.ts`
+ * had a `openVoicePane` of exactly this shape and `phaseA.spec.ts` was about to
+ * add a second copy for the Timing pane — the tab name is the only thing that
+ * ever differed.
+ */
+export async function openSettingsPane(page: Page, tab: string) {
+  await page.getByTestId("titlebar-settings").click();
+  await page.getByRole("tab", { name: tab }).click();
+  return page.getByTestId("settings-dialog");
 }

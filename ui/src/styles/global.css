@@ -409,6 +409,14 @@ body {
   background-color: rgba(0, 0, 0, 0.09);
 }
 
+/* The seek bar's bar lines (FT-N04). Heavier than the surrounding fills on
+   purpose — they are a ruling to read a position against, not a surface, so
+   they have to stay legible over both the played and unplayed halves of the
+   track. */
+:root[data-theme="light"] .bg-white\/45 {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
 :root[data-theme="light"] .hover\:bg-white\/10:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }

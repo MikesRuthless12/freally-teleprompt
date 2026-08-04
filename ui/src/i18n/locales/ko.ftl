@@ -211,3 +211,41 @@ settings-dictation-enabled = 말해서 대본 쓰기
 settings-dictation-note = 대본 위의 녹음 버튼을 누르면 말한 내용이 그대로 입력됩니다. 인식은 이 기기에서 이루어지며 계정도 네트워크도 필요 없고, 말한 내용이 파일로 저장되지 않습니다. 마이크는 녹음 중에만 열립니다.대본을 같은 네트워크의 기기에 미러링 중이라면, 받아쓴 단어도 입력되는 즉시 그 기기에 전달됩니다. 직접 타이핑한 내용과 똑같습니다.
 settings-dictation-unavailable-model = 음성 모델이 설치되지 않아 받아쓰기를 실행할 수 없습니다.
 settings-dictation-unavailable-build = 이 빌드에서는 받아쓰기를 사용할 수 없습니다.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = { $bar }마디 · { $beat }박
+tempo-count-in = 카운트인 { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = 리허설하고 내 낭독 시간을 재기
+pace-behind = { $time } 늦음
+pace-ahead = { $time } 빠름
+rehearsal-title = 리허설 결과
+rehearsal-empty = 아직 측정된 것이 없습니다. 이 기능을 켜고 대본을 끝까지 재생한 다음 다시 끄세요.
+rehearsal-col-section = 구간
+rehearsal-col-planned = 예정
+rehearsal-col-actual = 실제
+rehearsal-col-delta = 차이
+rehearsal-unfinished = 미완료
+rehearsal-suggest = 실제로는 초당 약 { $to }자로 읽었습니다. { $from }자가 아닙니다.
+rehearsal-suggest-apply = 그 속도 사용
+rehearsal-close = 닫기
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = 타이밍
+settings-tempo-section = 템포
+settings-metronome = 현재 템포로 클릭음 재생
+settings-metronome-note = 대본이 흐르는 동안 매 박마다 조용한 틱 소리가 나고, 마디의 첫 박에 강세가 붙습니다. 시작 카운트다운이 그대로 카운트인이 됩니다. 소리는 앱이 직접 만들며, 내려받는 것은 없습니다.
+settings-beats-per-bar = 한 마디의 박 수
+settings-calibration-section = 나만의 템포
+settings-chars-per-beat = 한 박에 { $value }자
+settings-chars-per-beat-note = 템포는 숫자 하나로 읽기 속도가 됩니다. 한 박에 몇 글자를 지나는가입니다. 공연하는 템포로 두드리면 추정하지 않고 당신의 읽기 속도에서 측정합니다.
+settings-tap-tempo = 두드리기
+settings-tap-hint = 세 번 이상 두드리세요
+settings-tap-bpm = 측정됨: { $bpm } BPM
+settings-tap-apply = 이 템포 사용
+settings-tap-reset = 기본값으로 되돌리기
+settings-skip-section = 부르지 않는 낱말
+settings-skip-words = 건너뛸 낱말
+settings-skip-words-note = 한 줄에 하나씩. 그 낱말만 있는 줄 — 후렴, 1절, 브리지 — 은 시간을 전혀 쓰지 않으므로 가사가 쓴 그대로의 마디에 남습니다. 실제 줄 안에 있는 같은 낱말은 그 낱말만 건너뜁니다. 화면에는 흐리게 남아 있고, 소리내어 읽기는 절대 발음하지 않습니다.
+settings-skip-words-placeholder = 한 줄에 한 낱말

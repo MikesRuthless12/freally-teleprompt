@@ -211,3 +211,41 @@ settings-dictation-enabled = Metnimi konuşarak yaz
 settings-dictation-note = Metnin üzerindeki kayıt düğmesine basın; söyledikleriniz metne yazılır. Tanıma bu cihazda yapılır — hesap yok, ağ yok ve söyledikleriniz hiçbir dosyaya kaydedilmez. Mikrofon yalnızca kayıt sırasında açıktır. Metin ağınızdaki cihazlara yansıtılıyorsa, dikte edilen sözcükler yazıldıkları anda oraya da ulaşır — klavyeyle yazdığınız her şey gibi.
 settings-dictation-unavailable-model = Konuşma modeli kurulu değil, bu yüzden dikte çalışamaz.
 settings-dictation-unavailable-build = Bu sürümde dikte kullanılamıyor.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Ölçü { $bar } · { $beat }
+tempo-count-in = Giriş sayımı { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Prova yap ve okumamın süresini tut
+pace-behind = { $time } gecikmeli
+pace-ahead = { $time } önde
+rehearsal-title = Prova raporu
+rehearsal-empty = Henüz hiçbir şey ölçülmedi. Bunu açın, metni baştan sona oynatın, sonra kapatın.
+rehearsal-col-section = Bölüm
+rehearsal-col-planned = Planlanan
+rehearsal-col-actual = Gerçekleşen
+rehearsal-col-delta = Fark
+rehearsal-unfinished = tamamlanmadı
+rehearsal-suggest = Bunu yaklaşık saniyede { $to } karakterle okudunuz, { $from } değil.
+rehearsal-suggest-apply = O hızı kullan
+rehearsal-close = Kapat
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Zamanlama
+settings-tempo-section = Tempo
+settings-metronome = Geçerli tempoda tık çal
+settings-metronome-note = Metin akarken her vuruşta hafif bir tık, ölçünün ilk vuruşunda vurgulu. Başlangıç geri sayımı giriş sayımına dönüşür. Sesi uygulama kendi üretir — hiçbir şey indirilmez.
+settings-beats-per-bar = Ölçüdeki vuruş sayısı
+settings-calibration-section = Kendi tempon
+settings-chars-per-beat = Vuruş başına { $value } karakter
+settings-chars-per-beat-note = Bir tempo tek bir sayı üzerinden okuma hızına dönüşür: bir vuruşta kaç karakter geçtiğiniz. Sahnede kullandığınız tempoda vurun; sayı varsayılmak yerine okuma hızınıza göre ölçülür.
+settings-tap-tempo = Vur
+settings-tap-hint = En az üç kez vurun
+settings-tap-bpm = Vurulan: { $bpm } BPM
+settings-tap-apply = Bu tempoyu kullan
+settings-tap-reset = Varsayılana dön
+settings-skip-section = Seslendirmediğiniz sözcükler
+settings-skip-words = Atlanacak sözcükler
+settings-skip-words-note = Her satıra bir tane. Yalnızca bunlardan birinden oluşan bir satır — Nakarat, Kıta 1, Köprü — hiç zaman almaz, böylece sözleriniz onları yazdığınız ölçüde kalır. Aynı sözcük gerçek bir satırın içindeyse yalnızca kendisi atlanır. Ekranda soluk olarak kalırlar ve sesli okuma onları asla söylemez.
+settings-skip-words-placeholder = Her satıra bir sözcük

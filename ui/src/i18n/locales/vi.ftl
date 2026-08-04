@@ -211,3 +211,41 @@ settings-dictation-enabled = Viết kịch bản bằng giọng nói
 settings-dictation-note = Nhấn nút ghi phía trên kịch bản và những gì bạn nói sẽ được viết vào đó. Việc nhận dạng diễn ra trên thiết bị này — không tài khoản, không mạng, và không có điều gì bạn nói được lưu vào tệp. Micrô chỉ mở trong lúc ghi. Nếu kịch bản đang được phản chiếu tới các thiết bị trong mạng của bạn, những từ đọc chính tả sẽ đến đó ngay khi được viết ra — giống như mọi thứ bạn gõ.
 settings-dictation-unavailable-model = Chưa cài mô hình giọng nói nên không thể đọc chính tả.
 settings-dictation-unavailable-build = Bản dựng này không hỗ trợ đọc chính tả.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Ô nhịp { $bar } · { $beat }
+tempo-count-in = Đếm vào { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Tập dượt và đo thời gian đọc của tôi
+pace-behind = Chậm { $time }
+pace-ahead = Sớm { $time }
+rehearsal-title = Báo cáo tập dượt
+rehearsal-empty = Chưa đo được gì. Hãy bật mục này, chạy hết kịch bản, rồi tắt đi.
+rehearsal-col-section = Đoạn
+rehearsal-col-planned = Dự kiến
+rehearsal-col-actual = Thực tế
+rehearsal-col-delta = Chênh lệch
+rehearsal-unfinished = chưa xong
+rehearsal-suggest = Bạn đã đọc với khoảng { $to } ký tự mỗi giây, không phải { $from }.
+rehearsal-suggest-apply = Dùng tốc độ đó
+rehearsal-close = Đóng
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Định thời
+settings-tempo-section = Nhịp độ
+settings-metronome = Phát tiếng gõ theo nhịp độ hiện tại
+settings-metronome-note = Một tiếng tách nhẹ trên mỗi phách khi kịch bản cuộn, nhấn vào phách đầu ô nhịp. Đếm ngược khi bắt đầu trở thành phần đếm vào. Ứng dụng tự tạo âm thanh — không tải về thứ gì.
+settings-beats-per-bar = Số phách mỗi ô nhịp
+settings-calibration-section = Nhịp độ của riêng bạn
+settings-chars-per-beat = { $value } ký tự mỗi phách
+settings-chars-per-beat-note = Một nhịp độ trở thành tốc độ đọc nhờ một con số duy nhất: bạn đi qua bao nhiêu ký tự trong một phách. Hãy gõ theo nhịp độ bạn trình diễn, con số sẽ được đo từ tốc độ đọc của bạn thay vì phỏng đoán.
+settings-tap-tempo = Gõ
+settings-tap-hint = Gõ từ ba lần trở lên
+settings-tap-bpm = Đã gõ: { $bpm } BPM
+settings-tap-apply = Dùng nhịp độ này
+settings-tap-reset = Trở về mặc định
+settings-skip-section = Những từ bạn không trình diễn
+settings-skip-words = Từ cần bỏ qua
+settings-skip-words-note = Mỗi dòng một từ. Một dòng chỉ gồm đúng một trong số đó — Điệp khúc, Lời 1, Đoạn nối — hoàn toàn không tốn thời gian, nên lời hát vẫn rơi đúng ô nhịp bạn đã viết. Chính từ đó nằm giữa một dòng thật thì chỉ bỏ qua bản thân nó. Chúng vẫn hiện mờ trên màn hình, và phần đọc to không bao giờ đọc chúng.
+settings-skip-words-placeholder = Mỗi dòng một từ

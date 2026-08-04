@@ -2,14 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { TeleprompterState } from "../api/types";
 import { useT } from "../i18n/t";
-import {
-  type Caesura,
-  liveOffset,
-  parseCaesuras,
-  timeAtOffset,
-  visibleChars,
-} from "../lib/caesura";
+import { type Caesura, liveOffset, timeAtOffset, timedRegions, visibleChars } from "../lib/caesura";
 import { fontStack } from "../lib/fonts";
+import { barLineTimes } from "../lib/tempo";
 import { fmtTime } from "../lib/time";
 
 /** The preview and the projector lay text out on a shared fixed-width virtual
@@ -18,6 +13,11 @@ import { fmtTime } from "../lib/time";
  * `window.screen.width`, which differs per monitor on a dual-screen rig) keeps
  * that invariant. */
 const STAGE_WIDTH = 1920;
+
+/** The most bar lines the seek bar will draw (FT-N04). A ten-minute read at 250
+ * BPM is 625 bars, which on a track a few hundred pixels wide is a solid block
+ * of ink — beyond this the ruling is thinned by a stride. */
+const MAX_BAR_LINES = 48;
 
 /** Render a script line as one `data-ch` span per character (no Markdown) so the
  * per-character pace cue aligns 1:1 with the Rust visible-char offset. */
@@ -71,10 +71,13 @@ export function TeleprompterScroller({
   const t = useT();
   const trackRef = useRef<HTMLDivElement>(null);
   const look = state.look;
-  // Inline ` -- ` caesuras drive the same flat-crawl pauses the Rust state uses.
-  const caesuras = useMemo(
-    () => parseCaesuras(state.script, state.caesuraSecs),
-    [state.script, state.caesuraSecs],
+  // Inline ` -- ` caesuras drive the same flat-crawl pauses the Rust state
+  // uses, and skipped labels (FT-M02) the zero-time steps. `skips` also says
+  // which characters to dim, so the talent can see "Chorus" coming without
+  // reading it out. One pass for both — see `ScriptTiming`.
+  const { regions: caesuras, skips } = useMemo(
+    () => timedRegions(state.script, state.caesuraSecs, state.skipWords),
+    [state.script, state.caesuraSecs, state.skipWords],
   );
   // The animation anchor: the last known offset + when we received it. `t` is
   // filled by the effect below (calling performance.now() during render is
@@ -131,8 +134,32 @@ export function TeleprompterScroller({
     // re-runs when they change); start from a clean unlit slate.
     const chars = track.querySelectorAll<HTMLElement>("[data-ch]");
     const total = chars.length;
-    for (let i = 0; i < total; i++) chars[i].style.color = "";
+    // One pass, three properties. The colour is the frame loop's; the other two
+    // mark skipped labels (FT-M02) and are set once per layout rather than per
+    // frame. Walking the spans a second time for them cost a full extra pass on
+    // every broadcast — i.e. per keystroke and per pointermove while scrubbing —
+    // to clear two properties that, with no keywords configured, were never set.
+    for (let i = 0; i < total; i++) {
+      const style = chars[i].style;
+      style.color = "";
+      style.opacity = "";
+      style.fontStyle = "";
+    }
     litCountRef.current = 0;
+    // There is exactly one `data-ch` span per visible character — a blank line
+    // renders a span WITHOUT the attribute — so a span's index in this list is
+    // its visible-char offset, which is what the skip ranges are measured in.
+    //
+    // Dimmed and italic rather than hidden: the whole point of writing "Chorus"
+    // is to see it coming. Styled, not coloured, so the frame loop's lit/unlit
+    // colour handling below needs to know nothing about it.
+    for (const skip of skips) {
+      const end = Math.min(total, skip.pos + skip.width);
+      for (let i = Math.max(0, skip.pos); i < end; i++) {
+        chars[i].style.opacity = "0.45";
+        chars[i].style.fontStyle = "italic";
+      }
+    }
     // The reading guide sits `look.guidePct` down the viewport (FT-15), expressed
     // in the stage's own coordinate system — the stage transform then scales it
     // to the window, so preview and projector place it identically.
@@ -199,6 +226,7 @@ export function TeleprompterScroller({
     state.offset,
     state.countdownRemaining,
     caesuras,
+    skips,
     dims.w,
     dims.h,
     scale,
@@ -341,6 +369,7 @@ export function TeleprompterSeekBar({
   onSeek,
   overrideOffset,
   onDark = false,
+  bars,
 }: {
   state: TeleprompterState;
   caesuras: Caesura[];
@@ -350,16 +379,31 @@ export function TeleprompterSeekBar({
   overrideOffset?: number;
   /** True on the projector, whose chrome is black in both themes. */
   onDark?: boolean;
+  /** Bar lines (FT-N04): the tempo to rule the track at, or undefined for none.
+   * Only meaningful when the operator is working to a tempo, which is why the
+   * shell passes it conditionally rather than the bar deciding for itself. */
+  bars?: { bpm: number; beatsPerBar: number };
 }) {
   const t = useT();
   // Memoised: the component re-renders every animation frame while playing, and
   // both of these are O(script) scans over a value that only changes on an edit.
   const total = useMemo(() => Math.max(1, visibleChars(state.script)), [state.script]);
   const speed = state.speed > 0 ? state.speed : 1;
-  const totalLabel = useMemo(
-    () => fmtTime(timeAtOffset(total, speed, caesuras)),
-    [total, speed, caesuras],
-  );
+  const totalSec = useMemo(() => timeAtOffset(total, speed, caesuras), [total, speed, caesuras]);
+  const totalLabel = useMemo(() => fmtTime(totalSec), [totalSec]);
+  // Bar lines (FT-N04), as fractions along the track.
+  //
+  // Placed by TIME rather than by character, which is what makes them land on
+  // real bars: a caesura holds the scroll, so the same number of characters
+  // covers a different number of bars either side of one. `barLineTimes` thins
+  // a dense ruling by an integer stride, so what is drawn is still every Nth
+  // real bar rather than the first N of them.
+  const barFracs = useMemo(() => {
+    if (!bars || totalSec <= 0) return [];
+    return barLineTimes(totalSec, bars.bpm, bars.beatsPerBar, MAX_BAR_LINES).map(
+      (sec) => sec / totalSec,
+    );
+  }, [bars, totalSec]);
   const vis = useMemo(
     () => Array.from(state.script).filter((c) => c.charCodeAt(0) !== 10),
     [state.script],
@@ -509,6 +553,17 @@ export function TeleprompterSeekBar({
             className="bg-havoc-accent absolute inset-y-0 left-0 rounded-full"
             style={{ width: `${progress * 100}%` }}
           />
+          {/* Bar lines (FT-N04). Under the thumb and over the fill, so a bar
+              stays visible in the part of the read already played. */}
+          {barFracs.map((frac, i) => (
+            <div
+              key={`bar-${i}`}
+              data-testid="seek-bar-line"
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 w-px bg-white/45"
+              style={{ left: `${frac * 100}%` }}
+            />
+          ))}
           <div
             className="bg-havoc-accent absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full shadow"
             style={{ left: `${progress * 100}%` }}

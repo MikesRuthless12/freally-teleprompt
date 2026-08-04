@@ -73,6 +73,22 @@ export type Settings = {
    * `recentScripts`, the Settings draft MUST round-trip it, or an Apply resets it. */
   dictationEnabled: boolean;
   /**
+   * How many characters this performer gets through in one beat (FT-N02) — the
+   * one number the chars/sec ↔ BPM conversion needs, measured by the tap-tempo
+   * pane rather than assumed. See `lib/speed.ts`.
+   */
+  charsPerBeat: number;
+  /** Beats in a bar (FT-N04): the bar/beat counter and the seek bar's bar
+   * lines. 4 = 4/4. */
+  beatsPerBar: number;
+  /** Click at the current BPM while the scroll runs (FT-N03). Off by default;
+   * synthesised in the webview, so nothing is bundled or fetched. */
+  metronome: boolean;
+  /** Words that mark text as read-but-not-performed (FT-M02) — "Chorus",
+   * "Verse", "Bridge". Where they match, the scroll costs no time, so a lyric
+   * still lands on the bar it was written for. Empty by default. */
+  skipWords: string[];
+  /**
    * Recently-opened scripts (FT-10), most recent first; `[0]` is the script
    * currently open. Read-only from the UI's point of view for the same reason
    * as `acceptedEulaVersion` — Rust's `settings_set` preserves it, so a stale
@@ -118,6 +134,15 @@ export type TeleprompterState = {
   countdownSecs: number;
   /** Seconds remaining in the current start countdown (0 when not counting). */
   countdownRemaining: number;
+  /**
+   * Words that mark text as read-but-not-performed (FT-M02).
+   *
+   * On the snapshot rather than read from settings by each surface: the
+   * projector is a separate window with its own settings read, and a surface
+   * computing its timing regions from a stale keyword list would scroll a
+   * different script from the one the operator is watching.
+   */
+  skipWords: string[];
 };
 
 /** Mirror of `bugreport::BugReport` — one target's report, built by Rust. */

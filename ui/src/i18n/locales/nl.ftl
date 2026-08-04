@@ -211,3 +211,41 @@ settings-dictation-enabled = Mijn script schrijven door te spreken
 settings-dictation-note = Druk op de opnameknop boven het script en wat je zegt wordt erin geschreven. De herkenning gebeurt op dit apparaat — geen account, geen netwerk, en niets van wat je zegt wordt ooit naar een bestand geschreven. De microfoon staat alleen open tijdens het opnemen. Wordt het script naar apparaten in je netwerk gespiegeld, dan bereiken gedicteerde woorden ze zodra ze geschreven worden — net als alles wat je typt.
 settings-dictation-unavailable-model = Het spraakmodel is niet geïnstalleerd, dus dicteren kan niet werken.
 settings-dictation-unavailable-build = Dicteren is niet beschikbaar in deze versie.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Maat { $bar } · { $beat }
+tempo-count-in = Aftellen { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Repeteren en mijn lezing klokken
+pace-behind = { $time } over tijd
+pace-ahead = { $time } voor op schema
+rehearsal-title = Repetitierapport
+rehearsal-empty = Er is nog niets geklokt. Zet dit aan, speel het script helemaal af en zet het weer uit.
+rehearsal-col-section = Onderdeel
+rehearsal-col-planned = Gepland
+rehearsal-col-actual = Werkelijk
+rehearsal-col-delta = Verschil
+rehearsal-unfinished = niet afgemaakt
+rehearsal-suggest = Je las dit met ongeveer { $to } tekens per seconde, niet { $from }.
+rehearsal-suggest-apply = Die snelheid gebruiken
+rehearsal-close = Sluiten
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Tijdsindeling
+settings-tempo-section = Tempo
+settings-metronome = Een klik op het huidige tempo afspelen
+settings-metronome-note = Een zachte tik op elke tel terwijl het script loopt, met accent op de eerste tel van de maat. Het aftellen bij de start wordt het intellen. De app maakt het geluid zelf — er wordt niets gedownload.
+settings-beats-per-bar = Tellen per maat
+settings-calibration-section = Je eigen tempo
+settings-chars-per-beat = { $value } tekens per tel
+settings-chars-per-beat-note = Een tempo wordt leessnelheid via één getal: hoeveel tekens je in één tel haalt. Tik mee op het tempo waarop je optreedt, dan wordt het aan je leessnelheid gemeten in plaats van geschat.
+settings-tap-tempo = Tikken
+settings-tap-hint = Tik drie keer of vaker
+settings-tap-bpm = Getikt: { $bpm } BPM
+settings-tap-apply = Dit tempo gebruiken
+settings-tap-reset = Terug naar de standaard
+settings-skip-section = Woorden die je niet uitvoert
+settings-skip-words = Over te slaan woorden
+settings-skip-words-note = Eén per regel. Een regel die alleen uit zo'n woord bestaat — Refrein, Couplet 1, Brug — kost helemaal geen tijd, zodat je tekst op de maat blijft waarvoor je hem schreef. Hetzelfde woord midden in een echte regel slaat alleen zichzelf over. Ze blijven gedimd in beeld, en het voorlezen spreekt ze nooit uit.
+settings-skip-words-placeholder = Eén woord per regel

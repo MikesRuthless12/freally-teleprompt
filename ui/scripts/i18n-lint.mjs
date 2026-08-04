@@ -59,6 +59,12 @@ const SAME_AS_ENGLISH_OK = {
   "settings-lan-port": ["de", "fr", "id", "pl"], // "Port" is borrowed as-is
   "settings-ok": ["de", "fr", "id", "it", "ja", "nl", "pl", "pt-BR", "vi"], // "OK" is borrowed
   "transport-pause": ["de", "fr"], // "Pause" is the word in both
+  // "Tempo" is the Italian musical term, borrowed wholesale into all of these —
+  // it is what a musician in each of them actually says. (The *category* above
+  // it, `settings-cat-timing`, IS translated in every locale, so the pane is
+  // not a row of English words.)
+  "settings-tempo-section": ["de", "es", "fr", "id", "it", "nl", "pl", "tr"],
+  "rehearsal-col-section": ["fr"], // "Section" is the French word
   // Typographic terms, borrowed rather than translated in these languages.
   "settings-font-system": ["de"],
   "settings-font-sans": ["es"],

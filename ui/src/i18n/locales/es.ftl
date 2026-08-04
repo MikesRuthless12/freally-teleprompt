@@ -211,3 +211,41 @@ settings-dictation-enabled = Escribir mi guion hablando
 settings-dictation-note = Pulsa el botón de grabar situado sobre el guion y lo que digas se escribirá en él. El reconocimiento ocurre en este dispositivo: sin cuenta, sin red y nada de lo que digas se guarda en un archivo. El micrófono solo está abierto mientras grabas. Si el guion se está duplicando en los dispositivos de tu red, las palabras dictadas les llegan según se escriben, igual que todo lo que tecleas.
 settings-dictation-unavailable-model = El modelo de voz no está instalado, así que el dictado no puede funcionar.
 settings-dictation-unavailable-build = El dictado no está disponible en esta versión.
+
+## Musical time (FT-N03 / FT-N04)
+tempo-bar-beat = Compás { $bar } · { $beat }
+tempo-count-in = Entrada { $count }
+
+## Rehearsal and pace (FT-N01 / FT-N05)
+editor-rehearse = Ensayar y cronometrar mi lectura
+pace-behind = { $time } por encima del tiempo
+pace-ahead = { $time } por debajo del tiempo
+rehearsal-title = Informe de ensayo
+rehearsal-empty = Todavía no se ha cronometrado nada. Actívalo, reproduce el guion entero y vuelve a desactivarlo.
+rehearsal-col-section = Sección
+rehearsal-col-planned = Previsto
+rehearsal-col-actual = Real
+rehearsal-col-delta = Diferencia
+rehearsal-unfinished = sin terminar
+rehearsal-suggest = Lo has leído a unos { $to } caracteres por segundo, no a { $from }.
+rehearsal-suggest-apply = Usar esa velocidad
+rehearsal-close = Cerrar
+
+## Timing, calibration and skipped words (FT-N02 / FT-M02)
+settings-cat-timing = Ritmo
+settings-tempo-section = Tempo
+settings-metronome = Reproducir un clic al tempo actual
+settings-metronome-note = Un tic suave en cada pulso mientras el guion se desplaza, acentuado en el primero del compás. La cuenta atrás inicial se convierte en su entrada. La aplicación genera el sonido — no se descarga nada.
+settings-beats-per-bar = Pulsos por compás
+settings-calibration-section = Tu propio tempo
+settings-chars-per-beat = { $value } caracteres por pulso
+settings-chars-per-beat-note = Un tempo se convierte en velocidad de lectura mediante un único número: cuántos caracteres recorres en un pulso. Marca el tempo al que interpretas y se medirá con tu velocidad de lectura en lugar de suponerla.
+settings-tap-tempo = Marcar
+settings-tap-hint = Marca tres veces o más
+settings-tap-bpm = Marcado: { $bpm } BPM
+settings-tap-apply = Usar este tempo
+settings-tap-reset = Volver al valor predeterminado
+settings-skip-section = Palabras que no interpretas
+settings-skip-words = Palabras que omitir
+settings-skip-words-note = Una por línea. Una línea que solo contenga una de ellas — Estribillo, Verso 1, Puente — no cuesta tiempo alguno, así que tu letra sigue cayendo en el compás para el que la escribiste. La misma palabra dentro de una línea real solo se omite a sí misma. Siguen en pantalla, atenuadas, y la lectura en voz alta nunca las dice.
+settings-skip-words-placeholder = Una palabra por línea

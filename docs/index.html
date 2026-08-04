@@ -247,19 +247,28 @@
             document.getElementById("dl-real").hidden = false;
             document.getElementById("dl-none").hidden = true;
 
+            // Thousands separated with a COMMA, always — `toLocaleString()`
+            // with no argument formats in the VISITOR's locale, so the same
+            // number rendered as "99,408" here, "99.408" in Germany and
+            // "99 408" in France. Pinning to en-US keeps one published figure
+            // reading the same way for everyone who is quoted it.
+            var group = function (n) {
+              return n.toLocaleString("en-US");
+            };
+
             var total = 0;
             var parts = OS.map(function (pair) {
               var n = assets.reduce(function (sum, a) {
                 return pair[1].test(a.name) ? sum + (a.download_count || 0) : sum;
               }, 0);
               total += n;
-              return '<span class="dl-stats-os">' + pair[0] + " <b>" + n.toLocaleString() + "</b></span>";
+              return '<span class="dl-stats-os">' + pair[0] + " <b>" + group(n) + "</b></span>";
             });
             if (total > 0) {
               var stats = document.getElementById("dl-stats");
               stats.innerHTML =
                 '<span class="dl-stats-total"><strong>' +
-                total.toLocaleString() +
+                group(total) +
                 "</strong> Total Downloads</span>" +
                 parts.join("");
               stats.hidden = false;

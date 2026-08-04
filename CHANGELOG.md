@@ -11,6 +11,63 @@ and `docs/changelog.html` together — they are two renderings of the same histo
 
 _Nothing yet._
 
+## [1.4.0] — 2026-08-04
+
+Getting the script in, and finding your way around it.
+
+### Added
+
+- **Open the file you were sent.** Until now the only ways text reached the
+  prompter were typing and pasting, which is not how any script arrives.
+  **Import** on the toolbar reads **Word (`.docx`), RTF, PDF, plain text and
+  Markdown** and turns them into clean prompter text: paragraphs kept, bold and
+  fonts and colours flattened, curly quotes and em dashes and ellipses
+  normalised, and a file saved in the wrong encoding read and reported rather
+  than shown as mojibake.
+  - **It tells you what it could not bring across** — pictures, footnotes,
+    comments, headers and footers, link addresses, embedded objects, each with
+    a count. A converter that dropped them quietly is one you find out about on
+    a shoot.
+  - **Nothing is saved until you say so.** You see the text and the report,
+    name the script, and only then does a file appear in your library — and an
+    import will never overwrite a script that already exists.
+  - Normalising a dash can never invent a pause: a typeset `—` becomes an
+    ordinary hyphen, and two of them in a row do not turn into this app's
+    ` -- ` caesura token. A `.txt` you wrote with real caesuras keeps them.
+- **Section markers, with a jump list.** Any line beginning `#` — `# Verse 2`,
+  `# Q&A` — is a landmark, as is any line that is one of your skip words
+  (`[Chorus]`, `Bridge`). They appear in a jump list beside the seek bar, are
+  ruled onto the bar itself, and **next / previous** walk them. Nothing to
+  configure, and an imported Markdown script arrives with its list already
+  built.
+  - Previous goes to the top of the section you are in, then past it — the way
+    a previous-track button behaves.
+- **Find and replace** (`Ctrl+F`), scoped to the open script: a live match
+  count, match case, whole words only, replace and replace-all. The current
+  match is lit in the editor without taking your typing out of the search box,
+  and a replace-all is a **single** press of Ctrl+Z.
+- **Script statistics**, under the read-time estimate: word count, character
+  count, and a warning when a line is long enough to be a wrapped paragraph.
+  The counts are of what is actually **performed** — skipped labels and pause
+  tokens are left out, so they agree with the duration beside them.
+
+### Changed
+
+- The rehearsal report's sections now split on markers as well as skip labels,
+  so a script written with `#` headings rehearses section by section with no
+  keywords configured. A section is named without its decoration: `[Verse 1]`
+  reports as *Verse 1*.
+
+### Security
+
+- Every document parser runs in a **separate process**. Three of the five
+  formats are read by third-party crates over a file the app did not write, and
+  release builds abort on panic — so a malformed PDF would otherwise have taken
+  the prompter down mid-read. It also gives the work a time limit and keeps a
+  runaway parser's memory out of the app.
+- The import's temporary file is created in a freshly-made directory with an
+  unguessable name, and on Unix one only its owner can enter.
+
 ## [1.3.0] — 2026-08-03
 
 Reading to time — and the words that shouldn't count.

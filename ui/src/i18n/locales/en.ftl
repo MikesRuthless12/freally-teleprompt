@@ -9,6 +9,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Scripts
+toolbar-import = Import
+toolbar-find = Find
 toolbar-projector = Projector
 toolbar-settings = Settings
 toolbar-about = About
@@ -251,3 +253,55 @@ settings-skip-section = Words you do not perform
 settings-skip-words = Words to skip
 settings-skip-words-note = One per line. A line that is nothing but one of these — Chorus, Verse 1, Bridge — costs no time at all, so your lyrics stay on the bar you wrote them for. The same word inside a real line skips only itself. They stay on screen, dimmed, and read-aloud never says them.
 settings-skip-words-placeholder = One word per line
+
+## Document import (FT-M01)
+import-title = Import a document
+import-choose = Choose a document...
+import-hint = Word, RTF, PDF, plain text or Markdown.
+import-filter = Documents
+import-reading = Reading the document...
+import-format-txt = plain text
+import-format-markdown = Markdown
+import-format-docx = Word document
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = Read { $format }: { $chars } characters in { $paragraphs } paragraphs.
+import-flattened = Bold, italics, fonts and colours were flattened to prompter text.
+import-truncated = The document was longer than a script can be and was cut short.
+import-nothing-dropped = Nothing else was left behind.
+import-drop-encoding = The file was not saved as Unicode; it was read as Western European text.
+import-drop-images = Pictures left out: { $count }
+import-drop-footnotes = Footnotes left out: { $count }
+import-drop-comments = Comments left out: { $count }
+import-drop-headersFooters = Headers and footers left out: { $count }
+import-drop-linkTargets = Link addresses left out (the words stay): { $count }
+import-drop-objects = Embedded objects left out: { $count }
+import-preview = The prompter text
+import-name = Save as
+import-confirm = Import
+import-cancel = Cancel
+
+## Find and replace (FT-M07)
+find-title = Find and replace
+find-what = Find
+find-with = Replace with
+find-case = Match case
+find-whole-word = Whole words only
+find-count = { $at } of { $total }
+find-none = No matches
+find-replaced = Replaced { $count }
+find-previous = Previous
+find-next = Next
+find-replace = Replace
+find-replace-all = Replace all
+find-close = Close
+
+## Section markers (FT-M05)
+marker-list = Jump to a section
+marker-previous = Previous section
+marker-next = Next section
+marker-none-yet = Before the first marker
+
+## Script statistics (FT-M03)
+stats-counts = { $words } words, { $chars } characters
+stats-long-line = Line { $line } is very long ({ $chars } characters)

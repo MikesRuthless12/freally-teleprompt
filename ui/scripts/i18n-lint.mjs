@@ -41,6 +41,16 @@ const SOURCE = "en";
  */
 const SAME_AS_ENGLISH_OK = {
   "app-name": "*", // a product name, identical everywhere on purpose
+  // File-format names. These are not English words that happen to be
+  // untranslated — `PDF` and `RTF` are initialisms of the format itself and
+  // `Markdown` is a product name, and all three appear verbatim in the file
+  // dialogs and documentation of every locale we ship. `import-format-txt` and
+  // `-docx` are NOT here: "plain text" and "Word document" are descriptions,
+  // and each locale translates them.
+  "import-format-markdown": "*",
+  "import-format-rtf": "*",
+  "import-format-pdf": "*",
+  "import-filter": ["fr"], // "Documents" is the word in French too
   "projector-window-title": ["nl"], // the product name plus a Dutch cognate
   "about-copyright": ["ja", "ko"], // the legal phrase is left in English
   "about-version": ["de", "fr"], // "Version" is the word in both

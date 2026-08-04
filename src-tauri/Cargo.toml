@@ -25,6 +25,12 @@ chrono = { workspace = true }
 rfd = { workspace = true }
 # The LAN mirror's per-session key (FT-12).
 getrandom = { workspace = true }
+# Document import (FT-M01). Used only inside the `--import` child process —
+# see the workspace manifest for why that isolation is not optional.
+zip = { workspace = true }
+quick-xml = { workspace = true }
+pulldown-cmark = { workspace = true }
+pdf-extract = { workspace = true }
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"

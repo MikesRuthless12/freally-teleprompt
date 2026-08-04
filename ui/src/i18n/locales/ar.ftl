@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = النصوص
+toolbar-import = استيراد
+toolbar-find = بحث
 toolbar-projector = فتح جهاز العرض
 toolbar-settings = الإعدادات
 toolbar-about = حول
@@ -249,3 +251,55 @@ settings-skip-section = كلمات لا تؤديها
 settings-skip-words = كلمات تُتخطّى
 settings-skip-words-note = واحدة في كل سطر. السطر الذي لا يحوي سوى إحداها — اللازمة، المقطع 1، الجسر — لا يكلّف وقتًا البتة، فتبقى كلماتك على المازورة التي كتبتها لها. الكلمة نفسها داخل سطر حقيقي تتخطى نفسها فقط. تظل ظاهرة على الشاشة بلون باهت، والقراءة الجهرية لا تنطقها أبدًا.
 settings-skip-words-placeholder = كلمة واحدة في كل سطر
+
+## Document import (FT-M01)
+import-title = استيراد مستند
+import-choose = اختيار مستند...
+import-hint = Word أو RTF أو PDF أو نص عادي أو Markdown.
+import-filter = المستندات
+import-reading = جارٍ قراءة المستند...
+import-format-txt = نص عادي
+import-format-markdown = Markdown
+import-format-docx = مستند Word
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = تمت قراءة { $format }: { $chars } حرفًا في { $paragraphs } فقرة.
+import-flattened = جرى تبسيط الخط العريض والمائل والخطوط والألوان إلى نص عادي للملقّن.
+import-truncated = كان المستند أطول مما يسمح به النص، فتم اقتطاعه.
+import-nothing-dropped = لم يُترك شيء آخر.
+import-drop-encoding = لم يُحفظ الملف بترميز يونيكود، فقُرئ على أنه نص أوروبي غربي.
+import-drop-images = الصور المتروكة: { $count }
+import-drop-footnotes = الحواشي المتروكة: { $count }
+import-drop-comments = التعليقات المتروكة: { $count }
+import-drop-headersFooters = الرؤوس والتذييلات المتروكة: { $count }
+import-drop-linkTargets = عناوين الروابط المتروكة (يبقى النص): { $count }
+import-drop-objects = الكائنات المضمَّنة المتروكة: { $count }
+import-preview = نص الملقّن
+import-name = حفظ باسم
+import-confirm = استيراد
+import-cancel = إلغاء
+
+## Find and replace (FT-M07)
+find-title = بحث واستبدال
+find-what = بحث
+find-with = استبدال بـ
+find-case = مطابقة حالة الأحرف
+find-whole-word = الكلمات الكاملة فقط
+find-count = { $at } من { $total }
+find-none = لا توجد نتائج
+find-replaced = جرى استبدال { $count }
+find-previous = السابق
+find-next = التالي
+find-replace = استبدال
+find-replace-all = استبدال الكل
+find-close = إغلاق
+
+## Section markers (FT-M05)
+marker-list = الانتقال إلى قسم
+marker-previous = القسم السابق
+marker-next = القسم التالي
+marker-none-yet = قبل أول علامة
+
+## Script statistics (FT-M03)
+stats-counts = { $words } كلمة، { $chars } حرفًا
+stats-long-line = السطر { $line } طويل جدًا ({ $chars } حرفًا)

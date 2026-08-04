@@ -378,6 +378,51 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   The marker jump controls (FT-M05).
+
+   Written here rather than as utility classes for one reason: a native
+   `<select>` renders with the OS's own colours unless it is told otherwise, so
+   on the dark palette an unstyled jump list is black text on a white box in the
+   middle of a near-black window. The `option` rule matters as much as the
+   `select` one — Chromium draws the open popup from the OPTION's own colours,
+   not the select's, so styling only the closed control leaves the list itself
+   unreadable the moment it opens.
+
+   Both use the theme's variables rather than white-alpha utilities, so they
+   need no light re-tint below: the variables are what change between palettes.
+   --------------------------------------------------------------------------- */
+
+.marker-select,
+.marker-step {
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-havoc-accent);
+  background: var(--color-havoc-panel);
+  color: var(--color-havoc-text);
+  font-size: 11px;
+  padding: 0.125rem 0.375rem;
+  line-height: 1.5;
+}
+
+.marker-select {
+  max-width: 12rem;
+}
+
+.marker-select option {
+  background: var(--color-havoc-panel);
+  color: var(--color-havoc-text);
+}
+
+.marker-step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.marker-step:not(:disabled):hover {
+  background: var(--color-havoc-accent);
+  color: var(--color-havoc-bg);
+}
+
+/* ---------------------------------------------------------------------------
    Light-theme re-tints.
 
    The app is drawn with translucent WHITE over near-black. In the light theme

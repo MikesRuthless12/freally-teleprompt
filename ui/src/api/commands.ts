@@ -5,6 +5,7 @@ import type {
   BugReportTarget,
   DisplayInfo,
   EulaStatus,
+  ImportResult,
   MirrorStatus,
   ScriptInfo,
   Settings,
@@ -95,6 +96,19 @@ export const scriptsRename = (from: string, to: string): Promise<void> =>
   invoke("scripts_rename", { from, to });
 
 export const scriptsDelete = (name: string): Promise<void> => invoke("scripts_delete", { name });
+
+// -- document import (FT-M01) -------------------------------------------------
+
+/**
+ * Convert a `.docx` / `.rtf` / `.pdf` / `.txt` / Markdown file to prompter text.
+ *
+ * Saves nothing: it hands back the text and a report of what was dropped, and
+ * the dialog decides whether that becomes a script. Rust runs the parse in a
+ * **child process** — see `import.rs` for why that is not optional — so a
+ * malformed document is a rejected import rather than a dead app.
+ */
+export const importDocument = (path: string): Promise<ImportResult> =>
+  invoke("import_document", { path });
 
 // -- the projector + LAN mirror (FT-12) --------------------------------------
 

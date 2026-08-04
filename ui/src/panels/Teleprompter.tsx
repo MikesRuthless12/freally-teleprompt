@@ -4,6 +4,7 @@ import type { TeleprompterState } from "../api/types";
 import { useT } from "../i18n/t";
 import { type Caesura, liveOffset, timeAtOffset, timedRegions, visibleChars } from "../lib/caesura";
 import { fontStack } from "../lib/fonts";
+import type { Marker } from "../lib/markers";
 import { barLineTimes } from "../lib/tempo";
 import { fmtTime } from "../lib/time";
 
@@ -370,6 +371,7 @@ export function TeleprompterSeekBar({
   overrideOffset,
   onDark = false,
   bars,
+  markers = [],
 }: {
   state: TeleprompterState;
   caesuras: Caesura[];
@@ -383,6 +385,8 @@ export function TeleprompterSeekBar({
    * Only meaningful when the operator is working to a tempo, which is why the
    * shell passes it conditionally rather than the bar deciding for itself. */
   bars?: { bpm: number; beatsPerBar: number };
+  /** Section markers to mark on the track (FT-M05). */
+  markers?: readonly Marker[];
 }) {
   const t = useT();
   // Memoised: the component re-renders every animation frame while playing, and
@@ -562,6 +566,26 @@ export function TeleprompterSeekBar({
               aria-hidden="true"
               className="pointer-events-none absolute inset-y-0 w-px bg-white/45"
               style={{ left: `${frac * 100}%` }}
+            />
+          ))}
+          {/* Section markers (FT-M05). Placed by CHARACTER, not by time — the
+              opposite of the bar lines above, and deliberately so: a bar is a
+              musical duration and moves when a caesura holds the scroll, while
+              a marker is a place in the text and does not. Drawn taller than
+              the track so it reads as a landmark rather than as ruling.
+
+              Decorative, and named nowhere here: the track already shows the
+              words at the hovered point, and the jump list beside it is where
+              a marker's name is read and where a keyboard reaches one. A
+              tooltip would need pointer events, which would put a dead spot in
+              the middle of a scrubber. */}
+          {markers.map((marker) => (
+            <div
+              key={`marker-${marker.index}`}
+              data-testid="seek-marker"
+              aria-hidden="true"
+              className="border-havoc-accent pointer-events-none absolute -inset-y-1 border-l-2"
+              style={{ left: `${Math.min(1, marker.offset / total) * 100}%` }}
             />
           ))}
           <div

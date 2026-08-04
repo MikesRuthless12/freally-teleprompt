@@ -56,8 +56,25 @@ export type MockState = {
   /** Which table the editor completes against (FT-20); `"auto"` follows the UI
    * language. Set it explicitly to test a script written in another language. */
   autocompleteLanguage?: string;
-  /** The library listing `scripts_list` returns (FT-10). */
+  /** The library listing `scripts_list` returns (FT-10). Also what
+   * `scripts_create` refuses to overwrite — see its case below. */
   scripts?: { name: string; bytes: number; modifiedMs: number }[];
+  /** The path the file chooser hands back (FT-M01). Undefined means the
+   * operator cancelled, which is what every platform reports as null. */
+  importPick?: string;
+  /** What `import_document` resolves with. Absent means it REJECTS, which is
+   * how a spec reaches the failed-import path. */
+  importResult?: {
+    text: string;
+    suggestedName: string;
+    report: {
+      format: string;
+      chars: number;
+      paragraphs: number;
+      dropped: { kind: string; count: number }[];
+      truncated: boolean;
+    };
+  };
   /** Which script is open (`recentScripts[0]`). */
   currentScript?: string;
   /** The displays `list_displays` returns (FT-12). */
@@ -205,6 +222,12 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       detail: "dictation is not available in this build",
     },
     windowLabel: state.windowLabel ?? null,
+    // `null`, not undefined, for the same reason `pendingCrash` is: this
+    // payload crosses into the page as JSON, and an undefined would vanish on
+    // the way. `importPick: null` is a CANCELLED file chooser, which is a real
+    // state a spec asks for — so it has to survive the crossing.
+    importPick: state.importPick ?? null,
+    importResult: state.importResult ?? null,
     // `null`, not undefined: this crosses into the page as JSON, where
     // undefined would vanish and `bug_report_pending` would fall through to
     // the catch-all instead of answering "no crash".
@@ -252,7 +275,6 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       bug_report_pending: data.pendingCrash,
       scripts_list: data.scripts,
       scripts_save: null,
-      scripts_create: null,
       scripts_rename: null,
       scripts_delete: null,
       list_displays: data.displays,
@@ -284,6 +306,30 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
         calls.push({ cmd, args });
 
         switch (cmd) {
+          // The file chooser (FT-M01). Every platform returns null when the
+          // dialog is cancelled, so `null` is the state a spec sets to test
+          // that path — it must be a no-op, not an error.
+          case "plugin:dialog|open":
+            return Promise.resolve(data.importPick);
+          case "import_document":
+            return data.importResult
+              ? Promise.resolve(data.importResult)
+              : Promise.reject("that document could not be read");
+          // ⚠️ Rejects on a name that is already in the library, exactly as
+          // Rust's `create_in` does. Returning a bare null (as this used to)
+          // meant no spec could reach the "a script called X already exists"
+          // path — and import is the first feature that walks into it, because
+          // it names a script after a file the operator did not choose.
+          case "scripts_create": {
+            const name = String(args.name ?? "");
+            return (data.scripts ?? []).some((script) => script.name === name)
+              ? // A bare string, not an Error: Rust commands return `Err(String)`
+                // and Tauri rejects with exactly that, so a mock that rejected
+                // with an Error would put an "Error: " prefix in front of every
+                // message the app displays under test and nowhere else.
+                Promise.reject(`a script called ${name} already exists`)
+              : Promise.resolve(null);
+          }
           case "teleprompter_get":
             return Promise.resolve({ ...engine });
           case "teleprompter_set_script":

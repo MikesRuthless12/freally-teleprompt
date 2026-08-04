@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Scripts
+toolbar-import = Importeren
+toolbar-find = Zoeken
 toolbar-projector = Projector openen
 toolbar-settings = Instellingen
 toolbar-about = Over
@@ -249,3 +251,55 @@ settings-skip-section = Woorden die je niet uitvoert
 settings-skip-words = Over te slaan woorden
 settings-skip-words-note = Eén per regel. Een regel die alleen uit zo'n woord bestaat — Refrein, Couplet 1, Brug — kost helemaal geen tijd, zodat je tekst op de maat blijft waarvoor je hem schreef. Hetzelfde woord midden in een echte regel slaat alleen zichzelf over. Ze blijven gedimd in beeld, en het voorlezen spreekt ze nooit uit.
 settings-skip-words-placeholder = Eén woord per regel
+
+## Document import (FT-M01)
+import-title = Een document importeren
+import-choose = Een document kiezen...
+import-hint = Word, RTF, PDF, platte tekst of Markdown.
+import-filter = Documenten
+import-reading = Document wordt gelezen...
+import-format-txt = platte tekst
+import-format-markdown = Markdown
+import-format-docx = Word-document
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = { $format } gelezen: { $chars } tekens in { $paragraphs } alinea's.
+import-flattened = Vet, cursief, lettertypen en kleuren zijn teruggebracht tot platte tekst.
+import-truncated = Het document was langer dan een script mag zijn en is ingekort.
+import-nothing-dropped = Er is verder niets weggelaten.
+import-drop-encoding = Het bestand was niet als Unicode opgeslagen en is gelezen als West-Europese tekst.
+import-drop-images = Weggelaten afbeeldingen: { $count }
+import-drop-footnotes = Weggelaten voetnoten: { $count }
+import-drop-comments = Weggelaten opmerkingen: { $count }
+import-drop-headersFooters = Weggelaten kop- en voetteksten: { $count }
+import-drop-linkTargets = Weggelaten linkadressen (de tekst blijft): { $count }
+import-drop-objects = Weggelaten ingesloten objecten: { $count }
+import-preview = De autocuetekst
+import-name = Opslaan als
+import-confirm = Importeren
+import-cancel = Annuleren
+
+## Find and replace (FT-M07)
+find-title = Zoeken en vervangen
+find-what = Zoeken
+find-with = Vervangen door
+find-case = Hoofdlettergevoelig
+find-whole-word = Alleen hele woorden
+find-count = { $at } van { $total }
+find-none = Geen resultaten
+find-replaced = { $count } vervangen
+find-previous = Vorige
+find-next = Volgende
+find-replace = Vervangen
+find-replace-all = Alles vervangen
+find-close = Sluiten
+
+## Section markers (FT-M05)
+marker-list = Naar een sectie springen
+marker-previous = Vorige sectie
+marker-next = Volgende sectie
+marker-none-yet = Vóór de eerste markering
+
+## Script statistics (FT-M03)
+stats-counts = { $words } woorden, { $chars } tekens
+stats-long-line = Regel { $line } is erg lang ({ $chars } tekens)

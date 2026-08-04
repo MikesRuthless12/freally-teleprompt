@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Guiones
+toolbar-import = Importar
+toolbar-find = Buscar
 toolbar-projector = Abrir proyector
 toolbar-settings = Ajustes
 toolbar-about = Acerca de
@@ -249,3 +251,55 @@ settings-skip-section = Palabras que no interpretas
 settings-skip-words = Palabras que omitir
 settings-skip-words-note = Una por línea. Una línea que solo contenga una de ellas — Estribillo, Verso 1, Puente — no cuesta tiempo alguno, así que tu letra sigue cayendo en el compás para el que la escribiste. La misma palabra dentro de una línea real solo se omite a sí misma. Siguen en pantalla, atenuadas, y la lectura en voz alta nunca las dice.
 settings-skip-words-placeholder = Una palabra por línea
+
+## Document import (FT-M01)
+import-title = Importar un documento
+import-choose = Elegir un documento...
+import-hint = Word, RTF, PDF, texto sin formato o Markdown.
+import-filter = Documentos
+import-reading = Leyendo el documento...
+import-format-txt = texto sin formato
+import-format-markdown = Markdown
+import-format-docx = documento de Word
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = Se leyó { $format }: { $chars } caracteres en { $paragraphs } párrafos.
+import-flattened = La negrita, la cursiva, las tipografías y los colores se convirtieron en texto simple.
+import-truncated = El documento era más largo de lo que puede ser un guion y se recortó.
+import-nothing-dropped = No se perdió nada más.
+import-drop-encoding = El archivo no estaba guardado en Unicode; se leyó como texto de Europa occidental.
+import-drop-images = Imágenes omitidas: { $count }
+import-drop-footnotes = Notas al pie omitidas: { $count }
+import-drop-comments = Comentarios omitidos: { $count }
+import-drop-headersFooters = Encabezados y pies omitidos: { $count }
+import-drop-linkTargets = Direcciones de enlaces omitidas (el texto se mantiene): { $count }
+import-drop-objects = Objetos incrustados omitidos: { $count }
+import-preview = El texto del teleprónter
+import-name = Guardar como
+import-confirm = Importar
+import-cancel = Cancelar
+
+## Find and replace (FT-M07)
+find-title = Buscar y reemplazar
+find-what = Buscar
+find-with = Reemplazar con
+find-case = Distinguir mayúsculas
+find-whole-word = Solo palabras completas
+find-count = { $at } de { $total }
+find-none = Sin coincidencias
+find-replaced = Se reemplazaron { $count }
+find-previous = Anterior
+find-next = Siguiente
+find-replace = Reemplazar
+find-replace-all = Reemplazar todo
+find-close = Cerrar
+
+## Section markers (FT-M05)
+marker-list = Ir a una sección
+marker-previous = Sección anterior
+marker-next = Sección siguiente
+marker-none-yet = Antes del primer marcador
+
+## Script statistics (FT-M03)
+stats-counts = { $words } palabras, { $chars } caracteres
+stats-long-line = La línea { $line } es muy larga ({ $chars } caracteres)

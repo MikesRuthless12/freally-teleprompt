@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Kịch bản
+toolbar-import = Nhập
+toolbar-find = Tìm
 toolbar-projector = Mở máy chiếu
 toolbar-settings = Cài đặt
 toolbar-about = Giới thiệu
@@ -249,3 +251,55 @@ settings-skip-section = Những từ bạn không trình diễn
 settings-skip-words = Từ cần bỏ qua
 settings-skip-words-note = Mỗi dòng một từ. Một dòng chỉ gồm đúng một trong số đó — Điệp khúc, Lời 1, Đoạn nối — hoàn toàn không tốn thời gian, nên lời hát vẫn rơi đúng ô nhịp bạn đã viết. Chính từ đó nằm giữa một dòng thật thì chỉ bỏ qua bản thân nó. Chúng vẫn hiện mờ trên màn hình, và phần đọc to không bao giờ đọc chúng.
 settings-skip-words-placeholder = Mỗi dòng một từ
+
+## Document import (FT-M01)
+import-title = Nhập một tài liệu
+import-choose = Chọn một tài liệu...
+import-hint = Word, RTF, PDF, văn bản thuần hoặc Markdown.
+import-filter = Tài liệu
+import-reading = Đang đọc tài liệu...
+import-format-txt = văn bản thuần
+import-format-markdown = Markdown
+import-format-docx = tài liệu Word
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = Đã đọc { $format }: { $chars } ký tự trong { $paragraphs } đoạn.
+import-flattened = Chữ đậm, nghiêng, phông chữ và màu sắc đã được rút gọn thành văn bản thuần.
+import-truncated = Tài liệu dài hơn mức một kịch bản cho phép và đã bị cắt bớt.
+import-nothing-dropped = Không có gì khác bị bỏ lại.
+import-drop-encoding = Tệp không được lưu ở dạng Unicode; nó được đọc như văn bản Tây Âu.
+import-drop-images = Hình ảnh bị bỏ qua: { $count }
+import-drop-footnotes = Chú thích cuối trang bị bỏ qua: { $count }
+import-drop-comments = Nhận xét bị bỏ qua: { $count }
+import-drop-headersFooters = Đầu trang và chân trang bị bỏ qua: { $count }
+import-drop-linkTargets = Địa chỉ liên kết bị bỏ qua (phần chữ vẫn còn): { $count }
+import-drop-objects = Đối tượng nhúng bị bỏ qua: { $count }
+import-preview = Văn bản nhắc lời
+import-name = Lưu thành
+import-confirm = Nhập
+import-cancel = Hủy
+
+## Find and replace (FT-M07)
+find-title = Tìm và thay thế
+find-what = Tìm
+find-with = Thay bằng
+find-case = Phân biệt hoa thường
+find-whole-word = Chỉ nguyên từ
+find-count = { $at } trên { $total }
+find-none = Không có kết quả
+find-replaced = Đã thay { $count }
+find-previous = Trước
+find-next = Tiếp
+find-replace = Thay thế
+find-replace-all = Thay tất cả
+find-close = Đóng
+
+## Section markers (FT-M05)
+marker-list = Nhảy đến một phần
+marker-previous = Phần trước
+marker-next = Phần tiếp theo
+marker-none-yet = Trước dấu mốc đầu tiên
+
+## Script statistics (FT-M03)
+stats-counts = { $words } từ, { $chars } ký tự
+stats-long-line = Dòng { $line } rất dài ({ $chars } ký tự)

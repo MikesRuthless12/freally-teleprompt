@@ -4,6 +4,10 @@ ROADMAP.md
 BUILD-PROMPTS.md
 Live-To-Do-List.md
 Freally-Teleprompt-Feature-Roadmap.md
+# The session handoff belongs with them: it is a private working note, and it
+# names unbuilt features, unfixed weaknesses and the traps each release paid
+# for — none of which belongs in a public repository.
+HANDOFF.md
 # Belt and braces: any future planning/competition doc following the family's
 # naming conventions is ignored by default rather than by memory.
 *Feature-Roadmap.md

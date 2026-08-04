@@ -18,24 +18,26 @@
  *
  * # Sections
  *
- * A section starts at a **skip label** — `Chorus`, `[Verse 1]`, `## Bridge` —
- * or, where there are none, at a **blank line**.
+ * A section starts at a **marker** — `# Verse 2`, `Chorus`, `[Verse 1]`,
+ * `## Bridge` — or, where there are none, at a **blank line**.
  *
  * Both, because either alone gets a real script wrong. Blank lines alone are
  * the obvious rule and they fail on exactly the user this phase was built for:
  * a lyric sheet written `[Verse 1]` / lyrics / `[Chorus]` / lyrics with no
- * blank lines rehearses as ONE section and produces a one-row report. Labels
- * alone fail on prose, which has no labels at all. Taking the labels first and
+ * blank lines rehearses as ONE section and produces a one-row report. Markers
+ * alone fail on prose, which has none at all. Taking the markers first and
  * falling back means a script gets the better answer it has the information
  * for.
  *
- * Note this reuses FT-M02's own matcher (`isLabelLine`) rather than inventing a
- * marker syntax. `FT-M05`'s named markers are not built; when they are, they
- * become a jump list over boundaries that already exist rather than a fourth
- * parser to reconcile.
+ * The boundary test is `markers.ts`'s `isMarkerLine`, which is the same
+ * question FT-M05's jump list asks — so a rehearsal row and a jump-list entry
+ * can never disagree about where Verse 2 starts. It began as FT-M02's
+ * `isLabelLine` alone; FT-M05 widened it to `#` headings and both features read
+ * the widened one, rather than a second matcher growing up beside it.
  */
 
-import { type Caesura, isLabelLine, normaliseKeywords, timeAtOffset } from "./caesura";
+import { type Caesura, normaliseKeywords, timeAtOffset } from "./caesura";
+import { isMarkerLine, markerName } from "./markers";
 // The engine's own clamps, imported rather than re-declared, so a suggested
 // speed is never one the engine would refuse.
 import { SPEED_MAX, SPEED_MIN } from "./speed";
@@ -86,9 +88,12 @@ export type SectionTiming = {
 export function sections(script: string, skipWords: readonly string[] = []): Section[] {
   const keywords = normaliseKeywords(skipWords);
   const lines = script.split("\n");
-  // Labels win where the script has any; blank lines are the fallback for a
-  // script that does not use them (prose, or a user with no keywords set).
-  const byLabel = keywords.length > 0 && lines.some((line) => isLabelLine(line, keywords));
+  // Markers win where the script has any; blank lines are the fallback for a
+  // script that does not use them (prose, or a user with no keywords set and no
+  // headings). No keyword requirement any more — a `# Verse 2` heading is a
+  // marker on its own, which is what makes an imported Markdown script rehearse
+  // section by section without the operator configuring anything first.
+  const byLabel = lines.some((line) => isMarkerLine(line, keywords));
 
   const out: Section[] = [];
   let vis = 0;
@@ -108,13 +113,15 @@ export function sections(script: string, skipWords: readonly string[] = []): Sec
 
   for (const line of lines) {
     const width = Array.from(line).length;
-    if (byLabel && isLabelLine(line, keywords)) {
-      // The label ENDS the section before it and NAMES the one after, and its
-      // own characters belong to neither: they cost no time (FT-M02), so
-      // counting them into a section would credit it with a span the scroll
-      // crosses in an instant.
+    if (byLabel && isMarkerLine(line, keywords)) {
+      // The marker ENDS the section before it and NAMES the one after, and its
+      // own characters belong to neither. Where it is also a skipped label they
+      // cost no time at all (FT-M02), so counting them into a section would
+      // credit it with a span the scroll crosses in an instant; where it is a
+      // plain `#` heading they cost the little the heading takes, which belongs
+      // to no section either — it is the sign on the door, not the room.
       close(vis);
-      label = line.trim();
+      label = markerName(line);
       vis += width;
       start = vis;
       continue;

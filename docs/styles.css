@@ -70,11 +70,18 @@ body {
   font-size: 1.1rem;
 }
 
-/* Real per-OS download counts from GitHub (see index.html script). */
+/* Real per-OS download counts from GitHub (see index.html script).
+ *
+ * One row, one type size, one baseline. The total used to be set 1.15rem
+ * against the per-OS items' 0.9rem, which made it sit visibly proud of the
+ * three beside it — a headline number in the middle of what is meant to read
+ * as a single line of statistics. It keeps the accent colour, which is enough
+ * to mark it as the total without breaking the line. */
 .dl-stats {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: baseline;
   gap: 0.5rem 1.25rem;
   margin: 1.25rem auto 0;
   font-size: 0.9rem;
@@ -82,7 +89,7 @@ body {
 }
 .dl-stats-total strong {
   color: var(--accent-2);
-  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
 }
 .dl-stats-os b {
   color: var(--text, #e8eefc);

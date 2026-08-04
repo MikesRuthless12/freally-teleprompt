@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Сценарії
+toolbar-import = Імпорт
+toolbar-find = Пошук
 toolbar-projector = Відкрити проєктор
 toolbar-settings = Налаштування
 toolbar-about = Про програму
@@ -249,3 +251,55 @@ settings-skip-section = Слова, які ви не виконуєте
 settings-skip-words = Пропущені слова
 settings-skip-words-note = По одному в рядку. Рядок, що складається лише з такого слова — Приспів, Куплет 1, Брідж — не коштує жодного часу, тож текст лишається на тому такті, для якого написаний. Те саме слово всередині справжнього рядка пропускає лише себе. Вони лишаються на екрані приглушеними, і читання вголос їх ніколи не вимовляє.
 settings-skip-words-placeholder = По одному слову в рядку
+
+## Document import (FT-M01)
+import-title = Імпорт документа
+import-choose = Вибрати документ...
+import-hint = Word, RTF, PDF, звичайний текст або Markdown.
+import-filter = Документи
+import-reading = Читання документа...
+import-format-txt = звичайний текст
+import-format-markdown = Markdown
+import-format-docx = документ Word
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = Прочитано ({ $format }): { $chars } символів у { $paragraphs } абзацах.
+import-flattened = Напівжирний, курсив, шрифти й кольори зведено до простого тексту.
+import-truncated = Документ виявився довшим, ніж дозволено для сценарію, і його обрізано.
+import-nothing-dropped = Більше нічого не втрачено.
+import-drop-encoding = Файл збережено не в Unicode; його прочитано як західноєвропейський текст.
+import-drop-images = Пропущено зображень: { $count }
+import-drop-footnotes = Пропущено виносок: { $count }
+import-drop-comments = Пропущено коментарів: { $count }
+import-drop-headersFooters = Пропущено колонтитулів: { $count }
+import-drop-linkTargets = Пропущено адрес посилань (текст залишився): { $count }
+import-drop-objects = Пропущено вбудованих об'єктів: { $count }
+import-preview = Текст для суфлера
+import-name = Зберегти як
+import-confirm = Імпортувати
+import-cancel = Скасувати
+
+## Find and replace (FT-M07)
+find-title = Пошук і заміна
+find-what = Знайти
+find-with = Замінити на
+find-case = Враховувати регістр
+find-whole-word = Лише цілі слова
+find-count = { $at } з { $total }
+find-none = Збігів немає
+find-replaced = Замінено: { $count }
+find-previous = Назад
+find-next = Далі
+find-replace = Замінити
+find-replace-all = Замінити все
+find-close = Закрити
+
+## Section markers (FT-M05)
+marker-list = Перейти до розділу
+marker-previous = Попередній розділ
+marker-next = Наступний розділ
+marker-none-yet = До першої позначки
+
+## Script statistics (FT-M03)
+stats-counts = Слів: { $words }, символів: { $chars }
+stats-long-line = Рядок { $line } дуже довгий ({ $chars } символів)

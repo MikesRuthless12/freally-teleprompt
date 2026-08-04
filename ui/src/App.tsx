@@ -19,14 +19,18 @@ import type { EulaStatus, Settings } from "./api/types";
 import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
 import { applySettingsToDocument, getLocale, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor, type CaesuraEditorHandle } from "./components/CaesuraEditor";
+import { MarkerJump } from "./components/MarkerJump";
 import { BUTTON, ERROR_LINE } from "./components/styles";
 import { PaceWarning } from "./components/PaceWarning";
 import { TempoReadout } from "./components/TempoReadout";
 import { ResizeEdges, TitleBar } from "./components/TitleBar";
 import { Transport } from "./components/Transport";
 import { timeAtOffset, timedRegions, visibleChars } from "./lib/caesura";
+import type { Match } from "./lib/find";
+import { markers as findMarkers } from "./lib/markers";
 import { Metronome } from "./lib/metronome";
 import type { Sample } from "./lib/rehearsal";
+import { scriptStats } from "./lib/stats";
 import {
   DEFAULT_CHARS_PER_BEAT,
   bpmFromSpeed,
@@ -42,6 +46,8 @@ import { useTeleprompter } from "./lib/useTeleprompter";
 import { AboutDialog } from "./panels/About";
 import { BugReportDialog } from "./panels/BugReport";
 import { EulaGate } from "./panels/EulaGate";
+import { FindReplace } from "./panels/FindReplace";
+import { ImportDocument } from "./panels/ImportDocument";
 import { ProjectorSetup } from "./panels/ProjectorSetup";
 import { RehearsalReport } from "./panels/Rehearsal";
 import { ScriptLibrary } from "./panels/ScriptLibrary";
@@ -81,6 +87,12 @@ export default function App() {
   const [projectorOpen, setProjectorOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  // Find & replace (FT-M07). The match lives HERE rather than in the dialog
+  // because two surfaces need it: the dialog shows it in context, and the
+  // editor paints it. One owner, so they cannot show different matches.
+  const [findOpen, setFindOpen] = useState(false);
+  const [findMatch, setFindMatch] = useState<Match | null>(null);
   // The script currently open in the library (FT-10), or null for an unsaved
   // scratch script. Autosave only runs when there is somewhere to save TO.
   const [currentScript, setCurrentScript] = useState<string | null>(null);
@@ -254,6 +266,18 @@ export default function App() {
   const estSecs = useMemo(
     () => timeAtOffset(totalChars, state.speed > 0 ? state.speed : 1, caesuras),
     [totalChars, state.speed, caesuras],
+  );
+  // Script statistics (FT-M03) and section markers (FT-M05). Both are O(script)
+  // scans over a value that changes only on an edit, and this component
+  // re-renders on every engine broadcast and again at up to 60Hz while
+  // read-aloud runs — so both are memoised for the same reason `estSecs` is.
+  const stats = useMemo(
+    () => scriptStats(state.script, state.skipWords),
+    [state.script, state.skipWords],
+  );
+  const markers = useMemo(
+    () => findMarkers(state.script, state.skipWords),
+    [state.script, state.skipWords],
   );
 
   // -- speed: chars/sec or BPM (FT-14, calibratable since FT-N02) ------------
@@ -554,6 +578,22 @@ export default function App() {
     [],
   );
 
+  // Ctrl+F / Cmd+F opens find (FT-M07). On the window rather than on the
+  // editor, because the operator reaches for it from wherever they are — and
+  // `preventDefault` is what stops the WebView's own find bar opening on top of
+  // ours, which would search the rendered page (chips, glyphs and all) instead
+  // of the script.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        setFindOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // The app is unusable until the current EULA version is accepted (FT-05).
   // Nothing renders until we know, and a failed query fails CLOSED — a legal
   // gate that opens when it breaks is not a gate.
@@ -607,6 +647,24 @@ export default function App() {
       <header className="flex items-center gap-2 border-b border-white/10 bg-white/[0.03] px-3 py-2">
         <button type="button" className={BUTTON} onClick={() => setLibraryOpen(true)}>
           {t("toolbar-library")}
+        </button>
+        {/* Beside Scripts, because importing is how a script gets INTO the
+            library — the two are one task from the operator's side. */}
+        <button
+          type="button"
+          className={BUTTON}
+          data-testid="toolbar-import"
+          onClick={() => setImportOpen(true)}
+        >
+          {t("toolbar-import")}
+        </button>
+        <button
+          type="button"
+          className={BUTTON}
+          data-testid="toolbar-find"
+          onClick={() => setFindOpen(true)}
+        >
+          {t("toolbar-find")}
         </button>
         <button type="button" className={BUTTON} onClick={() => setProjectorOpen(true)}>
           {t("toolbar-projector")}
@@ -692,11 +750,36 @@ export default function App() {
             )}
             placeholder={t("editor-placeholder")}
             ariaLabelledBy="script-label"
+            highlight={findOpen ? findMatch : null}
             className="text-havoc-text h-full w-full overflow-y-auto rounded-md border border-white/10 bg-white/5 p-2 font-mono text-xs"
           />
           <div className="text-havoc-muted flex items-center justify-between text-[11px]">
             <span>{t("editor-caesura-hint")}</span>
             <span className="font-mono">{t("editor-est-time", { time: fmtTime(estSecs) })}</span>
+          </div>
+          {/* Script statistics (FT-M03), on the line under the duration they
+              belong with. The counts are of what is PERFORMED — see
+              `scriptStats` — so they agree with the estimate beside them
+              rather than quietly counting the labels it ignores. */}
+          <div
+            data-testid="script-stats"
+            className="text-havoc-muted flex items-center justify-between gap-2 text-[11px]"
+          >
+            <span className="font-mono">
+              {t("stats-counts", { words: stats.words, chars: stats.chars })}
+            </span>
+            {stats.longLine && (
+              // The accent, not a fixed amber: a warning colour picked for the
+              // dark palette is unreadable on the light one, and this is a
+              // "worth knowing" rather than an error — `ERROR_LINE`'s red would
+              // say something is wrong, and nothing is.
+              <span data-testid="stats-long-line" className="text-havoc-accent">
+                {t("stats-long-line", {
+                  line: stats.longestLineNumber,
+                  chars: stats.longestLine,
+                })}
+              </span>
+            )}
           </div>
           {saveError && (
             <p role="alert" className={ERROR_LINE}>
@@ -855,16 +938,28 @@ export default function App() {
           <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-white/10">
             <TeleprompterScroller state={state} onSeek={seek} overrideOffset={scrollOverride} />
           </div>
-          {/* Musical time, over the scrubber it refers to. Shown only when the
-              operator is working to a tempo — see `TempoReadout`. */}
-          {tempoShown && (
-            <div className="flex items-center justify-end">
-              <TempoReadout
+          {/* The jump list (FT-M05) and musical time, over the scrubber they
+              both refer to. Each appears only when it has something to say —
+              markers when the script has any, the tempo readout when the
+              operator is working to one. */}
+          {(markers.length > 0 || tempoShown) && (
+            <div className="flex items-center justify-between gap-2">
+              <MarkerJump
+                markers={markers}
                 state={state}
                 caesuras={caesuras}
-                bpm={displayBpm}
-                beatsPerBar={beatsPerBar}
+                overrideOffset={scrollOverride}
+                onSeek={seek}
               />
+              <div className="flex-1" />
+              {tempoShown && (
+                <TempoReadout
+                  state={state}
+                  caesuras={caesuras}
+                  bpm={displayBpm}
+                  beatsPerBar={beatsPerBar}
+                />
+              )}
             </div>
           )}
           <TeleprompterSeekBar
@@ -873,6 +968,7 @@ export default function App() {
             onSeek={seek}
             overrideOffset={scrollOverride}
             bars={tempoShown ? { bpm: displayBpm, beatsPerBar } : undefined}
+            markers={markers}
           />
         </section>
       </main>
@@ -907,6 +1003,34 @@ export default function App() {
         }}
         onRenamed={(from, to) => setCurrentScript((c) => (c === from ? to : c))}
         onDeleted={(name) => setCurrentScript((c) => (c === name ? null : c))}
+      />
+
+      {/* Document import (FT-M01). Creates a NEW script rather than replacing
+          the open one — a file chooser is a mis-click away from destroying
+          whatever is on screen, and `scripts_create` refuses to overwrite. */}
+      <ImportDocument
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={(name) => {
+          setCurrentScript(name);
+          setSaveError(null);
+        }}
+      />
+
+      {/* Find & replace (FT-M07). Both edits go through the EDITOR's handle,
+          not through `onScriptChange`: that is what puts a replacement on the
+          undo stack as one step and lets it reach the engine, the projector and
+          autosave by the same path a keystroke takes. */}
+      <FindReplace
+        open={findOpen}
+        script={state.script}
+        current={findMatch}
+        onCurrent={setFindMatch}
+        onReplace={(match, replacement) =>
+          editor.current?.replaceRange(match.start, match.end, replacement)
+        }
+        onReplaceAll={(text) => editor.current?.setText(text)}
+        onClose={() => setFindOpen(false)}
       />
 
       <ProjectorSetup

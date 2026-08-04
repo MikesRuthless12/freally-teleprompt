@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Scenariusze
+toolbar-import = Importuj
+toolbar-find = Znajdź
 toolbar-projector = Otwórz projektor
 toolbar-settings = Ustawienia
 toolbar-about = O programie
@@ -249,3 +251,55 @@ settings-skip-section = Słowa, których nie wykonujesz
 settings-skip-words = Słowa do pominięcia
 settings-skip-words-note = Jedno w wierszu. Wiersz zawierający tylko jedno z nich — Refren, Zwrotka 1, Przejście — nie kosztuje żadnego czasu, więc tekst nadal trafia w takt, dla którego go napisałeś. To samo słowo wewnątrz prawdziwego wiersza pomija tylko siebie. Pozostają na ekranie, przygaszone, a czytanie na głos nigdy ich nie wypowiada.
 settings-skip-words-placeholder = Jedno słowo w wierszu
+
+## Document import (FT-M01)
+import-title = Importuj dokument
+import-choose = Wybierz dokument...
+import-hint = Word, RTF, PDF, zwykły tekst lub Markdown.
+import-filter = Dokumenty
+import-reading = Odczytywanie dokumentu...
+import-format-txt = zwykły tekst
+import-format-markdown = Markdown
+import-format-docx = dokument Word
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = Odczytano { $format }: { $chars } znaków w { $paragraphs } akapitach.
+import-flattened = Pogrubienie, kursywa, czcionki i kolory zostały sprowadzone do zwykłego tekstu.
+import-truncated = Dokument był dłuższy, niż może być scenariusz, i został skrócony.
+import-nothing-dropped = Nic więcej nie zostało pominięte.
+import-drop-encoding = Plik nie był zapisany w Unicode; odczytano go jako tekst zachodnioeuropejski.
+import-drop-images = Pominięte obrazy: { $count }
+import-drop-footnotes = Pominięte przypisy: { $count }
+import-drop-comments = Pominięte komentarze: { $count }
+import-drop-headersFooters = Pominięte nagłówki i stopki: { $count }
+import-drop-linkTargets = Pominięte adresy odnośników (tekst pozostaje): { $count }
+import-drop-objects = Pominięte obiekty osadzone: { $count }
+import-preview = Tekst dla prompera
+import-name = Zapisz jako
+import-confirm = Importuj
+import-cancel = Anuluj
+
+## Find and replace (FT-M07)
+find-title = Znajdź i zamień
+find-what = Znajdź
+find-with = Zamień na
+find-case = Uwzględniaj wielkość liter
+find-whole-word = Tylko całe wyrazy
+find-count = { $at } z { $total }
+find-none = Brak wyników
+find-replaced = Zamieniono: { $count }
+find-previous = Poprzednie
+find-next = Następne
+find-replace = Zamień
+find-replace-all = Zamień wszystko
+find-close = Zamknij
+
+## Section markers (FT-M05)
+marker-list = Przejdź do sekcji
+marker-previous = Poprzednia sekcja
+marker-next = Następna sekcja
+marker-none-yet = Przed pierwszym znacznikiem
+
+## Script statistics (FT-M03)
+stats-counts = Wyrazy: { $words }, znaki: { $chars }
+stats-long-line = Wiersz { $line } jest bardzo długi ({ $chars } znaków)

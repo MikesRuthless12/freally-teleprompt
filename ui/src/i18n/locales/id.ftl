@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Naskah
+toolbar-import = Impor
+toolbar-find = Cari
 toolbar-projector = Buka proyektor
 toolbar-settings = Pengaturan
 toolbar-about = Tentang
@@ -249,3 +251,55 @@ settings-skip-section = Kata yang tidak Anda bawakan
 settings-skip-words = Kata yang dilewati
 settings-skip-words-note = Satu per baris. Baris yang hanya berisi salah satunya — Reff, Bait 1, Bridge — sama sekali tidak memakan waktu, sehingga lirik Anda tetap jatuh pada birama yang Anda tuju. Kata yang sama di tengah baris sungguhan hanya melewati dirinya sendiri. Semuanya tetap tampil samar di layar, dan pembacaan lantang tidak pernah mengucapkannya.
 settings-skip-words-placeholder = Satu kata per baris
+
+## Document import (FT-M01)
+import-title = Impor dokumen
+import-choose = Pilih dokumen...
+import-hint = Word, RTF, PDF, teks polos, atau Markdown.
+import-filter = Dokumen
+import-reading = Membaca dokumen...
+import-format-txt = teks polos
+import-format-markdown = Markdown
+import-format-docx = dokumen Word
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = { $format } dibaca: { $chars } karakter dalam { $paragraphs } paragraf.
+import-flattened = Tebal, miring, huruf, dan warna disederhanakan menjadi teks polos.
+import-truncated = Dokumen lebih panjang daripada batas sebuah naskah dan dipotong.
+import-nothing-dropped = Tidak ada lagi yang tertinggal.
+import-drop-encoding = Berkas tidak disimpan sebagai Unicode; dibaca sebagai teks Eropa Barat.
+import-drop-images = Gambar yang ditinggalkan: { $count }
+import-drop-footnotes = Catatan kaki yang ditinggalkan: { $count }
+import-drop-comments = Komentar yang ditinggalkan: { $count }
+import-drop-headersFooters = Kepala dan kaki halaman yang ditinggalkan: { $count }
+import-drop-linkTargets = Alamat tautan yang ditinggalkan (teksnya tetap): { $count }
+import-drop-objects = Objek tertanam yang ditinggalkan: { $count }
+import-preview = Teks untuk prompter
+import-name = Simpan sebagai
+import-confirm = Impor
+import-cancel = Batal
+
+## Find and replace (FT-M07)
+find-title = Cari dan ganti
+find-what = Cari
+find-with = Ganti dengan
+find-case = Cocokkan huruf besar/kecil
+find-whole-word = Hanya kata utuh
+find-count = { $at } dari { $total }
+find-none = Tidak ada yang cocok
+find-replaced = { $count } diganti
+find-previous = Sebelumnya
+find-next = Berikutnya
+find-replace = Ganti
+find-replace-all = Ganti semua
+find-close = Tutup
+
+## Section markers (FT-M05)
+marker-list = Lompat ke bagian
+marker-previous = Bagian sebelumnya
+marker-next = Bagian berikutnya
+marker-none-yet = Sebelum penanda pertama
+
+## Script statistics (FT-M03)
+stats-counts = { $words } kata, { $chars } karakter
+stats-long-line = Baris { $line } sangat panjang ({ $chars } karakter)

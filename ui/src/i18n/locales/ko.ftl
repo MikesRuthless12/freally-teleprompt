@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = 대본
+toolbar-import = 가져오기
+toolbar-find = 찾기
 toolbar-projector = 프로젝터 열기
 toolbar-settings = 설정
 toolbar-about = 정보
@@ -249,3 +251,55 @@ settings-skip-section = 부르지 않는 낱말
 settings-skip-words = 건너뛸 낱말
 settings-skip-words-note = 한 줄에 하나씩. 그 낱말만 있는 줄 — 후렴, 1절, 브리지 — 은 시간을 전혀 쓰지 않으므로 가사가 쓴 그대로의 마디에 남습니다. 실제 줄 안에 있는 같은 낱말은 그 낱말만 건너뜁니다. 화면에는 흐리게 남아 있고, 소리내어 읽기는 절대 발음하지 않습니다.
 settings-skip-words-placeholder = 한 줄에 한 낱말
+
+## Document import (FT-M01)
+import-title = 문서 가져오기
+import-choose = 문서 선택...
+import-hint = Word, RTF, PDF, 일반 텍스트 또는 Markdown.
+import-filter = 문서
+import-reading = 문서를 읽는 중...
+import-format-txt = 일반 텍스트
+import-format-markdown = Markdown
+import-format-docx = Word 문서
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = { $format }을(를) 읽었습니다: { $paragraphs }개 문단, { $chars }자.
+import-flattened = 굵게, 기울임, 글꼴, 색은 프롬프터용 일반 텍스트로 단순화했습니다.
+import-truncated = 문서가 대본 한도보다 길어 잘렸습니다.
+import-nothing-dropped = 그 밖에 빠진 것은 없습니다.
+import-drop-encoding = 파일이 유니코드로 저장되어 있지 않아 서유럽 텍스트로 읽었습니다.
+import-drop-images = 제외한 그림: { $count }
+import-drop-footnotes = 제외한 각주: { $count }
+import-drop-comments = 제외한 메모: { $count }
+import-drop-headersFooters = 제외한 머리글과 바닥글: { $count }
+import-drop-linkTargets = 제외한 링크 주소(글자는 그대로): { $count }
+import-drop-objects = 제외한 포함 개체: { $count }
+import-preview = 프롬프터 텍스트
+import-name = 다른 이름으로 저장
+import-confirm = 가져오기
+import-cancel = 취소
+
+## Find and replace (FT-M07)
+find-title = 찾기 및 바꾸기
+find-what = 찾기
+find-with = 바꿀 내용
+find-case = 대소문자 구분
+find-whole-word = 온전한 단어만
+find-count = { $total } 중 { $at }
+find-none = 일치 항목 없음
+find-replaced = { $count }개를 바꿨습니다
+find-previous = 이전
+find-next = 다음
+find-replace = 바꾸기
+find-replace-all = 모두 바꾸기
+find-close = 닫기
+
+## Section markers (FT-M05)
+marker-list = 구간으로 이동
+marker-previous = 이전 구간
+marker-next = 다음 구간
+marker-none-yet = 첫 표시 앞
+
+## Script statistics (FT-M03)
+stats-counts = { $words }단어, { $chars }자
+stats-long-line = { $line }번째 줄이 매우 깁니다({ $chars }자)

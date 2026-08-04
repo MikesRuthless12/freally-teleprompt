@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = 稿件
+toolbar-import = 导入
+toolbar-find = 查找
 toolbar-projector = 打开投影
 toolbar-settings = 设置
 toolbar-about = 关于
@@ -249,3 +251,55 @@ settings-skip-section = 你不演唱的词
 settings-skip-words = 要跳过的词
 settings-skip-words-note = 每行一个。整行只有其中一个词时 — 副歌、第一段、桥段 — 完全不占时间，歌词因此仍落在你写它时的那一小节上。同一个词出现在真正的歌词行里，则只跳过它本身。它们仍以暗色留在屏幕上，朗读功能也绝不会念出来。
 settings-skip-words-placeholder = 每行一个词
+
+## Document import (FT-M01)
+import-title = 导入文档
+import-choose = 选择文档...
+import-hint = 支持 Word、RTF、PDF、纯文本和 Markdown。
+import-filter = 文档
+import-reading = 正在读取文档...
+import-format-txt = 纯文本
+import-format-markdown = Markdown
+import-format-docx = Word 文档
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = 已读取 { $format }：{ $paragraphs } 个段落，共 { $chars } 个字符。
+import-flattened = 粗体、斜体、字体和颜色已简化为提词用的纯文本。
+import-truncated = 文档超出了脚本的长度上限，已被截断。
+import-nothing-dropped = 没有其他内容被舍弃。
+import-drop-encoding = 文件未以 Unicode 保存，已按西欧文本读取。
+import-drop-images = 舍弃的图片：{ $count }
+import-drop-footnotes = 舍弃的脚注：{ $count }
+import-drop-comments = 舍弃的批注：{ $count }
+import-drop-headersFooters = 舍弃的页眉页脚：{ $count }
+import-drop-linkTargets = 舍弃的链接地址（文字保留）：{ $count }
+import-drop-objects = 舍弃的嵌入对象：{ $count }
+import-preview = 提词文本
+import-name = 另存为
+import-confirm = 导入
+import-cancel = 取消
+
+## Find and replace (FT-M07)
+find-title = 查找和替换
+find-what = 查找
+find-with = 替换为
+find-case = 区分大小写
+find-whole-word = 仅匹配整词
+find-count = 第 { $at } 个，共 { $total } 个
+find-none = 没有匹配项
+find-replaced = 已替换 { $count } 处
+find-previous = 上一个
+find-next = 下一个
+find-replace = 替换
+find-replace-all = 全部替换
+find-close = 关闭
+
+## Section markers (FT-M05)
+marker-list = 跳转到段落
+marker-previous = 上一段落
+marker-next = 下一段落
+marker-none-yet = 第一个标记之前
+
+## Script statistics (FT-M03)
+stats-counts = { $words } 个词，{ $chars } 个字符
+stats-long-line = 第 { $line } 行很长（{ $chars } 个字符）

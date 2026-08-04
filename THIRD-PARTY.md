@@ -39,6 +39,45 @@ Sources: <https://github.com/alphacep/vosk-api> ·
 
 ---
 
+## Document-import parsers (FT-M01, compiled into every build)
+
+Opening a `.docx`, `.rtf`, `.pdf`, `.txt` or Markdown file and getting clean
+prompter text needs readers for formats this project has no business
+reimplementing. These are Rust crates linked into the application binary.
+
+Every licence below was read **in the crate's own source tree**, not taken from
+a summary or from a badge, and `cargo deny check licenses` enforces the same
+allow-list on every build.
+
+| Crate | What it reads | Version | Licence | Copyright |
+|---|---|---|---|---|
+| `pdf-extract` | PDF text extraction | 0.12.0 | MIT | Jeff Muizelaar |
+| `lopdf` | The PDF object model underneath it | 0.42.0 | MIT | © 2016 Junfeng Liu |
+| `zip` | The container a `.docx` is | 4.6.1 | MIT | © 2014 Mathijs van de Nes |
+| `quick-xml` | `word/document.xml` inside it | 0.41.0 | MIT | © 2016 Johann Tuffe |
+| `pulldown-cmark` | Markdown | 0.13.4 | MIT | © 2015 Google Inc. |
+
+MIT permits commercial use and redistribution with attribution and carries no
+share-alike term. `pdf-extract` ships no `LICENSE` file of its own; its
+`Cargo.toml` declares MIT and its repository carries the text.
+
+⚠️ `pdf-extract` pulls in `ttf-parser`, which its author has announced as
+**unmaintained** (RUSTSEC-2026-0192). That is not a vulnerability and the
+advisory itself states no safe upgrade exists; the reasoning for accepting it,
+and what bounds the risk, are recorded in `deny.toml` beside the ignore.
+
+**RTF has no crate here.** Its reader is written in `src-tauri/src/import.rs`,
+because the part that matters is knowing which of RTF's groups are metadata —
+a font table, a colour table, and a megabyte of hex-encoded picture data are all
+"text" to a tokenizer that does not understand the format's group semantics.
+
+Sources: <https://github.com/jrmuizel/pdf-extract> ·
+<https://github.com/J-F-Liu/lopdf> · <https://github.com/zip-rs/zip2> ·
+<https://github.com/tafia/quick-xml> ·
+<https://github.com/pulldown-cmark/pulldown-cmark>
+
+---
+
 ## Noto fonts (bundled)
 
 The app ships in 18 languages and lets the user switch at runtime, so it bundles

@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = Metinler
+toolbar-import = İçe aktar
+toolbar-find = Bul
 toolbar-projector = Projektörü aç
 toolbar-settings = Ayarlar
 toolbar-about = Hakkında
@@ -249,3 +251,55 @@ settings-skip-section = Seslendirmediğiniz sözcükler
 settings-skip-words = Atlanacak sözcükler
 settings-skip-words-note = Her satıra bir tane. Yalnızca bunlardan birinden oluşan bir satır — Nakarat, Kıta 1, Köprü — hiç zaman almaz, böylece sözleriniz onları yazdığınız ölçüde kalır. Aynı sözcük gerçek bir satırın içindeyse yalnızca kendisi atlanır. Ekranda soluk olarak kalırlar ve sesli okuma onları asla söylemez.
 settings-skip-words-placeholder = Her satıra bir sözcük
+
+## Document import (FT-M01)
+import-title = Bir belge içe aktar
+import-choose = Bir belge seç...
+import-hint = Word, RTF, PDF, düz metin veya Markdown.
+import-filter = Belgeler
+import-reading = Belge okunuyor...
+import-format-txt = düz metin
+import-format-markdown = Markdown
+import-format-docx = Word belgesi
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = { $format } okundu: { $paragraphs } paragrafta { $chars } karakter.
+import-flattened = Kalın, italik, yazı tipleri ve renkler düz metne indirgendi.
+import-truncated = Belge bir metnin olabileceğinden uzundu ve kısaltıldı.
+import-nothing-dropped = Başka hiçbir şey dışarıda kalmadı.
+import-drop-encoding = Dosya Unicode olarak kaydedilmemişti; Batı Avrupa metni olarak okundu.
+import-drop-images = Dışarıda bırakılan resimler: { $count }
+import-drop-footnotes = Dışarıda bırakılan dipnotlar: { $count }
+import-drop-comments = Dışarıda bırakılan yorumlar: { $count }
+import-drop-headersFooters = Dışarıda bırakılan üstbilgi ve altbilgiler: { $count }
+import-drop-linkTargets = Dışarıda bırakılan bağlantı adresleri (metin kalır): { $count }
+import-drop-objects = Dışarıda bırakılan gömülü nesneler: { $count }
+import-preview = Sufle metni
+import-name = Farklı kaydet
+import-confirm = İçe aktar
+import-cancel = İptal
+
+## Find and replace (FT-M07)
+find-title = Bul ve değiştir
+find-what = Bul
+find-with = Şununla değiştir
+find-case = Büyük/küçük harf duyarlı
+find-whole-word = Yalnızca tam sözcükler
+find-count = { $total } içinde { $at }
+find-none = Eşleşme yok
+find-replaced = { $count } değiştirildi
+find-previous = Önceki
+find-next = Sonraki
+find-replace = Değiştir
+find-replace-all = Tümünü değiştir
+find-close = Kapat
+
+## Section markers (FT-M05)
+marker-list = Bir bölüme atla
+marker-previous = Önceki bölüm
+marker-next = Sonraki bölüm
+marker-none-yet = İlk işaretten önce
+
+## Script statistics (FT-M03)
+stats-counts = { $words } sözcük, { $chars } karakter
+stats-long-line = { $line }. satır çok uzun ({ $chars } karakter)

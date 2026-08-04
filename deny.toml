@@ -34,6 +34,19 @@ ignore = [
   "RUSTSEC-2025-0081",
   "RUSTSEC-2025-0098",
   "RUSTSEC-2025-0100",
+  # `ttf-parser` — unmaintained, announced by its author; NOT a vulnerability,
+  # and the advisory itself says "no safe upgrade is available". It arrives as
+  # `pdf-extract` → `lopdf` → `ttf-parser`, where it reads the embedded font
+  # tables a PDF needs for its glyph-to-Unicode mapping (FT-M01). The permissive
+  # alternatives were checked before accepting it: `skrifa` is not a drop-in for
+  # lopdf, and the PDF stacks that avoid font parsing entirely (mupdf, poppler)
+  # are AGPL/GPL and could not ship here at all.
+  #
+  # What bounds the risk is not this line: every one of the import parsers runs
+  # in the `--import` CHILD process (see `src-tauri/src/import.rs`), so a
+  # malformed font table in someone's PDF can crash a helper that produces a
+  # failed import, and cannot reach the running prompter.
+  "RUSTSEC-2026-0192",
 ]
 
 [licenses]

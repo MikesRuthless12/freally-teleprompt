@@ -64,6 +64,35 @@ function buildGhost(text: string): HTMLSpanElement {
   return span;
 }
 
+/**
+ * Build the find highlight (FT-M07): the match the operator is looking at.
+ *
+ * An ordinary `<span>` on purpose — `serialize`, `nodeLen` and `offsetOf` all
+ * walk INTO an element they do not recognise, so this is transparent to every
+ * one of them and the script string is unchanged by being highlighted. (A
+ * `<mark>` would be too, but it also carries semantics a screen reader
+ * announces, and the operator asked for a search, not for emphasis in their
+ * script.)
+ *
+ * The colours are the accent over the page background, which is the one pairing
+ * guaranteed to have contrast in **both** palettes: the whole app already draws
+ * accent-coloured text on that background, so the inverse has the same ratio.
+ * Deliberately not `color-mix` — that is fine for the chip, which degrades to no
+ * tint, but a highlight that degrades to nothing is a search that shows you
+ * nothing on any engine below the browserslist floor.
+ */
+function buildFindMark(text: string): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.dataset.find = "";
+  span.textContent = text;
+  span.style.cssText = [
+    "background:var(--color-havoc-accent)",
+    "color:var(--color-havoc-bg)",
+    "border-radius:0.15em",
+  ].join(";");
+  return span;
+}
+
 /** The pending suggestion currently on screen, or null. */
 function ghostOf(root: HTMLElement): string | null {
   const el = root.querySelector<HTMLElement>("[data-ghost]");
@@ -220,14 +249,40 @@ function setCaret(root: HTMLElement, target: number) {
   sel.addRange(range);
 }
 
-/** Rebuild the whole editor DOM from a script string (text nodes + chips). */
-function render(root: HTMLElement, script: string, defaultSecs: number) {
+/** A half-open string range in the script — what find & replace hands back. */
+export type EditorRange = { start: number; end: number };
+
+/** Rebuild the whole editor DOM from a script string (text nodes + chips), with
+ * `highlight` (if any) wrapped so the operator can see the current match. */
+function render(
+  root: HTMLElement,
+  script: string,
+  defaultSecs: number,
+  highlight: EditorRange | null,
+) {
   root.textContent = "";
   const frag = document.createDocumentFragment();
+  // Where each token starts in the script string, so the highlight — which is
+  // measured in those same units — can be split across the tokens it covers.
+  let at = 0;
   for (const tok of tokenize(script)) {
-    frag.appendChild(
-      isChip(tok) ? buildChip(tok.chip, defaultSecs) : document.createTextNode(tok.text),
-    );
+    if (isChip(tok)) {
+      frag.appendChild(buildChip(tok.chip, defaultSecs));
+      at += tok.chip.length;
+      continue;
+    }
+    const { text } = tok;
+    const end = at + text.length;
+    if (!highlight || highlight.end <= at || highlight.start >= end) {
+      frag.appendChild(document.createTextNode(text));
+    } else {
+      const from = Math.max(0, highlight.start - at);
+      const to = Math.min(text.length, highlight.end - at);
+      if (from > 0) frag.appendChild(document.createTextNode(text.slice(0, from)));
+      frag.appendChild(buildFindMark(text.slice(from, to)));
+      if (to < text.length) frag.appendChild(document.createTextNode(text.slice(to)));
+    }
+    at = end;
   }
   root.appendChild(frag);
 }
@@ -244,6 +299,19 @@ function domChips(root: HTMLElement): string {
 export type CaesuraEditorHandle = {
   /** Write `text` into the script as if it had been pasted there. */
   insertText: (text: string) => void;
+  /**
+   * Replace one range with `text` — find & replace's single-match edit
+   * (FT-M07).
+   *
+   * Goes through the same `snapshot(true)` + `apply` pair every other write
+   * path here does, so a replacement is **one** step of Ctrl+Z rather than a
+   * hole in the undo stack. That is the lesson dictation paid for; a new write
+   * path has to re-earn every guard the old ones have.
+   */
+  replaceRange: (start: number, end: number, text: string) => void;
+  /** Replace the whole script — replace-all, which is one edit however many
+   * matches it touched. Undone in one step, for the same reason. */
+  setText: (text: string) => void;
 };
 
 export function CaesuraEditor({
@@ -255,6 +323,7 @@ export function CaesuraEditor({
   placeholder,
   className,
   ariaLabelledBy,
+  highlight = null,
   ref: handle,
 }: {
   /** The script string (engine-authoritative; external changes rebuild the DOM). */
@@ -271,6 +340,16 @@ export function CaesuraEditor({
   className?: string;
   /** id of the visible label element (a contenteditable can't use <label for>). */
   ariaLabelledBy?: string;
+  /**
+   * The find match to show (FT-M07), as a string range, or null for none.
+   *
+   * ⚠️ A HIGHLIGHT, never a selection. Setting the document selection is what
+   * `setCaret` does, and in Blink that MOVES FOCUS into the editable host — so
+   * a find dialog that selected each match would take the operator's typing out
+   * of its own search field on every press of Next. Painting the match instead
+   * leaves focus exactly where the operator put it.
+   */
+  highlight?: EditorRange | null;
   /** Imperative handle — the one thing this editor cannot express as a prop. */
   ref?: React.Ref<CaesuraEditorHandle>;
 }) {
@@ -282,6 +361,10 @@ export function CaesuraEditor({
   // by the effect below, not assigned during render — same as `caesuraSecsRef`.
   const autocompleteRef = useRef(autocomplete);
   const langRef = useRef(autocompleteLang);
+  // The find match, read by every rebuild path — including the ones that fire
+  // from a DOM handler and cannot see a prop. Kept in step by the layout effect
+  // below, which is also what re-renders when it changes.
+  const highlightRef = useRef<EditorRange | null>(highlight);
 
   const updateEmpty = (str: string) => {
     if (placeholderRef.current)
@@ -296,7 +379,7 @@ export function CaesuraEditor({
 
   // Rebuild from a known string and drop the caret at `caret`, then emit.
   const apply = (root: HTMLDivElement, script: string, caret: number) => {
-    render(root, script, caesuraSecsRef.current);
+    render(root, script, caesuraSecsRef.current, highlightRef.current);
     setCaret(root, caret);
     emit(root);
   };
@@ -325,7 +408,7 @@ export function CaesuraEditor({
     if (!root || from.length === 0) return;
     to.push(serialize(root));
     const script = from.pop() as string;
-    render(root, script, caesuraSecsRef.current);
+    render(root, script, caesuraSecsRef.current, highlightRef.current);
     setCaret(root, script.length);
     emit(root);
   };
@@ -383,19 +466,35 @@ export function CaesuraEditor({
   // file-destroying bug the deleted `dictationBase` reset used to guard, and
   // running here closes the window instead of narrowing it: a layout effect is
   // flushed synchronously before the browser yields to any event at all.
+  //
+  // It owns the find highlight too (FT-M07), because a highlight is a reason to
+  // rebuild the DOM exactly as a new `value` is. Compared STRUCTURALLY, not by
+  // identity: the shell derives the current match during render, so a fresh
+  // object arrives on every keystroke and an identity check would re-render the
+  // whole script each time — the same "fresh array identity per broadcast"
+  // defeat that cost a full re-parse per `pointermove` in Phase A.
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
-    if (serialize(root) === value) {
+    const previous = highlightRef.current;
+    const moved = previous?.start !== highlight?.start || previous?.end !== highlight?.end;
+    highlightRef.current = highlight;
+    if (!moved && serialize(root) === value) {
       updateEmpty(value);
       return;
     }
     const focused = document.activeElement === root;
     const caret = focused ? (selectionOffsets(root)?.start ?? null) : null;
-    render(root, value, caesuraSecsRef.current);
+    render(root, value, caesuraSecsRef.current, highlight);
     if (focused && caret !== null) setCaret(root, caret);
     updateEmpty(value);
-  }, [value]);
+    // Bring the match on screen. `nearest` so a match already visible does not
+    // jump the view, and optional-called because jsdom has no layout and no
+    // implementation of this — the unit tests must not fail on a scroll.
+    if (moved && highlight) {
+      root.querySelector<HTMLElement>("[data-find]")?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [value, highlight]);
 
   // Default-pause change: refresh bare-chip labels in place (no structural change,
   // so the caret is untouched). Also keep the latest default in a ref for the
@@ -451,7 +550,7 @@ export function CaesuraEditor({
       .join(" ");
     if (wanted !== domChips(root)) {
       const caret = selectionOffsets(root)?.start ?? raw.length;
-      render(root, raw, caesuraSecsRef.current);
+      render(root, raw, caesuraSecsRef.current, highlightRef.current);
       setCaret(root, caret);
     }
     emit(root);
@@ -642,7 +741,7 @@ export function CaesuraEditor({
       return;
     }
     // Unfocused: `apply` minus the caret. The selection is not ours to move.
-    render(root, next, caesuraSecsRef.current);
+    render(root, next, caesuraSecsRef.current, highlightRef.current);
     emit(root);
   };
 
@@ -651,7 +750,43 @@ export function CaesuraEditor({
   // this would hold the first render's `onChange` — which in `App` closes over
   // the script that was open at mount, so autosave would write dictated text
   // into whichever file was open when the app started.
-  useImperativeHandle(handle, () => ({ insertText }));
+  /**
+   * Find & replace's two write paths (FT-M07).
+   *
+   * Both are the paste path with a different source, exactly as `insertText`
+   * is: read nothing from the caller but the new text, `snapshot(true)` so the
+   * edit is one step of undo, then `apply`. Neither touches focus — the
+   * operator is in the find dialog and must stay there — so the caret goes to
+   * the end of what was written only when the editor already had it.
+   */
+  const writeThrough = (next: string, caret: number) => {
+    const root = ref.current;
+    if (!root) return;
+    snapshot(true);
+    if (document.activeElement === root) {
+      apply(root, next, caret);
+      return;
+    }
+    render(root, next, caesuraSecsRef.current, highlightRef.current);
+    emit(root);
+  };
+
+  const replaceRange = (start: number, end: number, text: string) => {
+    const root = ref.current;
+    if (!root) return;
+    const raw = serialize(root);
+    // Clamped rather than trusted: the range was computed against the script as
+    // it was when the dialog last searched, and an autosave echo or a dictated
+    // word can have moved it since. A slice past the end would silently write
+    // at the wrong place; clamping writes at the nearest real one.
+    const from = Math.max(0, Math.min(raw.length, start));
+    const to = Math.max(from, Math.min(raw.length, end));
+    writeThrough(raw.slice(0, from) + text + raw.slice(to), from + text.length);
+  };
+
+  const setText = (text: string) => writeThrough(text, text.length);
+
+  useImperativeHandle(handle, () => ({ insertText, replaceRange, setText }));
 
   // Copy/cut serialize chips back to their token text (not the pill glyph) so the
   // clipboard round-trips into any editor.

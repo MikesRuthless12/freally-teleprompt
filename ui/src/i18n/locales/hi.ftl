@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = स्क्रिप्ट
+toolbar-import = आयात
+toolbar-find = खोजें
 toolbar-projector = प्रोजेक्टर खोलें
 toolbar-settings = सेटिंग्स
 toolbar-about = परिचय
@@ -249,3 +251,55 @@ settings-skip-section = वे शब्द जो आप नहीं गात
 settings-skip-words = छोड़े जाने वाले शब्द
 settings-skip-words-note = हर पंक्ति में एक। जिस पंक्ति में इनमें से केवल एक ही हो — मुखड़ा, अंतरा 1, ब्रिज — वह बिलकुल समय नहीं लेती, इसलिए आपके बोल उसी ताल पर बने रहते हैं जिसके लिए आपने लिखे थे। असली पंक्ति के भीतर वही शब्द केवल स्वयं को छोड़ता है। वे स्क्रीन पर धुंधले दिखते रहते हैं, और ज़ोर से पढ़ना उन्हें कभी नहीं बोलता।
 settings-skip-words-placeholder = हर पंक्ति में एक शब्द
+
+## Document import (FT-M01)
+import-title = दस्तावेज़ आयात करें
+import-choose = दस्तावेज़ चुनें...
+import-hint = Word, RTF, PDF, सादा पाठ या Markdown।
+import-filter = दस्तावेज़
+import-reading = दस्तावेज़ पढ़ा जा रहा है...
+import-format-txt = सादा पाठ
+import-format-markdown = Markdown
+import-format-docx = Word दस्तावेज़
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = { $format } पढ़ा गया: { $paragraphs } अनुच्छेदों में { $chars } अक्षर।
+import-flattened = मोटा, तिरछा, फ़ॉन्ट और रंग सादे प्रॉम्प्टर पाठ में बदल दिए गए।
+import-truncated = दस्तावेज़ स्क्रिप्ट की अधिकतम लंबाई से बड़ा था, इसलिए छोटा कर दिया गया।
+import-nothing-dropped = और कुछ नहीं छूटा।
+import-drop-encoding = फ़ाइल यूनिकोड में सहेजी नहीं गई थी; उसे पश्चिमी यूरोपीय पाठ के रूप में पढ़ा गया।
+import-drop-images = छोड़ी गई तस्वीरें: { $count }
+import-drop-footnotes = छोड़े गए पाद-टिप्पण: { $count }
+import-drop-comments = छोड़ी गई टिप्पणियाँ: { $count }
+import-drop-headersFooters = छोड़े गए शीर्षलेख और पादलेख: { $count }
+import-drop-linkTargets = छोड़े गए लिंक पते (शब्द बने रहते हैं): { $count }
+import-drop-objects = छोड़ी गई अंतर्निहित वस्तुएँ: { $count }
+import-preview = प्रॉम्प्टर का पाठ
+import-name = इस नाम से सहेजें
+import-confirm = आयात करें
+import-cancel = रद्द करें
+
+## Find and replace (FT-M07)
+find-title = खोजें और बदलें
+find-what = खोजें
+find-with = इससे बदलें
+find-case = अक्षर-आकार का मिलान करें
+find-whole-word = केवल पूरे शब्द
+find-count = { $total } में से { $at }
+find-none = कोई मिलान नहीं
+find-replaced = { $count } बदले गए
+find-previous = पिछला
+find-next = अगला
+find-replace = बदलें
+find-replace-all = सभी बदलें
+find-close = बंद करें
+
+## Section markers (FT-M05)
+marker-list = किसी खंड पर जाएँ
+marker-previous = पिछला खंड
+marker-next = अगला खंड
+marker-none-yet = पहले चिह्न से पहले
+
+## Script statistics (FT-M03)
+stats-counts = { $words } शब्द, { $chars } अक्षर
+stats-long-line = पंक्ति { $line } बहुत लंबी है ({ $chars } अक्षर)

@@ -3,11 +3,13 @@
 > **Look confident. Stay on script.** — a local-first teleprompter that reads at a real human
 > pace (characters per second **or BPM**), marks your pauses with inline caesura chips, and keeps the
 > operator preview, the talent projector, and LAN mirrors in step from one character-based engine.
-> You can even **write your script by speaking** — on-device, with nothing to train.
+> **Import the Word document, RTF, PDF or Markdown file you were sent**, jump between sections, and
+> find and replace across the script. You can even **write your script by speaking** — on-device,
+> with nothing to train.
 >
 > **No AI, no accounts, no cloud, no subscription.**
 
-**Status: released (1.0.0).** Freally Teleprompt is the standalone grow-out of the
+**Status: released (1.4.0).** Freally Teleprompt is the standalone grow-out of the
 teleprompter that ships inside
 [Freally Capture](https://github.com/MikesRuthless12/freally-capture) (0.910.0's Teleprompter
 Rework). Platforms: **Windows / macOS / Linux** (Tauri v2 — Rust core + React/TypeScript UI).
@@ -48,7 +50,7 @@ docs/          the GitHub Pages site (plain static HTML — no build step)
 scripts/       ci-local.mjs (the gate) · make-icons.py (the icon sets)
 ```
 
-### Two invariants worth knowing before you edit
+### Three invariants worth knowing before you edit
 
 1. **The scroll engine is mirrored in two languages.** `src-tauri/src/teleprompter.rs` and
    `ui/src/lib/caesura.ts` implement the same parser and the same `offset(elapsed)` function — that
@@ -58,6 +60,13 @@ scripts/       ci-local.mjs (the gate) · make-icons.py (the icon sets)
    `accepted_eula_version`; `accept_eula` is its only writer. A settings dialog opened before
    acceptance carries a stale value, and letting it through re-shows the gate on the next launch —
    a bug that shipped in Freally Capture. There is a regression test; keep it.
+3. **Document parsing happens in a child process, and that is not optional.** `import.rs` reads
+   `.docx` / `.rtf` / `.pdf` / `.txt` / Markdown, three of them through third-party crates over a
+   file the app did not write — and `[profile.release] panic = "abort"` means a panic in any of
+   them would take the running prompter with it, with no `catch_unwind` able to help. So
+   `import_document` re-launches the executable as `--import <source> <destination>` and reads the
+   answer back. A sixth format goes **behind the same child**; calling a parser straight from a
+   `#[tauri::command]` re-opens the hole.
 
 > The product-planning documents (roadmap, build-prompts guide, to-do list) are maintained
 > privately and are not published in this repository.

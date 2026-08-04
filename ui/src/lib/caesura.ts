@@ -213,6 +213,16 @@ const LABEL_DECORATION = new Set([..."[](){}<>#*:;.,_|/\\\"'!?“”‘’ \t\uF
 const WORDISH = /[\p{Alphabetic}\p{N}]/u;
 
 /**
+ * Whether `ch` is a word character — the boundary test the skip matcher uses.
+ *
+ * Exported so find & replace's "whole word" option asks the same question
+ * (FT-M07). Two features testing word boundaries two different ways is how you
+ * get a search that finds a word the skip matcher does not, in the same script.
+ * An empty string is not a word character, which is how the text edges answer.
+ */
+export const isWordish = (ch: string): boolean => ch !== "" && WORDISH.test(ch);
+
+/**
  * Strip decoration from both ends, then a trailing number — `[Verse 1]` and
  * `Verse 12` both reduce to `Verse`.
  *
@@ -260,13 +270,26 @@ export function isLabelLine(line: string, keywords: readonly string[]): boolean 
 export const normaliseKeywords = (words: readonly string[]): string[] =>
   words.map((word) => word.trim().toLowerCase()).filter((word) => word.length > 0);
 
-/** Merge overlapping or touching runs. The timing loop walks its regions in
- * order and assumes they do not overlap; two keywords matching the same text
- * (say `Verse` and `Verse 1`) would otherwise produce a pair that does. */
-function mergeRuns(runs: Skip[]): Skip[] {
-  if (runs.length < 2) return runs;
+/**
+ * Sort runs by position and merge any that overlap or touch.
+ *
+ * The timing loop walks its regions in order and assumes they do not overlap;
+ * two keywords matching the same text (say `Verse` and `Verse 1`) would
+ * otherwise produce a pair that does.
+ *
+ * Exported because FT-M03's statistics ask the same question of the same kind
+ * of list — a caesura written inside a skipped label produces two runs over the
+ * same characters, and removing both would take a character of real script with
+ * them. A second copy had grown up in `stats.ts` before this was shared.
+ *
+ * The first element is COPIED rather than carried through: this returns a fresh
+ * list, so mutating a caller's object to widen it would be a surprise the
+ * original (whose inputs were always freshly built) never had to answer for.
+ */
+export function mergeRuns(runs: readonly Skip[]): Skip[] {
+  if (runs.length < 2) return [...runs];
   const sorted = [...runs].sort((a, b) => a.pos - b.pos);
-  const out: Skip[] = [sorted[0]];
+  const out: Skip[] = [{ ...sorted[0] }];
   for (const run of sorted.slice(1)) {
     const last = out[out.length - 1];
     const lastEnd = last.pos + last.width;

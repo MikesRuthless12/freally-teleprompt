@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { TeleprompterState } from "../api/types";
-import { type Caesura, timeAtOffset } from "./caesura";
+import { type Caesura, liveOffset, timeAtOffset } from "./caesura";
 
 /**
  * The read's own clock (Phase A), live.
@@ -66,6 +66,55 @@ export function useBaseReadSec(state: TeleprompterState, caesuras: Caesura[]): n
     () => timeAtOffset(state.offset, speed, caesuras),
     [state.offset, speed, caesuras],
   );
+}
+
+/**
+ * Where the scroll is **now**, in visible characters (FT-M05).
+ *
+ * ⚠️ `state.offset` is an ANCHOR, not a position. The engine broadcasts on
+ * events — a play, a pause, a seek, a speed change — and never on a timer, so
+ * during a three-minute read it holds the offset the read *started* at while
+ * every surface animates locally from it. Anything that asks "where are we?"
+ * and reads `state.offset` is therefore asking "where did this play begin?",
+ * which for the marker controls meant Next jumping to the marker after the one
+ * the operator pressed play on, however far into the script they had got.
+ *
+ * Same 50 ms timer and the same reasoning as `useReadClock`, not
+ * `requestAnimationFrame`: this drives a jump list and two buttons a person
+ * looks at, and the two surfaces that genuinely animate are already running at
+ * 60 Hz. **Call it from the smallest component that needs it** — the pace
+ * warning is its own component for exactly this reason, so its clock re-renders
+ * one span rather than the whole operator window.
+ */
+export function useLiveOffset(
+  state: TeleprompterState,
+  caesuras: Caesura[],
+  active: boolean,
+): number {
+  const [offset, setOffset] = useState(state.offset);
+
+  useEffect(() => {
+    const anchor = {
+      offset: state.offset,
+      t: performance.now(),
+      playing: state.playing,
+      countdown: state.countdownRemaining,
+      speed: state.speed > 0 ? state.speed : 1,
+    };
+    const read = () => {
+      const raw = anchor.playing ? (performance.now() - anchor.t) / 1000 : 0;
+      // The pre-roll holds the scroll, so it is subtracted rather than counted
+      // — the same sign convention `readSecAt` states for the other clock.
+      const elapsed = Math.max(0, raw - anchor.countdown);
+      setOffset(liveOffset(anchor.offset, elapsed, anchor.speed, caesuras));
+    };
+    read();
+    if (!active || !state.playing) return;
+    const id = window.setInterval(read, TICK_MS);
+    return () => window.clearInterval(id);
+  }, [active, state.playing, state.offset, state.speed, state.countdownRemaining, caesuras]);
+
+  return offset;
 }
 
 export function useReadClock(

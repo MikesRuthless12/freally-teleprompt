@@ -7,6 +7,8 @@
 ## App shell
 app-name = Freally Teleprompt
 toolbar-library = 台本
+toolbar-import = 読み込み
+toolbar-find = 検索
 toolbar-projector = プロジェクターを開く
 toolbar-settings = 設定
 toolbar-about = このアプリについて
@@ -249,3 +251,55 @@ settings-skip-section = 読み上げない語
 settings-skip-words = スキップする語
 settings-skip-words-note = 1 行に 1 語。その語だけの行 — サビ、1番、ブリッジ — は時間をまったく消費しないので、歌詞は書いたとおりの小節に残ります。実際の行の中にある同じ語は、その語だけがスキップされます。画面には薄く表示されたまま残り、読み上げが発声することはありません。
 settings-skip-words-placeholder = 1 行に 1 語
+
+## Document import (FT-M01)
+import-title = 文書を読み込む
+import-choose = 文書を選ぶ...
+import-hint = Word、RTF、PDF、プレーンテキスト、Markdown に対応しています。
+import-filter = 文書
+import-reading = 文書を読んでいます...
+import-format-txt = プレーンテキスト
+import-format-markdown = Markdown
+import-format-docx = Word 文書
+import-format-rtf = RTF
+import-format-pdf = PDF
+import-summary = { $format } を読み込みました: { $paragraphs } 段落、{ $chars } 文字。
+import-flattened = 太字・斜体・書体・色はプロンプター用の書式なしテキストにまとめられました。
+import-truncated = 文書が台本の上限より長かったため、途中で切りました。
+import-nothing-dropped = ほかに失われたものはありません。
+import-drop-encoding = ファイルが Unicode で保存されていなかったため、西ヨーロッパ言語のテキストとして読み込みました。
+import-drop-images = 除いた画像: { $count }
+import-drop-footnotes = 除いた脚注: { $count }
+import-drop-comments = 除いたコメント: { $count }
+import-drop-headersFooters = 除いたヘッダーとフッター: { $count }
+import-drop-linkTargets = 除いたリンク先 (文字はそのまま): { $count }
+import-drop-objects = 除いた埋め込みオブジェクト: { $count }
+import-preview = プロンプター用のテキスト
+import-name = 名前を付けて保存
+import-confirm = 読み込む
+import-cancel = キャンセル
+
+## Find and replace (FT-M07)
+find-title = 検索と置換
+find-what = 検索
+find-with = 置換後の文字列
+find-case = 大文字と小文字を区別
+find-whole-word = 単語全体だけ
+find-count = { $total } 件中 { $at } 件目
+find-none = 一致なし
+find-replaced = { $count } 件を置換しました
+find-previous = 前へ
+find-next = 次へ
+find-replace = 置換
+find-replace-all = すべて置換
+find-close = 閉じる
+
+## Section markers (FT-M05)
+marker-list = セクションへ移動
+marker-previous = 前のセクション
+marker-next = 次のセクション
+marker-none-yet = 最初の目印より前
+
+## Script statistics (FT-M03)
+stats-counts = { $words } 語、{ $chars } 文字
+stats-long-line = { $line } 行目がとても長くなっています ({ $chars } 文字)

@@ -110,6 +110,72 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>1.4.0</h2>
+        <p class="date">4 August 2026 — getting the script in, and finding your way around it</p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Open the file you were sent.</strong> Until now the only ways text reached the
+            prompter were typing and pasting, which is not how any script arrives.
+            <strong>Import</strong> on the toolbar reads <strong>Word (.docx), RTF, PDF, plain text
+            and Markdown</strong> and turns them into clean prompter text: paragraphs kept, bold and
+            fonts and colours flattened, curly quotes and em dashes and ellipses normalised, and a
+            file saved in the wrong encoding read and reported rather than shown as mojibake.
+          </li>
+          <li>
+            <strong>It tells you what it could not bring across.</strong> Pictures, footnotes,
+            comments, headers and footers, link addresses and embedded objects, each with a count.
+            A converter that drops them quietly is one you find out about on a shoot. And
+            <strong>nothing is saved until you say so</strong> — you see the text and the report,
+            name the script, and only then does a file appear in your library. An import will never
+            overwrite a script that already exists.
+          </li>
+          <li>
+            <strong>Section markers, with a jump list.</strong> Any line beginning
+            <code>#</code> — <code># Verse 2</code>, <code># Q&amp;A</code> — is a landmark, as is
+            any line that is one of your skip words (<code>[Chorus]</code>, <code>Bridge</code>).
+            They appear in a jump list beside the seek bar, are ruled onto the bar itself, and
+            <strong>next / previous</strong> walk them. Nothing to configure, and an imported
+            Markdown script arrives with its list already built.
+          </li>
+          <li>
+            <strong>Find and replace</strong> (<code>Ctrl+F</code>), scoped to the open script: a
+            live match count, match case, whole words only, replace and replace-all. The current
+            match is lit in the editor without taking your typing out of the search box, and a
+            replace-all is a <strong>single</strong> press of Ctrl+Z.
+          </li>
+          <li>
+            <strong>Script statistics</strong>, under the read-time estimate: word count, character
+            count, and a warning when a line is long enough to be a wrapped paragraph. The counts
+            are of what is actually <em>performed</em> — skipped labels and pause tokens are left
+            out, so they agree with the duration beside them.
+          </li>
+        </ul>
+
+        <h3>Changed</h3>
+        <ul>
+          <li>
+            The rehearsal report's sections now split on markers as well as skip labels, so a
+            script written with <code>#</code> headings rehearses section by section with no
+            keywords configured. A section is named without its decoration:
+            <code>[Verse 1]</code> reports as <em>Verse 1</em>.
+          </li>
+        </ul>
+
+        <h3>Security</h3>
+        <ul>
+          <li>
+            Every document parser runs in a <strong>separate process</strong>. Three of the five
+            formats are read by third-party code over a file the app did not write, and release
+            builds abort on panic — so a malformed PDF would otherwise have taken the prompter down
+            mid-read. It also gives the work a time limit and keeps a runaway parser's memory out
+            of the app.
+          </li>
+        </ul>
+      </article>
+
+      <article class="release">
         <h2>1.3.0</h2>
         <p class="date">3 August 2026 — reading to time, and the words that shouldn't count</p>
 

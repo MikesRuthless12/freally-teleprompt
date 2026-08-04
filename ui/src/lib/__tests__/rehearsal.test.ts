@@ -65,8 +65,10 @@ describe("sections — the script's own paragraphs", () => {
     ].join("\n");
     const parts = sections(script, ["Verse", "Chorus"]);
     expect(parts).toHaveLength(2);
-    expect(parts[0].label).toBe("[Verse 1]");
-    expect(parts[1].label).toBe("[Chorus]");
+    // Named the way FT-M05's jump list names it — the brackets are decoration
+    // on the marker, not part of what the section is called.
+    expect(parts[0].label).toBe("Verse 1");
+    expect(parts[1].label).toBe("Chorus");
     // The label's own characters belong to neither section — they cost no time,
     // so counting them in would credit a section with a span the scroll
     // crosses in an instant.

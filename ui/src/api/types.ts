@@ -197,6 +197,38 @@ export type ScriptInfo = {
   modifiedMs: number;
 };
 
+/** Mirror of `import::Dropped` — one thing a source document had and the
+ * prompter text does not (FT-M01). `kind` is a machine key the UI localises,
+ * never a sentence: a message built in Rust would be English in all 18. */
+export type Dropped = {
+  /** `encoding` · `images` · `footnotes` · `comments` · `headersFooters` ·
+   * `linkTargets` · `objects`. */
+  kind: string;
+  count: number;
+};
+
+/** Mirror of `import::ImportReport` — what an import cost. */
+export type ImportReport = {
+  /** `txt` · `markdown` · `docx` · `rtf` · `pdf` — also a machine key. */
+  format: string;
+  /** Visible characters (newlines excluded), so it matches the editor's own
+   * statistics rather than being a second way of counting. */
+  chars: number;
+  paragraphs: number;
+  dropped: Dropped[];
+  /** Whether the text was cut at the engine's own 200,000-character limit. */
+  truncated: boolean;
+};
+
+/** Mirror of `import::ImportResult` (FT-M01). */
+export type ImportResult = {
+  text: string;
+  report: ImportReport;
+  /** A name taken from the file's own stem, already legal as a script name —
+   * or empty when nothing usable was left of it. */
+  suggestedName: string;
+};
+
 /** Mirror of `projector::DisplayInfo` — one connected monitor (FT-12). */
 export type DisplayInfo = {
   index: number;

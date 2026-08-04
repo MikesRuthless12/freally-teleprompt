@@ -14,6 +14,7 @@
 
 mod bugreport;
 mod eula;
+mod import;
 mod lanmirror;
 mod projector;
 mod scripts;
@@ -38,6 +39,14 @@ fn main() {
     // second copy of the prompter and must never open a window of its own.
     let args: Vec<String> = std::env::args().collect();
     if bugreport::run_crash_notice(&args) {
+        return;
+    }
+    // `--import <source> <destination>`: we are the isolated document parser a
+    // running copy spawned (FT-M01), not the app. Same rule as the helper
+    // above — this must return before a window is ever built. It is a separate
+    // process precisely so that a malformed .pdf can kill THIS and not the
+    // prompter somebody is reading from; see `import.rs`.
+    if import::run_import_child(&args) {
         return;
     }
     // `--test-crash`: drill the crash loop on the shipped exe. Deliberately a
@@ -110,6 +119,7 @@ fn main() {
             scripts::scripts_create,
             scripts::scripts_rename,
             scripts::scripts_delete,
+            import::import_document,
             projector::list_displays,
             projector::projector_open,
             lanmirror::lan_mirror_status,

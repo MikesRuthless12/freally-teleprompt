@@ -70,11 +70,18 @@ body {
   font-size: 1.1rem;
 }
 
-/* Real per-OS download counts from GitHub (see index.html script). */
+/* Real per-OS download counts from GitHub (see index.html script).
+ *
+ * One row, one type size, one baseline. The total used to be set 1.15rem
+ * against the per-OS items' 0.9rem, which made it sit visibly proud of the
+ * three beside it — a headline number in the middle of what is meant to read
+ * as a single line of statistics. It keeps the accent colour, which is enough
+ * to mark it as the total without breaking the line. */
 .dl-stats {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: baseline;
   gap: 0.5rem 1.25rem;
   margin: 1.25rem auto 0;
   font-size: 0.9rem;
@@ -82,7 +89,7 @@ body {
 }
 .dl-stats-total strong {
   color: var(--accent-2);
-  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
 }
 .dl-stats-os b {
   color: var(--text, #e8eefc);
@@ -246,17 +253,27 @@ main {
   font-size: 0.8rem;
 }
 
+/* Centred UNDER the button, not hung off one edge of it.
+ *
+ * It used to be `right: 0`, which pinned the panel's right edge to the
+ * summary's and — once the rows grew wide enough to carry an icon and a size —
+ * threw it across the feature cards beside it. Centring on the button means the
+ * menu grows symmetrically and stays under the thing that opened it whatever
+ * the longest row turns out to be. `max-width` keeps it on a phone. */
 .dl-menu {
   position: absolute;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   margin-top: 10px;
-  min-width: 230px;
+  min-width: 300px;
+  max-width: min(92vw, 380px);
   background: #0b1322;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 8px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   z-index: 10;
+  text-align: left;
 }
 
 .dl-menu a {
@@ -268,6 +285,19 @@ main {
   color: var(--text);
   text-decoration: none;
   font-size: 0.98rem;
+}
+
+/* The label takes the slack so every size lines up in one right-hand column,
+ * which is what makes five different numbers scannable rather than ragged. */
+.dl-label {
+  flex: 1 1 auto;
+}
+
+.dl-size {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .dl-menu a:hover {

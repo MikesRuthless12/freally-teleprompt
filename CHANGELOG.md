@@ -9,6 +9,10 @@ and `docs/changelog.html` together — they are two renderings of the same histo
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [1.3.0] — 2026-08-03
+
 Reading to time — and the words that shouldn't count.
 
 ### Added

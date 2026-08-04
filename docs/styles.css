@@ -253,17 +253,27 @@ main {
   font-size: 0.8rem;
 }
 
+/* Centred UNDER the button, not hung off one edge of it.
+ *
+ * It used to be `right: 0`, which pinned the panel's right edge to the
+ * summary's and — once the rows grew wide enough to carry an icon and a size —
+ * threw it across the feature cards beside it. Centring on the button means the
+ * menu grows symmetrically and stays under the thing that opened it whatever
+ * the longest row turns out to be. `max-width` keeps it on a phone. */
 .dl-menu {
   position: absolute;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   margin-top: 10px;
-  min-width: 230px;
+  min-width: 300px;
+  max-width: min(92vw, 380px);
   background: #0b1322;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 8px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   z-index: 10;
+  text-align: left;
 }
 
 .dl-menu a {
@@ -275,6 +285,19 @@ main {
   color: var(--text);
   text-decoration: none;
   font-size: 0.98rem;
+}
+
+/* The label takes the slack so every size lines up in one right-hand column,
+ * which is what makes five different numbers scannable rather than ragged. */
+.dl-label {
+  flex: 1 1 auto;
+}
+
+.dl-size {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .dl-menu a:hover {

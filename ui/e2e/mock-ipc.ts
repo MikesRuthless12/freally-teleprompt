@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 /**
  * The mocked Tauri IPC bridge for the visual gallery (SR-2).
@@ -73,8 +73,20 @@ export type MockState = {
       paragraphs: number;
       dropped: { kind: string; count: number }[];
       truncated: boolean;
+      /** False for PDF — an empty `dropped` then means "could not tell". */
+      itemised: boolean;
     };
   };
+  /** How long `import_document` takes to resolve, in ms. Lets a spec reproduce
+   * a slow import finishing after the dialog moved on. */
+  importDelayMs?: number;
+  /** Make `scripts_save` reject, so the import's rollback path can be tested. */
+  saveFails?: boolean;
+  /** Make `scripts_open` reject. The rollback must NOT fire here — the bytes
+   * are already safely on disk. */
+  openFails?: boolean;
+  /** Make `settings_set` reject — a read-only or full settings volume. */
+  settingsSaveFails?: boolean;
   /** Which script is open (`recentScripts[0]`). */
   currentScript?: string;
   /** The displays `list_displays` returns (FT-12). */
@@ -92,6 +104,15 @@ export type MockState = {
   metronome?: boolean;
   /** Words that mark text as read-but-not-performed (FT-M02); none by default. */
   skipWords?: string[];
+  /** Stored command bindings (FT-M04/M13/M16). Empty means "the shipped
+   * defaults" — see `resolveBindings` — which is what a fresh install has. */
+  bindings?: Record<string, { window: string | null; global: string | null }>;
+  /** What `shortcuts_status` reports (FT-M13): which global hotkeys the OS
+   * refused. Nothing refused by default, since nothing is registered. */
+  hotkeyStatus?: {
+    failed: Record<string, string>;
+    wayland: boolean;
+  };
   /** What `speech_capability` reports (FT-33); unavailable by default. */
   speechCapability?: { available: boolean; engine: string; detail: string };
   /**
@@ -189,6 +210,7 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       beatsPerBar: state.beatsPerBar ?? 4,
       metronome: state.metronome ?? false,
       skipWords: state.skipWords ?? [],
+      bindings: state.bindings ?? {},
       recentScripts: state.currentScript ? [state.currentScript] : [],
       acceptedEulaVersion: state.eulaAccepted === false ? null : "2026-07-21",
       onboardingSeen: state.onboardingSeen !== false,
@@ -212,6 +234,9 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       // Carried on the snapshot, exactly as Rust does it — the projector reads
       // its keyword list from here, not from its own settings query (FT-M02).
       skipWords: state.skipWords ?? [],
+      // And its bindings, for the same reason (FT-M04/M13/M16): that window
+      // never queries settings, so a rebind reaches it only on the broadcast.
+      bindings: state.bindings ?? {},
     },
     scripts: state.scripts ?? [],
     displays: state.displays ?? [],
@@ -221,12 +246,17 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       engine: "none",
       detail: "dictation is not available in this build",
     },
+    hotkeyStatus: state.hotkeyStatus ?? { failed: {}, wayland: false },
     windowLabel: state.windowLabel ?? null,
     // `null`, not undefined, for the same reason `pendingCrash` is: this
     // payload crosses into the page as JSON, and an undefined would vanish on
     // the way. `importPick: null` is a CANCELLED file chooser, which is a real
     // state a spec asks for — so it has to survive the crossing.
     importPick: state.importPick ?? null,
+    importDelayMs: state.importDelayMs ?? 0,
+    saveFails: state.saveFails ?? false,
+    openFails: state.openFails ?? false,
+    settingsSaveFails: state.settingsSaveFails ?? false,
     importResult: state.importResult ?? null,
     // `null`, not undefined: this crosses into the page as JSON, where
     // undefined would vanish and `bug_report_pending` would fall through to
@@ -274,7 +304,6 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
       onboarding_set_seen: null,
       bug_report_pending: data.pendingCrash,
       scripts_list: data.scripts,
-      scripts_save: null,
       scripts_rename: null,
       scripts_delete: null,
       list_displays: data.displays,
@@ -311,15 +340,24 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
           // that path — it must be a no-op, not an error.
           case "plugin:dialog|open":
             return Promise.resolve(data.importPick);
-          case "import_document":
-            return data.importResult
+          case "import_document": {
+            const answer = data.importResult
               ? Promise.resolve(data.importResult)
               : Promise.reject("that document could not be read");
+            if (!data.importDelayMs) return answer;
+            return new Promise((resolve, reject) => {
+              window.setTimeout(() => answer.then(resolve, reject), data.importDelayMs);
+            });
+          }
           // ⚠️ Rejects on a name that is already in the library, exactly as
           // Rust's `create_in` does. Returning a bare null (as this used to)
           // meant no spec could reach the "a script called X already exists"
           // path — and import is the first feature that walks into it, because
           // it names a script after a file the operator did not choose.
+          case "scripts_save":
+            return data.saveFails
+              ? Promise.reject("could not save: the folder is read-only")
+              : Promise.resolve(null);
           case "scripts_create": {
             const name = String(args.name ?? "");
             return (data.scripts ?? []).some((script) => script.name === name)
@@ -343,6 +381,9 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
           // previous script — so no spec could tell a real switch from a no-op,
           // and a bug that corrupted the newly-opened script was invisible here.
           case "scripts_open": {
+            if (data.openFails) {
+              return Promise.reject("could not open: the file is locked");
+            }
             const name = String(args.name ?? "");
             engine.script = `[${name}]`;
             engine.offset = 0;
@@ -385,6 +426,9 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
           // catch, so every "apply" in a test recorded the right IPC call and
           // then changed nothing on screen.
           case "settings_set": {
+            if (data.settingsSaveFails) {
+              return Promise.reject("could not save settings: the volume is read-only");
+            }
             const next = (args.next ?? {}) as Record<string, unknown>;
             // Rust PRESERVES these three across `set` — they are records of
             // what happened, not preferences, and every draft carries a
@@ -396,9 +440,29 @@ export async function mockTauri(page: Page, state: MockState = {}): Promise<void
               recentScripts: data.settings.recentScripts,
               onboardingSeen: data.settings.onboardingSeen,
             };
+            // ⚠️ A binding entry with BOTH halves null is kept, exactly as
+            // `Settings::validate` now keeps it. It is the only way to say "the
+            // operator cleared this key", and Rust used to drop it — so the UI
+            // put the shipped default back and clearing a shortcut could not
+            // stick. This mock never dropped it, which is why the e2e case
+            // passed against the broken backend. If Rust's rule changes, change
+            // it here too: a mock more permissive than the real app is how that
+            // bug stayed invisible. (`validate_keeps_a_deliberately_cleared_binding`.)
             Object.assign(data.settings, next, preserved);
+            // Rust's `settings_set` pushes the applied preferences into the
+            // live engine and broadcasts (`adopt_settings`), which is the ONLY
+            // way a rebind reaches the projector — that window never queries
+            // settings. A mock that stored the binding without broadcasting it
+            // would let a spec prove the projector follows a rebind when the
+            // real app would leave it on the old key.
+            engine.bindings = data.settings.bindings;
+            emit();
             return Promise.resolve({ ...data.settings });
           }
+          // What the OS accepted (FT-M13). Rust owns the registration, so this
+          // is a report, not a request.
+          case "shortcuts_status":
+            return Promise.resolve(data.hotkeyStatus);
           // Dictation (FT-33). No audio here — a spec drives recognition by
           // firing `voice:dictation` through `window.__emitTauri` (see the
           // `emit` helper in `phase3.spec.ts`).
@@ -447,4 +511,16 @@ export async function openSettingsPane(page: Page, tab: string) {
   await page.getByTestId("titlebar-settings").click();
   await page.getByRole("tab", { name: tab }).click();
   return page.getByTestId("settings-dialog");
+}
+
+/**
+ * The app shell has booted and the engine's script has arrived.
+ *
+ * Here for the same reason `openSettingsPane` is: `phaseA`, `scriptprep` and
+ * `bindings` each had a byte-identical copy, which is exactly the threshold the
+ * note above names. (`phase3.spec.ts` keeps its own — it asserts different text
+ * and is not this function.)
+ */
+export async function waitForShell(page: Page) {
+  await expect(page.getByTestId("caesura-editor")).toBeVisible();
 }

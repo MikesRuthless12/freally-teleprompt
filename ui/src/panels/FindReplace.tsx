@@ -16,7 +16,6 @@ import {
   findMatches,
   matchContext,
   matchNearest,
-  replaceAll,
   stepMatch,
 } from "../lib/find";
 
@@ -61,8 +60,12 @@ export function FindReplace({
    * needs it too; this dialog only asks for it to move. */
   current: Match | null;
   onCurrent: (match: Match | null) => void;
-  onReplace: (match: Match, replacement: string) => void;
-  onReplaceAll: (text: string, count: number) => void;
+  /** Replace the `at`-th match. The QUERY is passed, not the match, because the
+   * shell re-derives it from the editor's live text — see `App`'s note. */
+  onReplace: (query: string, replacement: string, options: FindOptions, at: number) => void;
+  /** Replace every match; returns how many were actually replaced in the live
+   * text, which is what the dialog reports. */
+  onReplaceAll: (query: string, replacement: string, options: FindOptions) => number;
   onClose: () => void;
 }) {
   const t = useT();
@@ -73,6 +76,19 @@ export function FindReplace({
     wholeWord: false,
   });
   const [at, setAt] = useState(0);
+  /**
+   * Where to resume the search after a replacement, and the script that
+   * replacement was made against.
+   *
+   * ⚠️ The `from` half is what makes the offset mean anything. `script` is the
+   * ENGINE'S ECHO and lags a round-trip behind the editor, so the render
+   * immediately after a replacement still carries the old text and the old
+   * match list — resolving the anchor there measured the new offset against
+   * the old offsets and landed a match too far, silently stepping over an
+   * occurrence and never replacing it. The anchor is held until `script`
+   * actually changes, which is the moment the new match list exists.
+   */
+  const [anchor, setAnchor] = useState<{ at: number; from: string } | null>(null);
   /** How many matches replace-all touched, until the next search changes. */
   const [replaced, setReplaced] = useState<number | null>(null);
 
@@ -109,15 +125,27 @@ export function FindReplace({
     if (!open) return;
     if (matches.length === 0) {
       onCurrent(null);
+      // ⚠️ Clear the anchor HERE too. Returning early left one behind, and it
+      // was then applied to the operator's NEXT, unrelated search — which
+      // opened partway down the script reading "2 of 2" instead of at the
+      // first hit.
+      if (anchor !== null) setAnchor(null);
       return;
     }
-    const bounded = at < matches.length ? at : matchNearest(matches, current?.start ?? 0);
+    // Only once the edit has actually come back from the engine — see `anchor`.
+    const ready = anchor !== null && anchor.from !== script;
+    const bounded = ready
+      ? matchNearest(matches, anchor.at)
+      : at < matches.length
+        ? at
+        : matchNearest(matches, current?.start ?? 0);
+    if (ready) setAnchor(null);
     if (bounded !== at) setAt(bounded);
     onCurrent(matches[bounded]);
     // `current` is deliberately absent: it is this effect's OUTPUT, and reading
     // it as an input would re-run on every push and loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, matches, at, onCurrent]);
+  }, [open, matches, at, anchor, script, onCurrent]);
 
   // The highlight belongs to the search, so it goes when the search does —
   // otherwise a closed dialog leaves a lit match in the operator's script with
@@ -136,19 +164,31 @@ export function FindReplace({
     const match = matches[at];
     if (!match) return;
     setReplaced(null);
-    // Stay on the same ORDINAL rather than advancing: after a replacement the
-    // list is one shorter, so what was match 3 of 5 is now match 3 of 4 — the
-    // next one along, already under the cursor. Advancing as well would step
-    // over a match without showing it.
-    onReplace(match, replacement);
+    onReplace(query, replacement, options, at);
+    // Replacing text with itself changes nothing, so no new script is coming
+    // and an anchor would wait for an edit that never lands. Step on instead.
+    if (replacement === script.slice(match.start, match.end)) {
+      setAt(stepMatch(matches.length, at, 1));
+      return;
+    }
+    // ⚠️ Resume PAST what was just written, not at the same ordinal.
+    //
+    // Staying put reads correctly only while the replacement does not itself
+    // match: then the list is one shorter and ordinal `at` is already the next
+    // occurrence. But replace "the" with "there" and the new text matches too,
+    // so ordinal `at` is the SAME occurrence — pressing Replace three times
+    // turned one word into "therere" while the other two sat untouched, and the
+    // count went on reading "1 of 3" the whole time. Anchoring on the end of
+    // the inserted text and re-finding from there is correct either way.
+    setAnchor({ at: match.start + replacement.length, from: script });
   };
 
   const doReplaceAll = () => {
-    const { text, count } = replaceAll(script, query, replacement, options);
+    const count = onReplaceAll(query, replacement, options);
     if (count === 0) return;
     setAt(0);
+    setAnchor(null);
     setReplaced(count);
-    onReplaceAll(text, count);
   };
 
   const context = current && matches.length > 0 ? matchContext(script, current) : null;
@@ -177,8 +217,10 @@ export function FindReplace({
             onChange={(e) => {
               setQuery(e.target.value);
               // A new search starts at the top, and its result is not the
-              // count the last replace-all reported.
+              // count the last replace-all reported — nor is it a place to
+              // resume from, so any pending anchor goes with it.
               setAt(0);
+              setAnchor(null);
               setReplaced(null);
             }}
             onKeyDown={(e) => {

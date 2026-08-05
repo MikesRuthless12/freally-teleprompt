@@ -85,15 +85,51 @@ export type SectionTiming = {
  * bounds can be handed straight to `timeAtOffset` without a second convention
  * to keep in step.
  */
+/** How many sections the blank-line fallback would produce — i.e. runs of
+ * non-blank lines. The yardstick the marker rule is measured against. */
+function countBlankSeparatedRuns(lines: readonly string[]): number {
+  let runs = 0;
+  let inRun = false;
+  for (const line of lines) {
+    if (line.trim() === "") {
+      inRun = false;
+      continue;
+    }
+    if (!inRun) runs += 1;
+    inRun = true;
+  }
+  return runs;
+}
+
 export function sections(script: string, skipWords: readonly string[] = []): Section[] {
   const keywords = normaliseKeywords(skipWords);
   const lines = script.split("\n");
-  // Markers win where the script has any; blank lines are the fallback for a
-  // script that does not use them (prose, or a user with no keywords set and no
-  // headings). No keyword requirement any more — a `# Verse 2` heading is a
-  // marker on its own, which is what makes an imported Markdown script rehearse
-  // section by section without the operator configuring anything first.
-  const byLabel = lines.some((line) => isMarkerLine(line, keywords));
+  // Markers win where the script is actually STRUCTURED by them; blank lines
+  // are the fallback for everything else.
+  //
+  // ⚠️ Two or more, not one. The first version switched the whole script off
+  // the blank-line rule the moment any single line matched — so a twelve-
+  // paragraph prose script carrying one `# Title` from a Markdown import, or
+  // one shot-list line reading `#3 CAMERA B`, collapsed from twelve rows to
+  // two and the operator lost the per-paragraph timings the report exists for.
+  // One marker does not divide a script into sections; it labels it. (The
+  // keyword requirement this replaced was doing the same job by accident: a
+  // configured keyword was an explicit signal, and `#` is not.)
+  // Whichever rule actually DIVIDES this script wins — measured, not guessed.
+  //
+  // ⚠️ Both fixed thresholds were wrong in opposite directions. "Any marker at
+  // all" let one stray `# Title` from a Markdown import collapse a
+  // twelve-paragraph script to two rows. "Two or more" then broke the script
+  // that has no blank lines and exactly one heading — a shape the .docx and
+  // Markdown importers both produce — collapsing it to a single unlabelled row
+  // and losing the timing for the section the operator had explicitly marked.
+  //
+  // Comparing the two splits answers both: markers are used when they cut the
+  // script into more pieces than the blank lines do, which is what "this script
+  // is structured by markers" actually means.
+  const markerCount = lines.filter((line) => isMarkerLine(line, keywords)).length;
+  const blankRuns = countBlankSeparatedRuns(lines);
+  const byLabel = markerCount > 0 && markerCount >= blankRuns;
 
   const out: Section[] = [];
   let vis = 0;

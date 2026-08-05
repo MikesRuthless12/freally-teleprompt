@@ -49,6 +49,7 @@ const BASE: Settings = {
   beatsPerBar: 4,
   metronome: false,
   skipWords: [],
+  bindings: {},
   recentScripts: [],
   acceptedEulaVersion: "2026-07-21",
   onboardingSeen: true,

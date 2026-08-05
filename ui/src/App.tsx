@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   bugReportPending,
@@ -8,26 +8,35 @@ import {
   onboardingSetSeen,
   scriptsSave,
   settingsGet,
+  settingsSet,
   speechCapability,
   teleprompterControl,
   teleprompterSetScript,
   teleprompterSetSpeed,
   traySync,
 } from "./api/commands";
-import { onVoiceDictating, onVoiceDictation, onVoiceError } from "./api/events";
-import type { EulaStatus, Settings } from "./api/types";
+import { onHotkey, onVoiceDictating, onVoiceDictation, onVoiceError } from "./api/events";
+import type { EulaStatus, Settings, StoredBinding } from "./api/types";
 import { AUTO_LOCALE, resolveAutocompleteLocale } from "./i18n/locales";
 import { applySettingsToDocument, getLocale, initLocale, useT } from "./i18n/t";
 import { CaesuraEditor, type CaesuraEditorHandle } from "./components/CaesuraEditor";
 import { MarkerJump } from "./components/MarkerJump";
+import { anyModalOpen } from "./components/modalStack";
 import { BUTTON, ERROR_LINE } from "./components/styles";
 import { PaceWarning } from "./components/PaceWarning";
 import { TempoReadout } from "./components/TempoReadout";
 import { ResizeEdges, TitleBar } from "./components/TitleBar";
 import { Transport } from "./components/Transport";
+import {
+  COMMAND_IDS,
+  type CommandId,
+  commandFor,
+  commandSpec,
+  resolveBindings,
+} from "./lib/bindings";
 import { timeAtOffset, timedRegions, visibleChars } from "./lib/caesura";
-import type { Match } from "./lib/find";
-import { markers as findMarkers } from "./lib/markers";
+import { type Match, findMatches, replaceAll } from "./lib/find";
+import { adjacentMarker, markers as findMarkers } from "./lib/markers";
 import { Metronome } from "./lib/metronome";
 import type { Sample } from "./lib/rehearsal";
 import { scriptStats } from "./lib/stats";
@@ -41,6 +50,7 @@ import {
 import { DEFAULT_BEATS_PER_BAR } from "./lib/tempo";
 import { fmtTime } from "./lib/time";
 import { readAloud, stopReading } from "./lib/tts";
+import { useOffsetReader } from "./lib/useReadClock";
 import { useRehearsal } from "./lib/useRehearsal";
 import { useTeleprompter } from "./lib/useTeleprompter";
 import { AboutDialog } from "./panels/About";
@@ -52,6 +62,7 @@ import { ProjectorSetup } from "./panels/ProjectorSetup";
 import { RehearsalReport } from "./panels/Rehearsal";
 import { ScriptLibrary } from "./panels/ScriptLibrary";
 import { SettingsDialog } from "./panels/Settings";
+import { Shortcuts } from "./panels/Shortcuts";
 import { TeleprompterScroller, TeleprompterSeekBar } from "./panels/Teleprompter";
 import { TourDialog } from "./panels/Tour";
 import { UpdatesDialog } from "./panels/Updates";
@@ -88,6 +99,7 @@ export default function App() {
   const [bugOpen, setBugOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // Find & replace (FT-M07). The match lives HERE rather than in the dialog
   // because two surfaces need it: the dialog shows it in context, and the
   // editor paints it. One owner, so they cannot show different matches.
@@ -578,21 +590,161 @@ export default function App() {
     [],
   );
 
-  // Ctrl+F / Cmd+F opens find (FT-M07). On the window rather than on the
-  // editor, because the operator reaches for it from wherever they are — and
-  // `preventDefault` is what stops the WebView's own find bar opening on top of
-  // ours, which would search the rendered page (chips, glyphs and all) instead
-  // of the script.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
-        e.preventDefault();
-        setFindOpen(true);
+  // -- the binding table (FT-M04 / FT-M13 / FT-M16) ---------------------------
+  //
+  // One dispatcher, three inputs: the keyboard, a foot pedal (which is a
+  // keyboard), and a global hotkey the OS delivers while the app is behind OBS.
+  // All three arrive here as a command id, so a rebind in the map moves all of
+  // them at once and none of them can drift.
+  const bindings = useMemo(() => resolveBindings(settings?.bindings), [settings?.bindings]);
+
+  // Where the read is at the instant a key is pressed. A function rather than a
+  // value: `state.offset` is only the last broadcast's anchor, and running a
+  // clock here to keep a live copy would re-render the whole operator window 20
+  // times a second — see `useOffsetReader`.
+  const offsetNow = useOffsetReader(state, caesuras);
+
+  // Read-aloud is the only thing that overrides the shared scroll — it is a
+  // preview-local mode, so the projector and the LAN mirror stay on the shared
+  // state while it runs. Dictation never touches the scroll at all: it writes
+  // text, it does not read.
+  //
+  // Declared HERE rather than beside the render that consumes it because
+  // `runCommand` needs it too: the marker hotkeys must jump from the position
+  // the operator can actually see.
+  const scrollOverride: number | undefined = readAloudMode ? raOffset : undefined;
+
+  const runCommand = (command: CommandId) => {
+    // Only the commands this window can answer DIFFERENTLY are spelled out.
+    // Everything else falls through to its `action` on the table, which is the
+    // same one the projector dispatches — so a key cannot mean two things on
+    // two surfaces, and adding a command to the vocabulary wires both at once.
+    switch (command) {
+      // Read-aloud is a preview-local mode: while it runs, the transport drives
+      // the SPEECH rather than the shared scroll. Same expressions the
+      // on-screen `Transport` uses.
+      case "playPause":
+        if (readAloudMode) return raPlayPause();
+        break;
+      case "stop":
+        if (readAloudMode) return raStop();
+        break;
+      case "top":
+        if (readAloudMode) return raSeek(0);
+        break;
+      case "nextMarker":
+      case "prevMarker": {
+        // ⚠️ The SAME offset the on-screen ◀ / ▶ buttons use. `seek` routes to
+        // read-aloud's preview-local position in that mode, so computing the
+        // jump from the engine's anchor — which read-aloud never moves — asked
+        // "which marker follows offset 0?" and restarted the speech from the
+        // top however far through it was. Clicking and pressing must answer the
+        // same question.
+        const from = scrollOverride ?? offsetNow();
+        const target = adjacentMarker(markers, from, command === "nextMarker" ? 1 : -1);
+        // Null at either end of the script. Leaving the scroll alone is the
+        // honest answer — jumping to the top on "previous" would be a silent,
+        // destructive reading of a key that meant something else.
+        if (target) seek(target.offset);
+        return;
       }
+      case "find":
+        return setFindOpen(true);
+    }
+    const action = commandSpec(command)?.action;
+    if (action) control(action);
+  };
+
+  // ⚠️ Held in a ref, and read from one, because two of the branches above
+  // (`raPlayPause`, `raStop`) are re-created every render. Depending on
+  // `runCommand` directly would tear down and re-add a window listener and a
+  // Tauri event subscription on every keystroke of the script — and the
+  // subscription is asynchronous, so a hotkey arriving mid-swap would find
+  // nobody listening. Synced at LAYOUT time so a hotkey can never run a
+  // dispatcher one render out of date.
+  const runCommandRef = useRef(runCommand);
+  useLayoutEffect(() => {
+    runCommandRef.current = runCommand;
+  });
+
+  // The keyboard half. On the window rather than on the editor, because the
+  // operator reaches for these from wherever they are; `commandFor` is what
+  // keeps a bare `Space` from being stolen out of the editor while they type.
+  //
+  // `preventDefault` runs only once a binding has actually matched — it is what
+  // stops the WebView's own find bar opening on top of ours (which would search
+  // the rendered page, chips and glyphs and all, instead of the script) and
+  // what stops Space scrolling the page under the preview.
+  // A LAYOUT effect, for the reason `Projector.tsx` states at its own listener:
+  // a passive one runs after paint, leaving a frame in which the operator
+  // surface is on screen and answers no keys.
+  useLayoutEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      // ⚠️ Two guards, and the transport is unusable without either.
+      //
+      // A dialog owns the keyboard while it is up. Settings' category list
+      // moves on the arrow keys and calls `preventDefault` but not
+      // `stopPropagation`, so every press still reached this listener and
+      // re-paced the talent's scroll mid-shoot; and `preventDefault` on a bare
+      // Space stopped every focused button in the app from activating,
+      // including this feature's own rebind buttons. `isTextEntry` cannot cover
+      // it — the target is a `<button role="tab">`.
+      //
+      // `defaultPrevented` is the second, narrower guard: anything that has
+      // already acted on this key has said so, and a binding must not act on it
+      // twice.
+      if (anyModalOpen() || event.defaultPrevented) return;
+      const command = commandFor(event, bindings);
+      if (!command) return;
+      event.preventDefault();
+      runCommandRef.current(command);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [bindings]);
+
+  // The global half (FT-M13). Rust owns the OS registration and emits the
+  // command id; from here on it is indistinguishable from a keystroke.
+  useEffect(() => {
+    const pending = onHotkey((command) => {
+      // The payload crosses a process boundary, so it is checked rather than
+      // trusted: a stale registration from an older build would otherwise be
+      // cast straight into a `CommandId`.
+      if (COMMAND_IDS.has(command)) runCommandRef.current(command as CommandId);
+    });
+    return () => {
+      void pending.then((unlisten) => unlisten()).catch(() => undefined);
+    };
   }, []);
+
+  /**
+   * Persist a rebind, and let Rust re-register the global hotkeys.
+   *
+   * ⚠️ Resolves only once the write has landed, and does NOT close the dialog.
+   * Registration failures are produced BY this call — Rust re-registers inside
+   * `settings_set` — so the map has to still be open to read them back. Closing
+   * here meant "another program is using this key" was recorded with nobody
+   * left to show it, and the operator found out on a shoot. The dialog decides
+   * whether to close, because it is the thing that knows whether anything
+   * failed.
+   */
+  const saveBindings = useCallback(
+    async (next: Record<string, StoredBinding>) => {
+      if (!settings) throw new Error("settings are not loaded yet");
+      // The whole settings object, not a patch: `settings_set` takes a complete
+      // draft and every field it does not receive falls back to its serde
+      // default. Sending less than this is the settings-draft trap that has
+      // silently reset preferences in this suite before.
+      //
+      // ⚠️ A rejection is NOT swallowed here. It used to be, and the map could
+      // not tell a failed write from a stored one: a read-only or full settings
+      // volume closed the dialog exactly as success did, so the operator
+      // believed the pedal was bound and found out on the shoot.
+      const applied = await settingsSet({ ...settings, bindings: next });
+      onApplied(applied);
+    },
+    [settings, onApplied],
+  );
 
   // The app is unusable until the current EULA version is accepted (FT-05).
   // Nothing renders until we know, and a failed query fails CLOSED — a legal
@@ -634,12 +786,6 @@ export default function App() {
     );
   }
 
-  // Read-aloud is the only thing that overrides the shared scroll — it is a
-  // preview-local mode, so the projector and the LAN mirror stay on the shared
-  // state while it runs. Dictation never touches the scroll at all: it writes
-  // text, it does not read.
-  const scrollOverride: number | undefined = readAloudMode ? raOffset : undefined;
-
   const playing = readAloudMode ? speaking : state.playing;
 
   return chrome(
@@ -665,6 +811,16 @@ export default function App() {
           onClick={() => setFindOpen(true)}
         >
           {t("toolbar-find")}
+        </button>
+        {/* The shortcut map (FT-M16) — and with it the pedal's learn-a-button
+            and the global-hotkey opt-in, which are three views of one table. */}
+        <button
+          type="button"
+          className={BUTTON}
+          data-testid="toolbar-shortcuts"
+          onClick={() => setShortcutsOpen(true)}
+        >
+          {t("toolbar-shortcuts")}
         </button>
         <button type="button" className={BUTTON} onClick={() => setProjectorOpen(true)}>
           {t("toolbar-projector")}
@@ -1020,16 +1176,44 @@ export default function App() {
       {/* Find & replace (FT-M07). Both edits go through the EDITOR's handle,
           not through `onScriptChange`: that is what puts a replacement on the
           undo stack as one step and lets it reach the engine, the projector and
-          autosave by the same path a keystroke takes. */}
+          autosave by the same path a keystroke takes.
+
+          ⚠️ And both RE-DERIVE the edit from the editor's LIVE text at the
+          moment they run, rather than from the `state.script` the dialog
+          searched. That prop is the engine's echo and lags a round-trip behind:
+          a dictated utterance arriving in the window between the search and the
+          press of Replace was written over and lost, and a match's offsets
+          computed against the stale copy point at the wrong characters. The
+          dialog's own count and preview may be a frame behind; what gets
+          WRITTEN never is. */}
+      {/* The shortcut map (FT-M16). It saves through the shell because the
+          shell owns `settings` — and a partial settings write is the draft trap
+          this app has already paid for once. */}
+      <Shortcuts
+        open={shortcutsOpen}
+        bindings={settings?.bindings ?? {}}
+        onSave={saveBindings}
+        onClose={() => setShortcutsOpen(false)}
+      />
+
       <FindReplace
         open={findOpen}
         script={state.script}
         current={findMatch}
         onCurrent={setFindMatch}
-        onReplace={(match, replacement) =>
-          editor.current?.replaceRange(match.start, match.end, replacement)
-        }
-        onReplaceAll={(text) => editor.current?.setText(text)}
+        onReplace={(query, replacement, options, at) => {
+          const live = editor.current?.getText();
+          if (live === undefined) return;
+          const match = findMatches(live, query, options)[at];
+          if (match) editor.current?.replaceRange(match.start, match.end, replacement);
+        }}
+        onReplaceAll={(query, replacement, options) => {
+          const live = editor.current?.getText();
+          if (live === undefined) return 0;
+          const { text, count } = replaceAll(live, query, replacement, options);
+          if (count > 0) editor.current?.setText(text);
+          return count;
+        }}
         onClose={() => setFindOpen(false)}
       />
 

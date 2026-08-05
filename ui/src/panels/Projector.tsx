@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { teleprompterControl } from "../api/commands";
 import { Transport } from "../components/Transport";
 import { useT } from "../i18n/t";
+import { ENGINE_COMMANDS, commandFor, commandSpec, resolveBindings } from "../lib/bindings";
 import { timedRegions } from "../lib/caesura";
 import { useTeleprompter } from "../lib/useTeleprompter";
 import { TeleprompterScroller, TeleprompterSeekBar } from "./Teleprompter";
@@ -56,40 +57,49 @@ export function Projector() {
     hideTimer.current = window.setTimeout(() => setChromeVisible(false), 2800);
   }, []);
 
-  // Keyboard shortcuts (FT-13). The talent's hands are not on the operator's
-  // machine, so the projector has to be drivable from its own window.
-  useEffect(() => {
+  // Keyboard shortcuts (FT-13, rebindable since FT-M16). The talent's hands are
+  // not on the operator's machine, so the projector has to be drivable from its
+  // own window — through the SAME binding table the operator window uses, so a
+  // rebind moves both. The table rides on the engine snapshot rather than being
+  // read from settings here; see `TeleprompterDto.bindings`.
+  //
+  // ⚠️ `ENGINE_COMMANDS` — the commands that ARE exactly one engine action — is
+  // what this window answers, and the marker pair is deliberately not among
+  // them. Next/previous marker need to know where the read is *now* and need
+  // the marker list, and this window has neither; binding them here would mean
+  // a second implementation of `lib/markers.ts` on the far side of the IPC
+  // boundary. They stay the operator's, which is whose job they are.
+  const bindings = useMemo(() => resolveBindings(state.bindings), [state.bindings]);
+
+  // ⚠️ A LAYOUT effect, not a passive one. A passive effect runs *after* the
+  // browser paints, so there is a window — one frame, longer on a loaded
+  // machine — where the projector is on screen and answers no keys at all.
+  // `ModalShell` was fixed at this exact point for this exact reason (its Esc
+  // handler had the same gap, and macOS CI failed on it deterministically);
+  // the rule generalises, and a prompter window that is visible but not yet
+  // drivable is the same defect. It also made an e2e case flaky, because
+  // `toBeVisible()` only proves React painted.
+  useLayoutEffect(() => {
     // Defer the first reveal a frame — the chrome starts visible anyway, and this
     // only arms the auto-hide without a setState in the effect body.
     const raf = requestAnimationFrame(reveal);
     const onKey = (event: KeyboardEvent) => {
       reveal();
-      switch (event.key) {
-        case "Escape":
-          void getCurrentWindow().close();
-          break;
-        case " ": // Space toggles play/pause without scrolling the page.
-          event.preventDefault();
-          control("toggle");
-          break;
-        case "ArrowLeft":
-          control("stepBack");
-          break;
-        case "ArrowRight":
-          control("stepForward");
-          break;
-        case "ArrowUp":
-          control("faster");
-          break;
-        case "ArrowDown":
-          control("slower");
-          break;
-        case "Home":
-          control("top");
-          break;
-        default:
-          break;
+      // Escape closes the window, and is NOT in the binding table: it is window
+      // management rather than a transport command, and every dialog in the app
+      // already means "get me out of here" by it.
+      if (event.key === "Escape") {
+        void getCurrentWindow().close();
+        return;
       }
+      const command = commandFor(event, bindings, { only: ENGINE_COMMANDS });
+      const action = command && commandSpec(command)?.action;
+      if (!action) return;
+      // Only once a binding has matched, so an unbound key still does whatever
+      // the window would normally do with it — and a bound Space does not
+      // scroll the page under the script.
+      event.preventDefault();
+      control(action);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousemove", reveal);
@@ -99,7 +109,7 @@ export function Projector() {
       window.removeEventListener("mousemove", reveal);
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
     };
-  }, [control, reveal]);
+  }, [control, reveal, bindings]);
 
   return (
     <div

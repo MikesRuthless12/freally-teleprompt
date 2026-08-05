@@ -34,6 +34,8 @@ pdf-extract = { workspace = true }
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Global hotkeys (FT-M13). Desktop-only by construction, which this app is.
+tauri-plugin-global-shortcut = "2"
 # Microphone capture and resampling for dictation. Depended on for its `cpal`
 # backend only — the crate's own model-free command recogniser is not used by
 # the app, which has no voice commands.

@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { open as pickFile } from "@tauri-apps/plugin-dialog";
 
-import { importDocument, scriptsCreate, scriptsOpen, scriptsSave } from "../api/commands";
+import {
+  importDocument,
+  scriptsCreate,
+  scriptsDelete,
+  scriptsOpen,
+  scriptsSave,
+} from "../api/commands";
 import type { ImportResult } from "../api/types";
 import { ModalShell } from "../components/ModalShell";
 import {
@@ -61,6 +67,19 @@ export function ImportDocument({
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Which import request is the live one.
+   *
+   * ⚠️ An import can take up to ninety seconds, and the dialog can be closed,
+   * reopened and pointed at a different file long before it lands. Without this
+   * the first document's promise resolved into the second document's dialog and
+   * silently swapped the report, the preview AND the name field — so pressing
+   * Import saved a script the operator had not chosen, under a name that had
+   * changed under their hand. Bumped on every new request and whenever the
+   * dialog opens or closes; a stale result is dropped on the floor.
+   */
+  const request = useRef(0);
+
   // Reset on every OPEN transition, derived during render — the same pattern
   // every other dialog here uses rather than an effect that only calls
   // setState.
@@ -75,6 +94,15 @@ export function ImportDocument({
     }
   }
 
+  // ⚠️ The token is invalidated HERE and not in the block above, because eslint
+  // forbids writing a ref during render — a render can be discarded, and this
+  // write must not be. An effect on `open` is the same moment for our purposes:
+  // an in-flight promise cannot resolve before the effects of the render that
+  // closed the dialog have run.
+  useEffect(() => {
+    request.current += 1;
+  }, [open]);
+
   const choose = () => {
     setError(null);
     void pickFile({
@@ -86,15 +114,19 @@ export function ImportDocument({
         // Cancelled: null on every platform. Not an error, and not a state
         // change — the dialog stays exactly as the operator left it.
         if (typeof picked !== "string") return;
+        const token = (request.current += 1);
+        const live = () => request.current === token;
         setBusy(true);
         setResult(null);
         return importDocument(picked)
           .then((imported) => {
+            if (!live()) return;
             setBusy(false);
             setResult(imported);
             setName(imported.suggestedName);
           })
           .catch((err) => {
+            if (!live()) return;
             setBusy(false);
             setError(String(err));
           });
@@ -114,9 +146,34 @@ export function ImportDocument({
     // commands rather than a fourth way of putting a file on disk. `create`
     // refuses to overwrite, so an import can never silently replace yesterday's
     // take with a document that happened to share its name.
+    //
+    // ⚠️ And it is UNDONE if the write fails. `create` succeeding then `save`
+    // failing — a read-only folder, a full disk, a file a sync client has
+    // locked — used to leave an empty script sitting in the library under the
+    // operator's chosen name, so pressing Import again failed at the first step
+    // with "a script called X already exists". The import could not be
+    // completed under the name they wanted without deleting the stub by hand.
+    // The rollback is best-effort and never masks the real error: whatever went
+    // wrong with the save is what gets shown.
     scriptsCreate(trimmed)
-      .then(() => scriptsSave(trimmed, result.text))
-      .then(() => scriptsOpen(trimmed))
+      .then(() =>
+        // ⚠️ The rollback covers the WRITE only, and the `.catch` is attached
+        // before the open for exactly that reason. Chained after it, a failure
+        // to OPEN a script whose contents had been written perfectly well —
+        // a sync client holding the file for a moment is enough — deleted the
+        // import that had just succeeded, and the operator had to run the whole
+        // thing again. Nothing that happens after the bytes are safely on disk
+        // may remove them.
+        scriptsSave(trimmed, result.text)
+          .catch((err) =>
+            scriptsDelete(trimmed)
+              .catch(() => undefined)
+              .then(() => {
+                throw err;
+              }),
+          )
+          .then(() => scriptsOpen(trimmed)),
+      )
       .then(() => {
         setBusy(false);
         onImported(trimmed);
@@ -174,7 +231,14 @@ export function ImportDocument({
               </p>
             )}
 
-            {report.dropped.length === 0 ? (
+            {/* ⚠️ "Nothing else was left behind" is only sayable where the
+                parser walked a document model and found nothing. A PDF has no
+                such model — an empty list there means "could not tell", and
+                saying otherwise was a false reassurance on the format most
+                likely to be carrying figures and footnotes. */}
+            {!report.itemised ? (
+              <p className="text-havoc-muted m-0">{t("import-not-itemised")}</p>
+            ) : report.dropped.length === 0 ? (
               <p className="text-havoc-muted m-0">{t("import-nothing-dropped")}</p>
             ) : (
               <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
@@ -216,7 +280,7 @@ export function ImportDocument({
         )}
 
         <div className={DIALOG_FOOTER}>
-          <button type="button" className={BUTTON} onClick={onClose}>
+          <button type="button" className={BUTTON} data-testid="import-cancel" onClick={onClose}>
             {t("import-cancel")}
           </button>
           <button

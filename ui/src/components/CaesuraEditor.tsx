@@ -312,6 +312,19 @@ export type CaesuraEditorHandle = {
   /** Replace the whole script — replace-all, which is one edit however many
    * matches it touched. Undone in one step, for the same reason. */
   setText: (text: string) => void;
+  /**
+   * The script as the EDITOR has it, right now.
+   *
+   * ⚠️ Not the same thing as `state.script`, and find & replace has to use
+   * this one. `state.script` is the engine's echo and only updates after a
+   * round-trip, so anything computed from it — a replace-all's whole new
+   * document, or the offsets of a match — describes the script as it was some
+   * milliseconds ago. A dictated utterance landing in that window was written
+   * over and lost. Every other write path in this component already reads the
+   * live DOM for exactly this reason; this exposes it to the one caller that
+   * has to compute an edit before making it.
+   */
+  getText: () => string;
 };
 
 export function CaesuraEditor({
@@ -786,7 +799,12 @@ export function CaesuraEditor({
 
   const setText = (text: string) => writeThrough(text, text.length);
 
-  useImperativeHandle(handle, () => ({ insertText, replaceRange, setText }));
+  const getText = () => {
+    const root = ref.current;
+    return root ? serialize(root) : "";
+  };
+
+  useImperativeHandle(handle, () => ({ insertText, replaceRange, setText, getText }));
 
   // Copy/cut serialize chips back to their token text (not the pill glyph) so the
   // clipboard round-trips into any editor.

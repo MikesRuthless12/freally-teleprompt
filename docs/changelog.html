@@ -110,6 +110,86 @@
 
     <main class="changelog-body">
       <article class="release">
+        <h2>1.5.0</h2>
+        <p class="date">5 August 2026 — anything in the room can drive the prompter</p>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Foot pedals and presenter remotes.</strong> A pedal is how a prompter is
+            actually driven on a shoot — your hands are on a camera, not a keyboard. Open
+            <strong>Shortcuts</strong>, press the binding you want to change, then press the pedal:
+            whatever it sends is what gets stored, with no driver and no setup. Most pedals and
+            remotes send F13–F24 precisely because nothing else uses them, and those now bind like
+            any other key.
+          </li>
+          <li>
+            <strong>Keys that work when Freally Teleprompt is not in front.</strong> The operator is
+            usually in a camera app, a DAW or OBS, so every transport command can be given a second
+            binding that the operating system delivers wherever you are. <strong>Nothing is claimed
+            until you ask</strong> — no system-wide key is registered out of the box, because taking
+            one away from every other program uninvited is not something an app should do. If
+            another program already owns the combination, the row tells you, with the reason; and
+            under Wayland, which does not let applications claim keys system-wide at all, the dialog
+            says so rather than showing a binding that quietly does nothing.
+          </li>
+          <li>
+            <strong>A searchable, rebindable map of every command</strong>, with conflict detection.
+            Search by what a command is called, or by the key itself when you want to know what F13
+            is currently doing. Clear a binding, or restore the shipped defaults, at any time.
+            Bindings follow the <strong>physical key</strong>, so they keep working if you switch
+            keyboard layout.
+          </li>
+          <li>
+            <strong>One table drives all of it.</strong> The preview, the projector window, a pedal
+            and a system-wide hotkey all read the same bindings, so changing a key changes it
+            everywhere at once — including the talent's projector, which follows a rebind without
+            being reopened. The space bar, arrows and Home still type normally while you are
+            writing: a bare key runs its command only when you are not in the editor.
+          </li>
+        </ul>
+
+        <h3>Fixed</h3>
+        <ul>
+          <li>
+            <strong>Importing a document.</strong> A PDF no longer claims to know what it left
+            behind — it has no structure to check, and saying "nothing else was left behind" was a
+            false reassurance on the format most likely to be carrying figures. A Word text box is
+            no longer imported twice or reported as a missing picture; charts and SmartArt are now
+            reported rather than vanishing silently; pictures and running heads are counted once
+            each, however many sections use them; characters Word stores as elements no longer
+            disappear (<code>co‑operate</code> imported as <code>cooperate</code>); and a file that
+            claims to be Unicode and isn't is read and reported rather than shown as
+            <code>�</code> with the report saying nothing was dropped.
+          </li>
+          <li>
+            <strong>Normalising a dash still cannot invent a pause.</strong> An invisible character
+            sitting between two dashes — which web- and PDF-sourced text routinely carries — used to
+            split the run and produce a pause nobody wrote. RTF reached the same bug by a different
+            route, and an embedded picture or object could leak into the script; emoji now survive
+            instead of being dropped as surrogate halves.
+          </li>
+          <li>
+            <strong>The app no longer freezes while a document is read</strong> — a large PDF could
+            hold the window for up to ninety seconds. A slow import can no longer land in the wrong
+            dialog and save a script you did not choose, and a failed save no longer leaves a stub
+            behind that blocks importing again under the same name.
+          </li>
+          <li>
+            <strong>Find &amp; replace</strong> now edits the script as it is rather than as it was
+            a moment ago, so a dictated utterance arriving mid-replace is no longer overwritten; and
+            replacing with text that contains what you searched for walks forward properly instead
+            of turning "the" into "therere" while leaving the others untouched.
+          </li>
+          <li>
+            <strong>The rehearsal report</strong> no longer collapses when a script carries a single
+            heading — one marker labels a script, it does not divide it — while a script whose only
+            structure is that one heading still gets its sections.
+          </li>
+        </ul>
+      </article>
+
+      <article class="release">
         <h2>1.4.0</h2>
         <p class="date">4 August 2026 — getting the script in, and finding your way around it</p>
 

@@ -121,6 +121,38 @@ fn default_beats_per_bar() -> u8 {
 const MAX_SKIP_WORDS: usize = 64;
 const MAX_SKIP_WORD_CHARS: usize = 48;
 
+/// Bounds on the binding table (FT-M04/M13/M16). Ten commands ship; the cap is
+/// only here so a hand-edited file cannot hand [`crate::shortcuts::apply`] an
+/// unbounded list of accelerators to register with the OS.
+const MAX_BINDINGS: usize = 64;
+/// The longest accelerator worth storing. `Control+Alt+Shift+Super+MediaTrackPrevious`
+/// is 42 characters, so this is generous and still bounded.
+const MAX_ACCELERATOR_CHARS: usize = 64;
+
+/// A bounded, non-blank accelerator. Not a syntax check — see [`Binding`].
+fn is_sane_accelerator(accel: &str) -> bool {
+    !accel.trim().is_empty() && accel.chars().count() <= MAX_ACCELERATOR_CHARS
+}
+
+/// One command's two bindings (FT-M04/M13/M16).
+///
+/// Both are Tauri accelerator strings — `Space`, `Control+KeyF`, `F13` — and
+/// both may be absent, which is how the map records "unbound". `window` fires
+/// while the app has focus; `global` is registered with the OS.
+///
+/// ⚠️ The **syntax** is not checked here. `ui/src/lib/bindings.ts` validates on
+/// capture and [`crate::shortcuts::apply`] reports what the OS actually refused,
+/// which between them cover a bad value on the way in and on the way out. This
+/// only bounds the *size*, which is the part a hand-edited file can abuse.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Binding {
+    #[serde(default)]
+    pub window: Option<String>,
+    #[serde(default)]
+    pub global: Option<String>,
+}
+
 /// Every persisted preference. `#[serde(default)]` on each field means an older
 /// settings file missing a newly-added key loads with that key's default rather
 /// than failing to parse — settings written by any past version stay readable.
@@ -212,6 +244,15 @@ pub struct Settings {
     /// one that waited to be asked.
     #[serde(default)]
     pub skip_words: Vec<String>,
+    /// What each command is bound to (FT-M04/M13/M16), by command id.
+    ///
+    /// A **preference**, and sparse: only the commands the operator has changed
+    /// are stored, and `ui/src/lib/bindings.ts` lays them over the shipped
+    /// defaults. An empty map — the default — therefore means "the defaults",
+    /// not "nothing is bound", which is what lets a later release add a command
+    /// without rewriting everyone's file.
+    #[serde(default)]
+    pub bindings: std::collections::BTreeMap<String, Binding>,
     /// Recently-opened scripts (FT-10), most recent first; the first entry is
     /// the script currently open.
     ///
@@ -260,6 +301,7 @@ impl Default for Settings {
             beats_per_bar: default_beats_per_bar(),
             metronome: false,
             skip_words: Vec::new(),
+            bindings: std::collections::BTreeMap::new(),
             recent_scripts: Vec::new(),
             accepted_eula_version: None,
             onboarding_seen: false,
@@ -325,6 +367,34 @@ impl Settings {
         }
         self.skip_words.retain(|word| !word.trim().is_empty());
         self.skip_words.truncate(MAX_SKIP_WORDS);
+        // Bindings are handed to the OS to register, so a hand-edited file is
+        // bounded on both axes here as well. An over-long accelerator is
+        // dropped rather than truncated: half an accelerator is a *different*
+        // legal-looking accelerator, which would register some other key.
+        // ⚠️ An entry with both halves `None` is KEPT, and that is the whole
+        // difference between "the operator cleared this key" and "the operator
+        // never touched it". The UI's `resolveBindings` lays stored entries over
+        // the shipped defaults and falls back only where a command is ABSENT —
+        // so dropping a both-null entry here silently reinstated the default,
+        // and pressing × on a shortcut could not stick. (It looked fine in the
+        // tests: the e2e mock's `settings_set` never runs `validate`, and the
+        // unit test only exercised the TypeScript half of the round trip.)
+        for binding in self.bindings.values_mut() {
+            binding.window = binding
+                .window
+                .take()
+                .filter(|accel| is_sane_accelerator(accel));
+            binding.global = binding
+                .global
+                .take()
+                .filter(|accel| is_sane_accelerator(accel));
+        }
+        // Trim from the FRONT, so the cap drops the oldest command ids
+        // alphabetically rather than the newest — `pop_last` would delete the
+        // entry a caller had only just written.
+        while self.bindings.len() > MAX_BINDINGS {
+            self.bindings.pop_first();
+        }
         // A recents list is a record, but it is still read back off disk: cap it
         // and drop anything that is no longer a legal script name, so a
         // hand-edited file cannot smuggle a path into the library UI.
@@ -483,6 +553,7 @@ impl SettingsStore {
                 beats_per_bar: _,
                 metronome: _,
                 skip_words: _,
+                bindings: _,
             } = std::mem::replace(&mut *guard, next);
             guard.accepted_eula_version = accepted_eula_version;
             guard.recent_scripts = recent_scripts;
@@ -592,6 +663,9 @@ pub fn settings_set(
     // is reconciled from the same one place for the same reason: a panel that
     // had to remember to restart it would eventually forget.
     crate::lanmirror::apply_settings(&app, &applied);
+    // Global hotkeys (FT-M13), for the same reason again: rebinding one in the
+    // map has to reach the OS now, not on the next launch.
+    crate::shortcuts::apply(&app, &applied);
     Ok(applied)
 }
 
@@ -929,5 +1003,81 @@ mod tests {
 
         let reloaded = SettingsStore::load(store.path.clone());
         assert_eq!(reloaded.get(), next);
+    }
+
+    /// A binding is a **preference**: unlike the three records above, an Apply
+    /// is exactly how the shortcut map saves one, so `set` must let it through.
+    #[test]
+    fn set_applies_bindings_and_they_survive_a_reload() {
+        let store = temp_store("bindings-round-trip");
+        let mut next = store.get();
+        next.bindings.insert(
+            "playPause".to_owned(),
+            Binding {
+                window: Some("Space".to_owned()),
+                global: Some("F13".to_owned()),
+            },
+        );
+        store.set(next).unwrap();
+
+        let reloaded = SettingsStore::load(store.path.clone()).get();
+        let saved = reloaded
+            .bindings
+            .get("playPause")
+            .expect("kept the binding");
+        assert_eq!(saved.window.as_deref(), Some("Space"));
+        assert_eq!(saved.global.as_deref(), Some("F13"));
+    }
+
+    /// The table is handed to the OS to register, so a hand-edited file is
+    /// bounded on both axes. An over-long accelerator is **dropped, not
+    /// truncated**: half an accelerator is a different legal-looking one, which
+    /// would quietly register some other key.
+    #[test]
+    fn validate_bounds_the_binding_table() {
+        let mut settings = Settings::default();
+        settings.bindings.insert(
+            "playPause".to_owned(),
+            Binding {
+                window: Some("A".repeat(MAX_ACCELERATOR_CHARS + 1)),
+                global: Some("   ".to_owned()),
+            },
+        );
+        for index in 0..MAX_BINDINGS + 10 {
+            settings.bindings.insert(
+                format!("filler{index:03}"),
+                Binding {
+                    window: Some("F13".to_owned()),
+                    global: None,
+                },
+            );
+        }
+        settings.validate();
+
+        let play_pause = settings.bindings.get("playPause").expect("entry is kept");
+        assert_eq!(
+            play_pause.window, None,
+            "an over-long accelerator is dropped, not truncated"
+        );
+        assert_eq!(play_pause.global, None, "a blank accelerator is dropped");
+        assert!(settings.bindings.len() <= MAX_BINDINGS);
+    }
+
+    /// ⚠️ The regression behind "clearing a shortcut does not stick".
+    ///
+    /// `resolveBindings` in the UI falls back to the shipped default only where
+    /// a command is **absent**, so a both-null entry is the ONLY way to say
+    /// "the operator cleared this". Dropping it here put the default back.
+    #[test]
+    fn validate_keeps_a_deliberately_cleared_binding() {
+        let mut settings = Settings::default();
+        settings
+            .bindings
+            .insert("playPause".to_owned(), Binding::default());
+        settings.validate();
+        assert!(
+            settings.bindings.contains_key("playPause"),
+            "a cleared binding must survive, or the UI reinstates the default"
+        );
     }
 }

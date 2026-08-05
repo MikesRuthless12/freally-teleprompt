@@ -82,6 +82,40 @@ describe("sections — the script's own paragraphs", () => {
     expect(sections(script, ["Verse", "Chorus"])).toHaveLength(2);
   });
 
+  /**
+   * ⚠️ Proven red: one marker line used to switch the WHOLE script off the
+   * blank-line rule. A prose script carrying a single `# Title` from a Markdown
+   * import — or one shot-list line reading `#3 CAMERA B` — collapsed from a row
+   * per paragraph to two, and the operator lost the per-paragraph timings the
+   * report exists for. One marker labels a script; it does not divide it.
+   */
+  it("does not abandon paragraphs for a single stray marker line", () => {
+    const prose = ["# Title", "", "one", "", "two", "", "three"].join("\n");
+    expect(sections(prose)).toHaveLength(4);
+
+    // Two or more, and the script really is structured by them.
+    const structured = ["# One", "aaa", "# Two", "bbb"].join("\n");
+    expect(sections(structured).map((s) => s.label)).toEqual(["One", "Two"]);
+  });
+
+  /**
+   * ⚠️ The other side of the same rule, and a fixed threshold cannot serve
+   * both. A script with NO blank lines and one heading — the shape the `.docx`
+   * and Markdown importers produce — has only that heading dividing it, so
+   * requiring two markers collapsed it to a single unlabelled row and lost the
+   * timing for the section the operator had explicitly marked.
+   */
+  it("uses one marker where it is the only thing dividing the script", () => {
+    // Two rows — the preamble (named by its opening line) and the marked
+    // section — rather than the single unlabelled row a `>= 2` rule gave.
+    const noBlanks = ["opening line", "# Part Two", "closing line"].join("\n");
+    expect(sections(noBlanks).map((s) => s.label)).toEqual(["opening line", "Part Two"]);
+
+    // Same for a lyric sheet whose only structure is one configured label.
+    const lyric = ["first line", "Chorus", "sing along"].join("\n");
+    expect(sections(lyric, ["Chorus"]).map((s) => s.label)).toEqual(["first line", "Chorus"]);
+  });
+
   it("numbers its rows consecutively even where a section is declined", () => {
     // Two labels back to back: the first names a section with nothing in it.
     const parts = sections("Chorus\nVerse\nreal words here", ["Chorus", "Verse"]);

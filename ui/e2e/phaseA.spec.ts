@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { ipcCalls, lastCall, mockTauri, openSettingsPane } from "./mock-ipc";
+import { ipcCalls, lastCall, mockTauri, openSettingsPane, waitForShell } from "./mock-ipc";
 
 /**
  * Phase A — rehearsal and timing depth — plus FT-M02's skipped labels.
@@ -20,10 +20,6 @@ import { ipcCalls, lastCall, mockTauri, openSettingsPane } from "./mock-ipc";
 const SHOTS = "e2e/screenshots";
 
 /** The app shell has booted and the engine's script has arrived. */
-async function waitForShell(page: Page) {
-  await expect(page.getByTestId("caesura-editor")).toBeVisible();
-}
-
 /** Open Settings on the Timing pane — every Settings case here wants that one. */
 const openTiming = (page: Page) => openSettingsPane(page, "Timing");
 

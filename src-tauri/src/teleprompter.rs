@@ -484,6 +484,9 @@ struct Inner {
     /// runs on every keystroke; re-normalising there would allocate a string
     /// per keyword per edit for an answer that only changes on an Apply.
     skip_keywords: Vec<String>,
+    /// What each command is bound to (FT-M04/M13/M16), carried for the same
+    /// reason `skip_words` is — see the DTO field.
+    bindings: std::collections::BTreeMap<String, crate::settings::Binding>,
     /// Total visible characters (newlines excluded); the scroll caps here so the
     /// offset stops at the last line instead of counting past the end.
     total_chars: f32,
@@ -644,6 +647,22 @@ pub struct TeleprompterDto {
     /// surface that computed its timing regions from a stale keyword list would
     /// scroll a different script from the one the operator is watching.
     pub skip_words: Vec<String>,
+    /// What each command is bound to (FT-M04/M13/M16), by command id.
+    ///
+    /// Here because the projector is a separate window that never reads
+    /// settings, so a rebind made in the map would otherwise reach the
+    /// operator's preview and leave the talent's window still answering the old
+    /// key — and the projector carries its own transport precisely because the
+    /// person reading is often the person driving.
+    ///
+    /// ⚠️ The precedent is `look` and `mirror`, **not** `skip_words`. This DTO
+    /// is "the shared state every surface renders", and it already carries
+    /// presentation preferences that change no timing at all. `skip_words` is
+    /// the weaker analogy in one specific way: it *does* change the scroll's
+    /// timing, which is why it forces a re-parse and this does not (see
+    /// [`TeleprompterState::set_bindings`]). Read the rule as "shared render
+    /// state", not as "anything the projector happens to want".
+    pub bindings: std::collections::BTreeMap<String, crate::settings::Binding>,
 }
 
 impl TeleprompterState {
@@ -661,6 +680,7 @@ impl TeleprompterState {
                 caesuras: Vec::new(),
                 skip_words: Vec::new(),
                 skip_keywords: Vec::new(),
+                bindings: std::collections::BTreeMap::new(),
                 total_chars: 0.0,
                 countdown_secs: 0.0,
                 lead_in: 0.0,
@@ -688,6 +708,7 @@ impl TeleprompterState {
         // bought a parse nobody can perceive at the cost of an entry point that
         // then had no caller outside the tests.
         self.set_skip_words(settings.skip_words.clone());
+        self.set_bindings(settings.bindings.clone());
         self.set_countdown(settings.countdown_secs);
         self.set_mirror(settings.mirror);
         self.set_look(settings.look.clone());
@@ -714,6 +735,7 @@ impl TeleprompterState {
             countdown_secs: inner.countdown_secs,
             countdown_remaining: inner.countdown_remaining(),
             skip_words: inner.skip_words.clone(),
+            bindings: inner.bindings.clone(),
         }
     }
 
@@ -741,6 +763,17 @@ impl TeleprompterState {
         inner.skip_keywords = normalise_keywords(&words);
         inner.skip_words = words;
         inner.reparse();
+    }
+
+    /// Set the command bindings carried to every surface (FT-M04/M13/M16).
+    ///
+    /// No re-parse and no rebase: unlike the skip words, a binding changes
+    /// nothing about the scroll's timing — it only says which key means what.
+    pub fn set_bindings(
+        &self,
+        bindings: std::collections::BTreeMap<String, crate::settings::Binding>,
+    ) {
+        self.lock().bindings = bindings;
     }
 
     /// Set the default pause (seconds) a bare ` -- ` uses (clamped to the slider
@@ -1260,6 +1293,7 @@ mod tests {
             caesuras: regions,
             skip_words: skip_words(),
             skip_keywords: normalise_keywords(&skip_words()),
+            bindings: std::collections::BTreeMap::new(),
             total_chars: 11.0,
             countdown_secs: 0.0,
             lead_in: 0.0,

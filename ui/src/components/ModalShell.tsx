@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 
+import { pushModal } from "./modalStack";
+
 /**
  * Open shells, oldest first — the last entry is the topmost dialog and the only
  * one Escape may close. Module-level because the shells are siblings in the
@@ -74,6 +76,15 @@ export function ModalShell({
   const panelRef = useRef<HTMLDivElement>(null);
   // Did the press that began this click land on the backdrop? See the handler.
   const pressedBackdrop = useRef(false);
+
+  // Openness is tracked for EVERY shell, dismissible or not — see
+  // `modalStack.ts`. A layout effect for the same reason the Escape stack is
+  // one: the window-level key dispatcher must not treat a painted dialog as
+  // absent, or a bare Space bound to the transport fires from inside it.
+  useLayoutEffect(() => {
+    if (!open) return;
+    return pushModal();
+  }, [open]);
 
   // Esc closes — but only the TOPMOST dialog.
   //

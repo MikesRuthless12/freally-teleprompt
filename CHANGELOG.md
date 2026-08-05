@@ -11,6 +11,112 @@ and `docs/changelog.html` together — they are two renderings of the same histo
 
 _Nothing yet._
 
+## [1.5.0] — 2026-08-05
+
+Anything in the room can drive the prompter.
+
+### Added
+
+- **Foot pedals and presenter remotes.** A pedal is how a prompter is actually
+  driven on a shoot — your hands are on a camera, not a keyboard. Open
+  **Shortcuts**, press the binding you want to change, then press the pedal:
+  whatever it sends is what gets stored, with no driver and no setup. Most
+  pedals and remotes send `F13`–`F24` precisely because nothing else uses them,
+  and those now bind like any other key.
+- **Keys that work when Freally Teleprompt is not in front.** The operator is
+  usually in a camera app, a DAW or OBS, so every transport command can be given
+  a second binding that the operating system delivers wherever you are.
+  - **Nothing is claimed until you ask.** No system-wide key is registered out
+    of the box — taking one away from every other program uninvited is not
+    something an app should do on first run.
+  - **A refused key says so.** If another program already owns the combination,
+    the row tells you, with the reason. Under Wayland, which does not let
+    applications claim keys system-wide at all, the dialog says that too rather
+    than showing a binding that quietly does nothing.
+- **A searchable, rebindable map of every command**, with conflict detection —
+  search by what a command is called, or by the key itself when you want to know
+  what `F13` is currently doing. Clear a binding, or restore the shipped
+  defaults, at any time.
+- **One table drives all of it.** The preview, the projector window, a pedal and
+  a system-wide hotkey all read the same bindings, so changing a key changes it
+  everywhere at once — including the talent's projector, which follows a rebind
+  without being reopened.
+- The space bar, arrows and Home still type normally while you are writing a
+  script: a bare key runs its command only when you are not in the editor.
+
+### Fixed
+
+**Importing a document (1.4.0's `Import`), where the theme is: a converter that
+quietly changes your script is worse than one that refuses it.**
+
+- **A PDF no longer claims to know what it left behind.** Every other format is
+  read by walking a document model, so "nothing else was left behind" is
+  something the importer can actually check. A PDF has no such structure — an
+  empty list there means *we could not tell* — and saying otherwise was a false
+  reassurance on the format most likely to be carrying figures and footnotes.
+- **A Word text box is no longer reported as a missing picture.** Its text was
+  being imported all along, and counted as a picture that had been dropped at
+  the same time. It now becomes its own paragraph rather than being spliced into
+  whichever line happened to anchor it — "we cut ON CAMERA to the wide" is not
+  what the document says.
+- **Pictures and running heads are counted once, and only where they are used.**
+  A single photo was reported as two, and Word writes three headers and three
+  footers into every document whether or not they are used — so one running head
+  was reported as six. An operator reading "Pictures left out: 2" goes looking
+  for a second picture that never existed.
+- **Characters Word stores as elements are no longer lost silently** —
+  `co‑operate` imported as `cooperate`. A symbol-font glyph is now counted as
+  something left out rather than guessed at, because its code point is an index
+  into a font, not a character.
+- **A file that claims to be Unicode and isn't is now reported.** Some tools
+  stamp the three UTF-8 marker bytes and then write Western European text
+  anyway; that file imported with every accented character replaced by `�`
+  **and** the report saying nothing had been dropped — the exact failure the
+  encoding note exists to prevent, reached down the one path that skipped the
+  check.
+- **Normalising a dash still cannot invent a pause.** A zero-width space or a
+  stray marker byte sitting between two dashes — which web- and PDF-sourced text
+  routinely carries — split the run in two, and `a —​— b` imported as a ` -- `
+  caesura nobody wrote. RTF took the same wrong turn by a different route.
+- **RTF: an embedded picture or object no longer leaks into the script.** The
+  binary payload was being read as if it were text, so the first `}` byte inside
+  it — which arbitrary binary contains about once every 256 bytes — ended the
+  skip early and emitted the rest into the script.
+- **RTF: emoji and other astral characters survive.** They arrive as two halves
+  of a surrogate pair, and neither half is a character on its own, so both were
+  being dropped. Non-breaking spaces and hyphens now import as themselves too.
+- **The app no longer freezes while a document is read.** A large PDF could hold
+  the window for up to ninety seconds.
+- **A slow import can no longer land in the wrong dialog.** Close it, reopen it,
+  choose a different file, and the first document's result used to arrive and
+  swap the report, the preview *and* the name — so pressing Import saved a
+  script you had not chosen, under a name that had changed under your hand.
+- **A failed save no longer leaves a stub behind.** If the write failed — a
+  read-only folder, a full disk, a file a sync client had locked — an empty
+  script was left in the library under your chosen name, and importing again
+  failed with "a script called that already exists". You had to delete it by
+  hand. The rollback never hides the real error.
+
+**Find & replace (1.4.0's `Find`)**
+
+- **Replace now edits the script as it is, not as it was a moment ago.** Both
+  Replace and Replace all were computed against a copy that lags a round-trip
+  behind the editor — so a dictated utterance arriving in that window was
+  written over and lost, and a match's position could point at the wrong
+  characters.
+- **Replacing with text that contains what you searched for now walks
+  forward.** Replacing "the" with "there" turned one word into "therere" over
+  three presses while the other two sat untouched, and the counter read "1 of 3"
+  the whole time.
+
+**Rehearsal report (1.3.0's rehearsal mode)**
+
+- **One stray heading no longer collapses the report.** A twelve-paragraph
+  script carrying a single `# Title` from a Markdown import — or one shot-list
+  line reading `#3 CAMERA B` — dropped from twelve rows to two, losing the
+  per-paragraph timings the report exists for. One marker labels a script; it
+  does not divide it into sections.
+
 ## [1.4.0] — 2026-08-04
 
 Getting the script in, and finding your way around it.

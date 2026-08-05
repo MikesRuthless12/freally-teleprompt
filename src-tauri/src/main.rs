@@ -20,6 +20,7 @@ mod projector;
 mod scripts;
 mod session;
 mod settings;
+mod shortcuts;
 mod speech;
 mod teleprompter;
 mod tray;
@@ -60,6 +61,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Settings are loaded before the window exists, so the UI's very first
         // read already has the user's language and theme — no English flash.
@@ -67,6 +69,7 @@ fn main() {
         .manage(TeleprompterState::new())
         .manage(LanMirrorState::default())
         .manage(TrayState::default())
+        .manage(shortcuts::ShortcutsState::default())
         // Dictation — no microphone is opened until the operator presses record,
         // and nothing runs at all unless the Vosk model is present.
         .manage(speech::DictationState::default())
@@ -88,6 +91,9 @@ fn main() {
             let settings = app.state::<SettingsStore>().get();
             teleprompter::apply_settings(app.handle(), &settings);
             lanmirror::apply_settings(app.handle(), &settings);
+            // Global hotkeys (FT-M13). A no-op until the operator has bound one
+            // — every shipped `global` binding is None.
+            shortcuts::apply(app.handle(), &settings);
             // Reopen the script that was open last time, so the app comes back
             // where it was left rather than blank. A script that has since been
             // deleted or renamed is simply not restored.
@@ -103,6 +109,7 @@ fn main() {
             settings::settings_get,
             settings::settings_set,
             settings::onboarding_set_seen,
+            shortcuts::shortcuts_status,
             eula::eula_status,
             eula::eula_accept,
             teleprompter::teleprompter_get,

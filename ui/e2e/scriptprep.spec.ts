@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { ipcCalls, lastCall, mockTauri } from "./mock-ipc";
+import { ipcCalls, lastCall, mockTauri, waitForShell } from "./mock-ipc";
 
 /**
  * The script-preparation Must-Haves — FT-M01 import, FT-M03 statistics,
@@ -17,10 +17,6 @@ import { ipcCalls, lastCall, mockTauri } from "./mock-ipc";
 const SHOTS = "e2e/screenshots";
 
 /** The app shell has booted and the engine's script has arrived. */
-async function waitForShell(page: Page) {
-  await expect(page.getByTestId("caesura-editor")).toBeVisible();
-}
-
 /** The editor's text as the ENGINE has it — the script that would be saved,
  * not the DOM's rendering of it. The two differ: a caesura is a chip and the
  * find highlight is a span, so reading `textContent` would assert the pill
@@ -333,6 +329,73 @@ test.describe("FT-M07 find and replace", () => {
     await expect.poll(() => engineScript(page)).toBe("cat sat on the cat mat");
   });
 
+  /**
+   * ⚠️ Proven red: Replace deliberately stayed on the same ORDINAL, which only
+   * reads correctly while the replacement does not itself match. Replace "the"
+   * with "there" and ordinal `at` is the SAME occurrence again — three presses
+   * turned one word into "therere" while the other two sat untouched, and the
+   * count read "1 of 3" throughout.
+   */
+  test("replacing with text that contains the query still walks the matches", async ({ page }) => {
+    await mockTauri(page, { script: "the cat and the dog and the bird" });
+    await page.goto("/");
+    await waitForShell(page);
+
+    await search(page, "the");
+    await page.getByTestId("find-replacement").fill("there");
+    await expect(page.getByTestId("find-count")).toHaveText("1 of 3");
+
+    await page.getByTestId("find-replace-one").click();
+    await page.getByTestId("find-replace-one").click();
+    await page.getByTestId("find-replace-one").click();
+
+    await expect.poll(() => engineScript(page)).toBe("there cat and there dog and there bird");
+  });
+
+  /**
+   * ⚠️ The same property with the matches ADJACENT, which is what made the
+   * first version of this test vacuous.
+   *
+   * `the cat and the dog…` spaces the hits far enough apart that resolving the
+   * resume point against the pre-edit offsets lands on the right match anyway.
+   * With `the the the` it does not: the anchor was measured against the stale
+   * match list, the second occurrence was silently stepped over, and pressing
+   * Replace three times left one untouched.
+   */
+  test("replacing adjacent matches leaves none behind", async ({ page }) => {
+    await mockTauri(page, { script: "the the the" });
+    await page.goto("/");
+    await waitForShell(page);
+
+    await search(page, "the");
+    await page.getByTestId("find-replacement").fill("there");
+    await expect(page.getByTestId("find-count")).toHaveText("1 of 3");
+
+    await page.getByTestId("find-replace-one").click();
+    await expect.poll(() => engineScript(page)).toBe("there the the");
+    await page.getByTestId("find-replace-one").click();
+    await expect.poll(() => engineScript(page)).toBe("there there the");
+    await page.getByTestId("find-replace-one").click();
+    await expect.poll(() => engineScript(page)).toBe("there there there");
+  });
+
+  /** ⚠️ An anchor left over from a replacement must not steer the NEXT search:
+   * it opened partway down the script reading "2 of 2" instead of at the top. */
+  test("a replacement does not move where the next search starts", async ({ page }) => {
+    await mockTauri(page, { script: "the cat XYZ and the dog" });
+    await page.goto("/");
+    await waitForShell(page);
+
+    await search(page, "XYZ");
+    await page.getByTestId("find-replacement").fill("");
+    await page.getByTestId("find-replace-one").click();
+
+    // The dialog is already open, so type the new query straight into it
+    // rather than going through `search`, which would click Find again.
+    await page.getByTestId("find-query").fill("the");
+    await expect(page.getByTestId("find-count")).toHaveText("1 of 2");
+  });
+
   test("Ctrl+F opens it", async ({ page }) => {
     await mockTauri(page, { script: "anything" });
     await page.goto("/");
@@ -370,6 +433,7 @@ test.describe("FT-M01 document import", () => {
         { kind: "footnotes", count: 1 },
       ],
       truncated: false,
+      itemised: true,
     },
   };
 
@@ -475,6 +539,108 @@ test.describe("FT-M01 document import", () => {
 
     await expect(page.getByRole("alert")).toContainText("cut short");
     await expect(page.getByTestId("import-report")).toContainText("Nothing else was left behind");
+  });
+
+  /** ⚠️ Proven red: `create` succeeded and `save` failed, leaving an empty
+   * script in the library under the operator's chosen name — so retrying under
+   * that name then failed with "already exists" and the import could not be
+   * completed without deleting the stub by hand. */
+  test("a failed save takes back the script it created", async ({ page }) => {
+    await mockTauri(page, {
+      importPick: "/tmp/Take 3.docx",
+      importResult: RESULT,
+      saveFails: true,
+    });
+    await page.goto("/");
+    await waitForShell(page);
+
+    await page.getByTestId("toolbar-import").click();
+    await page.getByTestId("import-choose").click();
+    await page.getByTestId("import-confirm").click();
+
+    // The real error is shown, not the rollback's.
+    await expect(page.getByRole("alert")).toContainText("read-only");
+    const calls = await ipcCalls(page);
+    expect(calls.filter((c) => c.cmd === "scripts_create")).toHaveLength(1);
+    expect(calls.find((c) => c.cmd === "scripts_delete")?.args.name).toBe("Take 3");
+    // And nothing was opened, so the operator's current script is untouched.
+    expect(calls.filter((c) => c.cmd === "scripts_open")).toHaveLength(0);
+  });
+
+  /**
+   * ⚠️ The other side of that rollback, and the reason its `.catch` sits on the
+   * SAVE rather than after the open: a failure to OPEN a script whose bytes
+   * were written perfectly well — a sync client holding the file for a moment
+   * is enough — used to delete the import that had just succeeded, and the
+   * whole forty-page document had to be imported again.
+   */
+  test("a failed open does not delete the script it just wrote", async ({ page }) => {
+    await mockTauri(page, {
+      importPick: "/tmp/Take 3.docx",
+      importResult: RESULT,
+      openFails: true,
+    });
+    await page.goto("/");
+    await waitForShell(page);
+
+    await page.getByTestId("toolbar-import").click();
+    await page.getByTestId("import-choose").click();
+    await page.getByTestId("import-confirm").click();
+
+    await expect(page.getByRole("alert")).toContainText("locked");
+    const calls = await ipcCalls(page);
+    expect(calls.filter((c) => c.cmd === "scripts_save")).toHaveLength(1);
+    expect(
+      calls.filter((c) => c.cmd === "scripts_delete"),
+      "the bytes are on disk — nothing after that may remove them",
+    ).toHaveLength(0);
+  });
+
+  /** ⚠️ Proven red: an import can take up to ninety seconds, and its promise
+   * had no staleness guard — so a slow document resolving after the dialog was
+   * closed and pointed at another file swapped the report, the preview AND the
+   * name field under the operator's hand. */
+  test("a slow import that lands after a reopen is ignored", async ({ page }) => {
+    await mockTauri(page, {
+      importPick: "/tmp/slow.pdf",
+      importDelayMs: 1500,
+      importResult: { ...RESULT, suggestedName: "slow", text: "the SLOW document" },
+    });
+    await page.goto("/");
+    await waitForShell(page);
+
+    await page.getByTestId("toolbar-import").click();
+    await page.getByTestId("import-choose").click();
+    // Close before it resolves, then reopen — the reopen bumps the token.
+    await page.getByTestId("import-cancel").click();
+    await page.getByTestId("toolbar-import").click();
+
+    // Wait past the slow import's landing.
+    await page.waitForTimeout(2200);
+    await expect(page.getByTestId("import-report")).toHaveCount(0);
+    await expect(page.getByTestId("import-confirm")).toBeDisabled();
+  });
+
+  /** A PDF has no structure to enumerate, so an empty drop list means "could
+   * not tell" — saying "nothing was left behind" was a false reassurance on the
+   * format most likely to be carrying figures. */
+  test("a PDF says its contents cannot be listed", async ({ page }) => {
+    await mockTauri(page, {
+      importPick: "/tmp/script.pdf",
+      importResult: {
+        ...RESULT,
+        report: { ...RESULT.report, format: "pdf", dropped: [], itemised: false },
+      },
+    });
+    await page.goto("/");
+    await waitForShell(page);
+
+    await page.getByTestId("toolbar-import").click();
+    await page.getByTestId("import-choose").click();
+
+    const report = page.getByTestId("import-report");
+    await expect(report).toContainText("cannot be listed");
+    await expect(report).not.toContainText("Nothing else was left behind");
   });
 
   test("looks right", async ({ page }) => {

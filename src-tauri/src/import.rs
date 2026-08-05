@@ -89,6 +89,16 @@ pub struct ImportReport {
     pub dropped: Vec<Dropped>,
     /// Whether the text was cut at [`MAX_IMPORT_CHARS`].
     pub truncated: bool,
+    /// Whether this format's contents can be **itemised** at all.
+    ///
+    /// ⚠️ False for PDF, and the distinction is the difference between a report
+    /// and a lie. A PDF has no structure a text extractor can enumerate — no
+    /// element says "this was a picture" — so `dropped` being empty means "we
+    /// could not tell", not "nothing was left behind". The UI said the latter,
+    /// in so many words, for the one format most likely to be carrying figures
+    /// and footnotes. Everything else here walks a document model and can
+    /// honestly say when it found nothing.
+    pub itemised: bool,
 }
 
 /// The whole result of an import: clean text, and what it cost to get it.
@@ -241,11 +251,26 @@ fn normalise(raw: &str) -> String {
             out.push('-');
             continue;
         }
-        close_run(&mut out, &mut run_at, &mut run_mapped);
+        // ⚠️ The run is closed only where something is actually EMITTED.
+        //
+        // Closing it first — before `map_char` has said whether this character
+        // survives at all — meant a dropped invisible SPLIT a dash run in two.
+        // `a —<U+200B>— b`, which is what web- and PDF-sourced text routinely
+        // carries, put two mapped dashes next to each other in the output as
+        // two separate one-character runs, so neither was collapsed and the
+        // result was `a -- b`: a caesura the source did not contain, which is
+        // the one thing this function promises cannot happen. A soft hyphen or
+        // a stray BOM between them does exactly the same.
         match map_char(ch) {
             None => {}
-            Some("") => out.push(ch),
-            Some(text) => out.push_str(text),
+            Some("") => {
+                close_run(&mut out, &mut run_at, &mut run_mapped);
+                out.push(ch)
+            }
+            Some(text) => {
+                close_run(&mut out, &mut run_at, &mut run_mapped);
+                out.push_str(text)
+            }
         }
     }
     close_run(&mut out, &mut run_at, &mut run_mapped);
@@ -319,20 +344,25 @@ fn cp1252(byte: u8) -> char {
 /// fallback is REPORTED (`encoding`), because a script silently read in the
 /// wrong encoding is a script full of `Ã©` that nobody notices until the shoot.
 fn decode_text(bytes: &[u8], drops: &mut Drops) -> String {
-    if let Some(rest) = bytes.strip_prefix(&[0xef, 0xbb, 0xbf]) {
-        return String::from_utf8_lossy(rest).into_owned();
-    }
     if let Some(rest) = bytes.strip_prefix(&[0xff, 0xfe]) {
         return decode_utf16(rest, u16::from_le_bytes);
     }
     if let Some(rest) = bytes.strip_prefix(&[0xfe, 0xff]) {
         return decode_utf16(rest, u16::from_be_bytes);
     }
-    match std::str::from_utf8(bytes) {
+    // ⚠️ A UTF-8 BOM is a CLAIM, not a guarantee. Some tools stamp the three
+    // bytes and then write a Windows-1252 body anyway. The first version
+    // trusted the BOM and went straight to `from_utf8_lossy`, so such a file
+    // imported with every accented character replaced by U+FFFD *and* the
+    // report saying nothing had been dropped — which is precisely the failure
+    // the `encoding` note exists to prevent, reached down the one branch that
+    // skipped the check. The BOM now only decides where the text starts.
+    let body = bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(bytes);
+    match std::str::from_utf8(body) {
         Ok(text) => text.to_owned(),
         Err(_) => {
             drops.recoded = true;
-            bytes.iter().map(|b| cp1252(*b)).collect()
+            body.iter().map(|b| cp1252(*b)).collect()
         }
     }
 }
@@ -425,21 +455,17 @@ fn parse_docx(bytes: &[u8], drops: &mut Drops) -> Result<String, String> {
     let mut zip = zip::ZipArchive::new(cursor)
         .map_err(|err| format!("that .docx could not be opened: {err}"))?;
 
-    // Running heads live in their own parts, so their presence is the count.
-    let mut headers_footers = 0usize;
-    for index in 0..zip.len() {
-        let Ok(entry) = zip.by_index_raw(index) else {
-            continue;
-        };
-        let name = entry.name();
-        if name.starts_with("word/header") || name.starts_with("word/footer") {
-            headers_footers += 1;
-        } else if name.starts_with("word/media/") {
-            drops.images += 1;
-        }
-    }
-    drops.headers_footers += headers_footers;
-
+    // ⚠️ Nothing is counted by walking the ZIP.
+    //
+    // The first version counted a `word/media/` entry as a picture AND the
+    // `<w:drawing>` that places it, so one photo was reported as two; and it
+    // counted `word/headerN.xml` parts, of which Word writes three headers and
+    // three footers by default whether or not they are used, so a document
+    // with one running head reported six. The report is the point of this
+    // feature — an operator reading "Pictures left out: 2" goes looking for a
+    // second picture that never existed — so everything is counted from
+    // `document.xml`, which describes what the document actually USES.
+    //
     // ⚠️ Bounded, because the number in a zip's header is the ATTACKER'S
     // number. A few kilobytes of deflate expands to gigabytes — the oldest
     // trick there is against anything that opens an archive — and this runs on
@@ -463,20 +489,85 @@ fn parse_docx(bytes: &[u8], drops: &mut Drops) -> Result<String, String> {
     // than in a `<w:t>` inside them. An earlier version carried a second
     // `suppress` counter for the pair; it could never change the outcome.
     let mut in_text = false;
+    // ⚠️ Depth inside an `<mc:Fallback>`, whose content must be IGNORED whole.
+    //
+    // Word wraps a modern text box in `<mc:AlternateContent>` and writes the
+    // same words twice: once in `<mc:Choice>` as DrawingML, once in
+    // `<mc:Fallback>` as legacy VML for readers that predate it. Emitting both
+    // imported every text box's text TWICE, and the Fallback's `<w:pict>` was
+    // counted as a picture that had been left out — for content that was in
+    // fact kept. A reader takes the Choice and skips the Fallback.
+    let mut fallback_depth = 0usize;
+    // One entry per open `<w:drawing>`: has it produced a picture yet?
+    //
+    // ⚠️ A `<w:drawing>` that contains no `<pic:pic>` is a chart, a SmartArt
+    // block or a shape — something real that this importer cannot bring across
+    // and, before this, said nothing about at all. `dropped` came back empty
+    // and the dialog printed "Nothing else was left behind" over a missing
+    // graphic: the same false reassurance this release fixed for PDFs.
+    let mut drawings: Vec<bool> = Vec::new();
+    // Running heads by relationship id, so one header used by three sections —
+    // or by the default/first/even trio of a single section — is counted ONCE.
+    // Counting the reference ELEMENTS just moved the old over-count from the
+    // zip walk to here.
+    let mut running_heads: std::collections::BTreeSet<Vec<u8>> = std::collections::BTreeSet::new();
 
     loop {
         match reader.read_event() {
             Err(err) => return Err(format!("that .docx is not valid XML: {err}")),
             Ok(Event::Eof) => break,
+            // Everything inside a Fallback is a duplicate of the Choice that
+            // preceded it — no text, no counts, nothing.
+            Ok(Event::Start(tag)) if fallback_depth > 0 => {
+                if local_name(tag.name().as_ref()) == b"Fallback" {
+                    fallback_depth += 1;
+                }
+            }
+            Ok(Event::End(tag)) if fallback_depth > 0 => {
+                if local_name(tag.name().as_ref()) == b"Fallback" {
+                    fallback_depth -= 1;
+                }
+            }
+            Ok(Event::Empty(_)) | Ok(Event::Text(_)) if fallback_depth > 0 => {}
             Ok(Event::Start(tag)) => match local_name(tag.name().as_ref()) {
                 b"t" => in_text = true,
-                b"drawing" | b"pict" => drops.images += 1,
+                b"Fallback" => fallback_depth += 1,
+                b"drawing" => drawings.push(false),
+                // ⚠️ `pic:pic`, NOT `w:drawing`. A `<w:drawing>` is a container
+                // for anything anchored in the text, and a Word TEXT BOX is one
+                // — so counting drawings reported every text box as a picture
+                // that had been left out, while its `<w:txbxContent>` was being
+                // emitted into the script at the same time. `pic:pic` is the
+                // DrawingML picture itself; a text-box drawing has none.
+                // (`w:pict` is the older VML picture and is a real one.)
+                b"pic" | b"pict" => {
+                    drops.images += 1;
+                    if let Some(last) = drawings.last_mut() {
+                        *last = true;
+                    }
+                }
                 b"object" | b"embeddedObject" => drops.objects += 1,
                 b"hyperlink" => drops.link_targets += 1,
+                // A text box's content is real script — a slate, a note to the
+                // reader — so it is kept. It becomes its OWN paragraph rather
+                // than being spliced into the middle of the one that happens to
+                // anchor it: "we cut ON CAMERA to the wide" is not what the
+                // document says. Blank lines on BOTH sides, so the box reads as
+                // the separate block it is; the closing tag adds only one
+                // because the inner `<w:p>` has already ended a line.
+                b"txbxContent" => out.push_str("\n\n"),
                 _ => {}
             },
             Ok(Event::End(tag)) => match local_name(tag.name().as_ref()) {
                 b"t" => in_text = false,
+                b"Fallback" => fallback_depth = fallback_depth.saturating_sub(1),
+                // A drawing that never yielded a picture is a chart, a SmartArt
+                // block or a shape: counted, so its absence is at least visible.
+                b"drawing" => {
+                    if drawings.pop() == Some(false) {
+                        drops.objects += 1;
+                    }
+                }
                 // A paragraph is a LINE, not a paragraph break — Word has no
                 // other unit of a line, so an author writing a lyric sheet
                 // presses Enter once per line and twice for a gap. Emitting a
@@ -484,7 +575,7 @@ fn parse_docx(bytes: &[u8], drops: &mut Drops) -> Result<String, String> {
                 // make every single line its own section in the rehearsal
                 // report and the marker jump list, which both split on blank
                 // lines. An empty `<w:p>` is the gap, and arrives as one.
-                b"p" | b"tr" => out.push('\n'),
+                b"p" | b"tr" | b"txbxContent" => out.push('\n'),
                 _ => {}
             },
             Ok(Event::Empty(tag)) => match local_name(tag.name().as_ref()) {
@@ -499,7 +590,41 @@ fn parse_docx(bytes: &[u8], drops: &mut Drops) -> Result<String, String> {
                 b"tab" => out.push(' '),
                 b"commentReference" => drops.comments += 1,
                 b"footnoteReference" | b"endnoteReference" => drops.footnotes += 1,
-                b"drawing" | b"pict" => drops.images += 1,
+                b"pic" | b"pict" => {
+                    drops.images += 1;
+                    if let Some(last) = drawings.last_mut() {
+                        *last = true;
+                    }
+                }
+                // The running heads the document actually USES, deduplicated by
+                // the part each one points at — see `running_heads`.
+                b"headerReference" | b"footerReference" => {
+                    let id = tag
+                        .attributes()
+                        .flatten()
+                        .find(|attr| local_name(attr.key.as_ref()) == b"id")
+                        .map(|attr| attr.value.into_owned())
+                        // No `r:id` is malformed, but it is still A running head;
+                        // key it on the element name so it counts once.
+                        .unwrap_or_else(|| local_name(tag.name().as_ref()).to_vec());
+                    running_heads.insert(id);
+                }
+                // ⚠️ Characters Word stores as ELEMENTS rather than as text in a
+                // `<w:t>`. They fell into the catch-all below and vanished with
+                // nothing in the report — `co<w:noBreakHyphen/>operate` imported
+                // as `cooperate`. Both are handed on as the real Unicode
+                // character so `normalise` treats them as it treats any other:
+                // the non-breaking hyphen becomes a hyphen, and the soft hyphen
+                // (a hint about where a word MAY break, not a character anyone
+                // typed) is dropped — but dropped by the rule that drops every
+                // other invisible, not by falling through a match arm.
+                b"noBreakHyphen" => out.push('\u{2011}'),
+                b"softHyphen" => out.push('\u{00ad}'),
+                // A symbol-font glyph (`<w:sym w:font="Wingdings" w:char="F0E0"/>`)
+                // has no Unicode meaning we can trust — the code point is an
+                // index into a font, not a character. Counted rather than
+                // guessed at, so its absence is at least visible.
+                b"sym" => drops.objects += 1,
                 _ => {}
             },
             Ok(Event::Text(text)) if in_text => {
@@ -539,6 +664,8 @@ fn parse_docx(bytes: &[u8], drops: &mut Drops) -> Result<String, String> {
             _ => {}
         }
     }
+    // One count per DISTINCT running head, however many sections referenced it.
+    drops.headers_footers += running_heads.len();
     Ok(out)
 }
 
@@ -587,15 +714,14 @@ const RTF_SKIPPED: [&str; 18] = [
 fn parse_rtf(bytes: &[u8], drops: &mut Drops) -> String {
     let mut stack = vec![RtfGroup { skip: false, uc: 1 }];
     let mut out = String::with_capacity(bytes.len() / 2);
-    // How many characters the last `\uN` still wants swallowed.
-    let mut pending_uc = 0usize;
+    let mut scan = RtfScan::default();
     let mut i = 0usize;
 
     // Push one decoded character, honouring an outstanding `\ucN` swallow.
     macro_rules! emit {
         ($ch:expr) => {{
-            if pending_uc > 0 {
-                pending_uc -= 1;
+            if scan.pending_uc > 0 {
+                scan.pending_uc -= 1;
             } else if !stack.last().map(|g| g.skip).unwrap_or(false) {
                 out.push($ch);
             }
@@ -603,6 +729,18 @@ fn parse_rtf(bytes: &[u8], drops: &mut Drops) -> String {
     }
 
     while i < bytes.len() {
+        // ⚠️ A `\binN` payload is N bytes of OPAQUE BINARY and must be stepped
+        // over without being looked at. Without this the payload was tokenized
+        // as if it were RTF, so the first `}` byte inside it (0x7D, which
+        // arbitrary binary contains about once every 256 bytes) popped the
+        // group that was meant to be skipping it — ending the skip early and
+        // emitting the rest of an OLE object or a picture into the script.
+        if scan.skip_bytes > 0 {
+            let step = scan.skip_bytes.min(bytes.len() - i);
+            i += step;
+            scan.skip_bytes -= step;
+            continue;
+        }
         match bytes[i] {
             b'{' => {
                 let top = *stack.last().unwrap_or(&RtfGroup { skip: false, uc: 1 });
@@ -613,7 +751,7 @@ fn parse_rtf(bytes: &[u8], drops: &mut Drops) -> String {
                 if stack.len() > 1 {
                     stack.pop();
                 }
-                pending_uc = 0;
+                scan.pending_uc = 0;
                 i += 1;
             }
             b'\\' => {
@@ -639,8 +777,11 @@ fn parse_rtf(bytes: &[u8], drops: &mut Drops) -> String {
                 if !next.is_ascii_alphabetic() {
                     match next {
                         b'\\' | b'{' | b'}' => emit!(next as char),
-                        b'~' => emit!(' '),
-                        b'_' => emit!('-'),
+                        b'~' => emit!('\u{00a0}'),
+                        // A non-breaking hyphen, handed on as itself so
+                        // `normalise` can recognise it as one it mapped — see
+                        // the `\emdash` note in `apply_rtf_word`.
+                        b'_' => emit!('\u{2011}'),
                         // `\-` is an optional hyphen: a hint about where a word
                         // MAY break, not a hyphen anybody typed.
                         b'-' => {}
@@ -677,7 +818,7 @@ fn parse_rtf(bytes: &[u8], drops: &mut Drops) -> String {
                 if i < bytes.len() && bytes[i] == b' ' {
                     i += 1;
                 }
-                apply_rtf_word(word, number, &mut stack, &mut out, &mut pending_uc, drops);
+                apply_rtf_word(word, number, &mut stack, &mut out, &mut scan, drops);
             }
             b'\r' | b'\n' => i += 1, // line breaks in the SOURCE are not content
             byte => {
@@ -698,6 +839,19 @@ struct RtfGroup {
     uc: usize,
 }
 
+/// The scanner state a control word can change, other than the group stack and
+/// the output. Bundled rather than passed as four more parameters — and because
+/// all three are the *same* concern: how many of the bytes ahead are not text.
+#[derive(Default)]
+struct RtfScan {
+    /// Characters to swallow after a `\uN`, from `\ucN`.
+    pending_uc: usize,
+    /// A `\uN` that carried a UTF-16 high surrogate, awaiting its low half.
+    pending_high: Option<u32>,
+    /// Bytes of a `\binN` payload still to be stepped over verbatim.
+    skip_bytes: usize,
+}
+
 /// One RTF control word's effect. Split out to keep [`parse_rtf`]'s loop about
 /// tokenizing and this about semantics.
 fn apply_rtf_word(
@@ -705,7 +859,7 @@ fn apply_rtf_word(
     number: Option<i32>,
     stack: &mut [RtfGroup],
     out: &mut String,
-    pending_uc: &mut usize,
+    scan: &mut RtfScan,
     drops: &mut Drops,
 ) {
     let skipping = stack.last().map(|g| g.skip).unwrap_or(false);
@@ -731,19 +885,43 @@ fn apply_rtf_word(
                 out.push(' ')
             }
         }
-        "emdash" | "endash" => {
+        // ⚠️ These emit the REAL typographic characters, not their flattened
+        // equivalents, and that is load-bearing rather than pedantic.
+        // `normalise` decides whether a hyphen run may be collapsed by asking
+        // `is_typographic_dash` about the character it is looking at — so a
+        // parser that helpfully pre-flattened `\emdash` to a bare `-` made the
+        // dash look author-typed and the run un-collapsible. An ordinary
+        // typeset `a —— b` (interrupted dialogue) therefore imported as
+        // `a -- b`: a pause chip, and a 0.75s stop where nobody wrote one.
+        // Hand `normalise` the real character and let it do its own job.
+        "emdash" => {
             if !skipping {
-                out.push('-')
+                out.push('\u{2014}')
             }
         }
-        "lquote" | "rquote" => {
+        "endash" => {
             if !skipping {
-                out.push('\'')
+                out.push('\u{2013}')
             }
         }
-        "ldblquote" | "rdblquote" => {
+        "lquote" => {
             if !skipping {
-                out.push('"')
+                out.push('\u{2018}')
+            }
+        }
+        "rquote" => {
+            if !skipping {
+                out.push('\u{2019}')
+            }
+        }
+        "ldblquote" => {
+            if !skipping {
+                out.push('\u{201c}')
+            }
+        }
+        "rdblquote" => {
+            if !skipping {
+                out.push('\u{201d}')
             }
         }
         "bullet" => {}
@@ -753,17 +931,46 @@ fn apply_rtf_word(
                 top.uc = n.clamp(0, 32) as usize;
             }
         }
+        // ⚠️ A character outside the BMP arrives as TWO `\u` words carrying the
+        // halves of a UTF-16 surrogate pair — an emoji is `\u-10179?\u-8694?`.
+        // Neither half is a scalar value, so `char::from_u32` returns None for
+        // both; the first version pushed nothing and yet still armed the `\ucN`
+        // swallow, so the `?` fallbacks RTF supplies for exactly this case were
+        // eaten too. The character disappeared with nothing in its place and
+        // nothing in the report. Combining the pair is what "nothing is
+        // silently lost" requires.
         "u" => {
             if let Some(n) = number {
                 // RTF writes code points above 32767 as negative numbers.
                 let scalar = if n < 0 { (n + 65536) as u32 } else { n as u32 };
-                if let Some(ch) = char::from_u32(scalar) {
-                    if !skipping {
-                        out.push(ch);
+                scan.pending_uc = stack.last().map(|g| g.uc).unwrap_or(1);
+                match scalar {
+                    0xd800..=0xdbff => scan.pending_high = Some(scalar),
+                    0xdc00..=0xdfff => {
+                        let combined = scan.pending_high.take().and_then(|high| {
+                            char::from_u32(0x10000 + ((high - 0xd800) << 10) + (scalar - 0xdc00))
+                        });
+                        // A low half with no high half before it is a broken
+                        // file; the ANSI fallback is still swallowed, which is
+                        // the same answer any RTF reader gives.
+                        if let (Some(ch), false) = (combined, skipping) {
+                            out.push(ch);
+                        }
+                    }
+                    _ => {
+                        scan.pending_high = None;
+                        if let (Some(ch), false) = (char::from_u32(scalar), skipping) {
+                            out.push(ch);
+                        }
                     }
                 }
-                *pending_uc = stack.last().map(|g| g.uc).unwrap_or(1);
             }
+        }
+        // N bytes of opaque binary follow. See the guard at the top of
+        // `parse_rtf`'s loop for what happens without this.
+        "bin" => {
+            scan.skip_bytes = number.unwrap_or(0).max(0) as usize;
+            drops.objects += 1;
         }
         // Destinations worth naming in the report before they are skipped.
         "pict" | "objdata" | "shppict" | "nonshppict" => {
@@ -908,6 +1115,7 @@ fn convert(path: &Path, bytes: &[u8]) -> Result<ImportResult, String> {
             paragraphs: paragraph_count(&text),
             dropped: drops.finish(),
             truncated,
+            itemised: format != "pdf",
         },
         suggested_name: suggested_name(path),
         text,
@@ -1030,8 +1238,31 @@ fn new_private_dir(dir: &Path) -> std::io::Result<()> {
 ///
 /// If a future feature ever puts untrusted content into the webview, this is
 /// the command to re-scope — to paths the file picker actually returned.
+///
+/// # ⚠️ Why this is `async`, and why the wait is `spawn_blocking`
+///
+/// Tauri runs an `async` command **off** the main thread — `projector.rs` says
+/// the same thing and for the same reason. This one waits on a child for up to
+/// [`CHILD_TIMEOUT`], so as a synchronous command it froze the whole app for
+/// the length of every import: the window could not be moved, the "Reading the
+/// document..." hint never painted, and the scroll stopped broadcasting to the
+/// projector. **That is the exact outcome the child process was added to
+/// prevent**, reintroduced at the other end of it — the parse could no longer
+/// take the app down by panicking, but the *wait* took it down anyway.
+///
+/// `async` alone is not enough: the body blocks on `try_wait`/`sleep`, which
+/// would tie up a runtime worker for ninety seconds. It goes on the blocking
+/// pool, which is what that pool is for.
 #[tauri::command]
-pub fn import_document(path: String) -> Result<ImportResult, String> {
+pub async fn import_document(path: String) -> Result<ImportResult, String> {
+    tauri::async_runtime::spawn_blocking(move || import_blocking(path))
+        .await
+        .map_err(|err| format!("the importer could not be run: {err}"))?
+}
+
+/// The parent half of the import, off the main thread. Split from the command
+/// so the blocking wait has somewhere to live that is not an async task.
+fn import_blocking(path: String) -> Result<ImportResult, String> {
     let exe = std::env::current_exe().map_err(|err| format!("could not find the app: {err}"))?;
     // A private directory per import, created fresh, with an UNGUESSABLE name.
     //
@@ -1130,6 +1361,25 @@ mod tests {
         assert_eq!(normalise("----"), "----");
     }
 
+    /// ⚠️ Proven red against the first version, which closed the hyphen run
+    /// BEFORE asking `map_char` whether the character survived — so a dropped
+    /// invisible split the run in two and neither half was collapsed. Every one
+    /// of these is a shape that real web- and PDF-sourced text carries.
+    #[test]
+    fn an_invisible_between_two_dashes_does_not_leave_a_caesura() {
+        for invisible in ['\u{200b}', '\u{00ad}', '\u{feff}', '\u{200c}', '\u{2060}'] {
+            let source = format!("a \u{2014}{invisible}\u{2014} b");
+            assert_eq!(
+                normalise(&source),
+                "a - b",
+                "U+{:04X} between two em dashes",
+                invisible as u32
+            );
+        }
+        // And the same on the other side of the run.
+        assert_eq!(normalise("a -\u{200b}\u{2014} b"), "a - b");
+    }
+
     #[test]
     fn typography_is_flattened_and_invisibles_are_dropped() {
         assert_eq!(normalise("\u{201c}hi,\u{201d} he said"), "\"hi,\" he said");
@@ -1226,6 +1476,51 @@ mod tests {
         assert_eq!(result.text, "don't caf\u{e9} end");
     }
 
+    /// ⚠️ Proven red: `\emdash` used to be flattened to a bare `-` inside the
+    /// RTF parser, so `normalise` could not tell it from an author-typed hyphen
+    /// and the pair survived as this app's pause token. `a —— b` is ordinary
+    /// typeset punctuation — interrupted dialogue — not a 0.75s hold.
+    #[test]
+    fn rtf_dashes_do_not_become_a_caesura() {
+        // Two spaces after the last control word: RTF eats the first as the
+        // word's delimiter, so the second is the space that reaches the text.
+        let result = convert_bytes("a.rtf", br"{\rtf1 a \emdash\emdash  b}");
+        assert_eq!(result.text, "a - b");
+        assert_eq!(convert_bytes("a.rtf", br"{\rtf1 x\emdash y}").text, "x-y");
+        // The quotes take the same route: emitted as themselves, flattened by
+        // `normalise` rather than by the parser guessing early.
+        assert_eq!(
+            convert_bytes("a.rtf", br"{\rtf1 \ldblquote hi\rdblquote}").text,
+            "\"hi\""
+        );
+    }
+
+    /// ⚠️ Proven red: a `\binN` payload was tokenized as RTF, so the first
+    /// `}` byte inside it popped the group that was skipping it and the rest
+    /// was emitted as script. Arbitrary binary carries 0x7D about once every
+    /// 256 bytes, so an embedded object reliably leaked.
+    #[test]
+    fn rtf_binary_payloads_are_stepped_over_whole() {
+        // 8 bytes of "binary", containing a closing brace and readable text.
+        let mut rtf: Vec<u8> = br"{\rtf1 before{\*\shppict\bin8 ".to_vec();
+        rtf.extend_from_slice(b"\x01}LEAKED");
+        rtf.extend_from_slice(br"}after}");
+        let result = convert_bytes("a.rtf", &rtf);
+        assert!(!result.text.contains("LEAKED"), "{}", result.text);
+        assert_eq!(result.text, "beforeafter");
+    }
+
+    /// ⚠️ Proven red: an astral character arrives as two `\u` words carrying
+    /// UTF-16 surrogate halves. Neither is a scalar value, so both were dropped
+    /// — and the `\ucN` swallow still ate the `?` fallbacks RTF provides for
+    /// exactly this case, leaving nothing at all and nothing in the report.
+    #[test]
+    fn rtf_astral_characters_survive_as_themselves() {
+        // U+1F60A is the surrogate pair D83D DE0A, written as negatives.
+        let result = convert_bytes("a.rtf", br"{\rtf1\uc1 hi \u-10179?\u-8694? there}");
+        assert_eq!(result.text, "hi \u{1f60a} there");
+    }
+
     #[test]
     fn rtf_counts_what_it_throws_away() {
         let rtf = br"{\rtf1{\*\generator Word}{\footnote a note}{\pict deadbeef}Body\par}";
@@ -1292,8 +1587,15 @@ mod tests {
                 r#"<?xml version="1.0"?><w:document xmlns:w="x"><w:body>{body}</w:body></w:document>"#
             )
             .unwrap();
-            zip.start_file("word/header1.xml", options).unwrap();
-            zip.write_all(b"<x/>").unwrap();
+            // ⚠️ Word writes THREE header and THREE footer parts by default,
+            // used or not, and a `word/media/` entry for every picture that the
+            // body ALSO references. The fixture carries them because real
+            // documents do — and because counting them was the bug: nothing in
+            // the parser may look at these.
+            for part in ["header1", "header2", "header3", "footer1"] {
+                zip.start_file(format!("word/{part}.xml"), options).unwrap();
+                zip.write_all(b"<x/>").unwrap();
+            }
             zip.start_file("word/media/image1.png", options).unwrap();
             zip.write_all(b"\x89PNG").unwrap();
             zip.finish().unwrap();
@@ -1310,6 +1612,13 @@ mod tests {
             r#"<w:p><w:hyperlink r:id="rId1"><w:r><w:t>the link text</w:t></w:r></w:hyperlink></w:p>"#,
             r#"<w:p><w:r><w:commentReference w:id="1"/><w:footnoteReference w:id="2"/></w:r><w:del><w:r><w:delText>cut this</w:delText></w:r></w:del><w:r><w:t>kept</w:t></w:r></w:p>"#,
             r#"<w:p><w:r><w:fldChar/><w:instrText>HYPERLINK "http://x"</w:instrText></w:r></w:p>"#,
+            // One picture, written the way Word writes one: a `<w:drawing>`
+            // wrapper around a `<pic:pic>`, plus the `word/media/` entry the
+            // fixture already carries. Counting both was the double-count.
+            r#"<w:p><w:r><w:drawing><wp:inline><a:graphic><a:graphicData><pic:pic/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"#,
+            // The one running head this document actually uses, of the four
+            // header/footer parts in the zip.
+            r#"<w:sectPr><w:headerReference w:type="default" r:id="rId9"/></w:sectPr>"#,
         );
         let result = convert_bytes("Take 3.docx", &docx(body));
 
@@ -1332,11 +1641,188 @@ mod tests {
             .iter()
             .map(|d| (d.kind.as_str(), d.count))
             .collect();
+        // ⚠️ ONE of each. Proven red: images were counted once per
+        // `word/media/` entry AND once per `<w:drawing>`, so a single photo
+        // reported as two; headers were counted per zip part, so Word's default
+        // three-headers-and-three-footers reported six for a document using
+        // one. An operator reading "Pictures left out: 2" goes looking for a
+        // second picture that never existed.
         assert_eq!(counts.get("images"), Some(&1));
         assert_eq!(counts.get("footnotes"), Some(&1));
         assert_eq!(counts.get("comments"), Some(&1));
         assert_eq!(counts.get("headersFooters"), Some(&1));
         assert_eq!(counts.get("linkTargets"), Some(&1));
+        assert!(result.report.itemised, "a .docx can be itemised");
+    }
+
+    /// ⚠️ Proven red: a Word text box was counted as a dropped picture while
+    /// its content was simultaneously spliced into the middle of the paragraph
+    /// that anchors it — so the script read "we cut ON CAMERA to the wide" and
+    /// the report claimed the box had been left out.
+    #[test]
+    fn a_docx_text_box_becomes_its_own_lines_and_is_not_called_a_picture() {
+        let body = concat!(
+            r#"<w:p><w:r><w:t xml:space="preserve">we cut </w:t></w:r>"#,
+            r#"<w:r><w:drawing><wps:txbx><w:txbxContent><w:p><w:r><w:t>ON CAMERA</w:t></w:r></w:p></w:txbxContent></wps:txbx></w:drawing></w:r>"#,
+            r#"<w:r><w:t xml:space="preserve">to the wide</w:t></w:r></w:p>"#,
+        );
+        let result = convert_bytes("a.docx", &docx(body));
+        assert_eq!(result.text, "we cut\n\nON CAMERA\n\nto the wide");
+        // The zip still holds a `word/media/` entry, and it is still not a
+        // picture this document places.
+        let images = result
+            .report
+            .dropped
+            .iter()
+            .find(|d| d.kind == "images")
+            .map(|d| d.count);
+        assert_eq!(
+            images, None,
+            "a text box is not a picture: {:?}",
+            result.report.dropped
+        );
+    }
+
+    /// The count of one `kind` in the report, or `None` when it is absent.
+    fn dropped_count(result: &ImportResult, kind: &str) -> Option<usize> {
+        result
+            .report
+            .dropped
+            .iter()
+            .find(|d| d.kind == kind)
+            .map(|d| d.count)
+    }
+
+    /// ⚠️ What Word ACTUALLY writes for a text box, which the fixture above
+    /// does not: `<mc:AlternateContent>` carrying the same words twice — the
+    /// modern DrawingML in `<mc:Choice>` and legacy VML in `<mc:Fallback>`.
+    ///
+    /// Emitting both imported every text box's text twice, and the Fallback's
+    /// `<w:pict>` was reported as a picture left out for content that had in
+    /// fact been kept.
+    #[test]
+    fn a_docx_text_box_written_the_way_word_writes_it_is_imported_once() {
+        let body = concat!(
+            r#"<w:p><w:r><w:t xml:space="preserve">we cut </w:t></w:r><w:r>"#,
+            r#"<mc:AlternateContent>"#,
+            r#"<mc:Choice Requires="wps"><w:drawing><wps:txbx><w:txbxContent>"#,
+            r#"<w:p><w:r><w:t>ON CAMERA</w:t></w:r></w:p>"#,
+            r#"</w:txbxContent></wps:txbx></w:drawing></mc:Choice>"#,
+            r#"<mc:Fallback><w:pict><v:shape><v:textbox><w:txbxContent>"#,
+            r#"<w:p><w:r><w:t>ON CAMERA</w:t></w:r></w:p>"#,
+            r#"</w:txbxContent></v:textbox></v:shape></w:pict></mc:Fallback>"#,
+            r#"</mc:AlternateContent>"#,
+            r#"</w:r><w:r><w:t xml:space="preserve">to the wide</w:t></w:r></w:p>"#,
+        );
+        let result = convert_bytes("a.docx", &docx(body));
+        assert_eq!(
+            result.text, "we cut\n\nON CAMERA\n\nto the wide",
+            "the Fallback is a duplicate of the Choice and must be skipped whole"
+        );
+        assert_eq!(
+            dropped_count(&result, "images"),
+            None,
+            "the Fallback's VML picture IS the text box: {:?}",
+            result.report.dropped
+        );
+    }
+
+    /// ⚠️ A `<w:drawing>` with no `<pic:pic>` inside is a chart, a SmartArt
+    /// block or a shape. Narrowing the picture counter to `pic:pic` left these
+    /// dropped with NOTHING in the report — so the dialog printed "Nothing else
+    /// was left behind" over a missing graphic, which is the same false
+    /// reassurance this release fixed for PDFs.
+    #[test]
+    fn a_docx_chart_is_reported_rather_than_vanishing() {
+        let body = concat!(
+            r#"<w:p><w:r><w:t xml:space="preserve">the figure </w:t></w:r>"#,
+            r#"<w:r><w:drawing><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">"#,
+            r#"<c:chart/></a:graphicData></w:drawing></w:r>"#,
+            r#"<w:r><w:t>shows the split</w:t></w:r></w:p>"#,
+        );
+        let result = convert_bytes("a.docx", &docx(body));
+        assert_eq!(result.text, "the figure shows the split");
+        assert_eq!(
+            dropped_count(&result, "objects"),
+            Some(1),
+            "a chart must be visible in the report: {:?}",
+            result.report.dropped
+        );
+        assert_eq!(
+            dropped_count(&result, "images"),
+            None,
+            "a chart is not a photo"
+        );
+    }
+
+    /// ⚠️ Counting the reference ELEMENTS moved the over-count rather than
+    /// fixing it: Word writes one `headerReference` per section, and another
+    /// per header type once "different first page" is on — so one running head
+    /// was still reported two or three times.
+    #[test]
+    fn one_running_head_used_by_three_sections_is_counted_once() {
+        let body = concat!(
+            r#"<w:p><w:r><w:t>one</w:t></w:r></w:p>"#,
+            r#"<w:p><w:pPr><w:sectPr><w:headerReference w:type="default" r:id="rId4"/><w:headerReference w:type="first" r:id="rId4"/></w:sectPr></w:pPr></w:p>"#,
+            r#"<w:p><w:pPr><w:sectPr><w:headerReference w:type="default" r:id="rId4"/></w:sectPr></w:pPr></w:p>"#,
+            r#"<w:sectPr><w:headerReference w:type="default" r:id="rId4"/><w:footerReference w:type="default" r:id="rId7"/></w:sectPr>"#,
+        );
+        let result = convert_bytes("a.docx", &docx(body));
+        assert_eq!(
+            dropped_count(&result, "headersFooters"),
+            Some(2),
+            "one header and one footer, however many sections point at them: {:?}",
+            result.report.dropped
+        );
+    }
+
+    /// ⚠️ Proven red: Word stores some characters as ELEMENTS rather than as
+    /// text, and they fell through the catch-all — `co<w:noBreakHyphen/>operate`
+    /// imported as `cooperate` with nothing in the report to say a character
+    /// had gone.
+    #[test]
+    fn docx_characters_stored_as_elements_are_not_lost_silently() {
+        let body = r#"<w:p><w:r><w:t>co</w:t><w:noBreakHyphen/><w:t>operate</w:t><w:sym w:font="Wingdings" w:char="F0E0"/></w:r></w:p>"#;
+        let result = convert_bytes("a.docx", &docx(body));
+        assert_eq!(result.text, "co-operate");
+        // A symbol-font glyph has no Unicode meaning to guess at, so it is
+        // counted rather than invented — but it is never silent.
+        assert!(
+            result.report.dropped.iter().any(|d| d.kind == "objects"),
+            "{:?}",
+            result.report.dropped
+        );
+    }
+
+    /// ⚠️ Proven red: a UTF-8 BOM was TRUSTED, so a file stamped with one but
+    /// carrying a Windows-1252 body went straight to `from_utf8_lossy` —
+    /// importing full of U+FFFD while the report said nothing was dropped.
+    #[test]
+    fn a_utf8_bom_over_legacy_bytes_is_still_recoded_and_reported() {
+        let mut bytes = vec![0xef, 0xbb, 0xbf];
+        bytes.extend_from_slice(b"don\x92t stop");
+        let result = convert_bytes("a.txt", &bytes);
+        assert_eq!(result.text, "don't stop");
+        assert_eq!(
+            result.report.dropped,
+            vec![Dropped {
+                kind: "encoding".to_string(),
+                count: 1
+            }]
+        );
+    }
+
+    /// ⚠️ Proven red: the PDF path never received the `Drops` tally, so every
+    /// PDF import rendered "Nothing else was left behind" — an affirmative
+    /// claim, for the one format whose contents cannot be enumerated at all.
+    #[test]
+    fn a_pdf_does_not_claim_to_know_what_it_dropped() {
+        let result = convert_bytes("script.pdf", &pdf("Hello prompter"));
+        assert!(!result.report.itemised, "a PDF cannot be itemised");
+        // Every other format can answer the question honestly.
+        assert!(convert_bytes("a.txt", b"plain").report.itemised);
+        assert!(convert_bytes("a.md", b"# hi").report.itemised);
+        assert!(convert_bytes("a.rtf", br"{\rtf1 x}").report.itemised);
     }
 
     /// ⚠️ Proven red against the first version, which handled `Event::Text`

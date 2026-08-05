@@ -36,3 +36,13 @@ export const onVoiceDictating = (handler: (on: boolean) => void): Promise<Unlist
  * failed session does not leave a toggle showing "on" over a dead engine. */
 export const onVoiceError = (handler: (message: string) => void): Promise<UnlistenFn> =>
   listenSafe("voice:error", handler);
+
+/**
+ * A global hotkey fired (FT-M13): the payload is the command id, which the
+ * shell runs down exactly the path a window binding takes.
+ *
+ * Emitted to the main window only — the projector renders the same shared
+ * scroll state, so delivering it to both would run every command twice.
+ */
+export const onHotkey = (handler: (command: string) => void): Promise<UnlistenFn> =>
+  listenSafe("hotkey", handler);

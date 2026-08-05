@@ -35,6 +35,34 @@ export type ThemeSetting = "system" | "dark" | "light";
  */
 export type ResolvedTheme = "dark" | "light";
 
+/**
+ * Mirror of `settings::Binding` — one command's two bindings (FT-M04/M13/M16).
+ *
+ * Both are Tauri accelerator strings and both may be `null`, which is how the
+ * shortcut map records "unbound". `lib/bindings.ts` owns the format and the
+ * validation; this is only the wire shape.
+ */
+export type StoredBinding = {
+  window: string | null;
+  global: string | null;
+};
+
+/**
+ * Mirror of `shortcuts::HotkeyStatus` — what the OS actually accepted (FT-M13).
+ *
+ * A registration can be refused: another application may already own the key,
+ * and Wayland restricts global hotkeys outright. The map shows `failed` against
+ * the row it belongs to, because a hotkey that silently did not register is
+ * found out on a shoot.
+ */
+export type HotkeyStatus = {
+  /** Command id → why the OS refused it. Only the failures are reported: a
+   * list of what succeeded would restate the settings, and nothing reads it. */
+  failed: Record<string, string>;
+  /** A Wayland session, where refusal is expected rather than exceptional. */
+  wayland: boolean;
+};
+
 /** Mirror of `settings::Settings`. */
 export type Settings = {
   /** BCP-47 tag, or `"auto"` to follow the OS. */
@@ -88,6 +116,15 @@ export type Settings = {
    * "Verse", "Bridge". Where they match, the scroll costs no time, so a lyric
    * still lands on the bar it was written for. Empty by default. */
   skipWords: string[];
+  /**
+   * What each command is bound to (FT-M04/M13/M16), by command id.
+   *
+   * **Sparse**: only the commands the operator has changed appear, and
+   * `lib/bindings.ts` lays them over the shipped defaults. `{}` therefore means
+   * "the defaults", not "nothing is bound" — which is what lets a later release
+   * add a command without rewriting everybody's settings file.
+   */
+  bindings: Record<string, StoredBinding>;
   /**
    * Recently-opened scripts (FT-10), most recent first; `[0]` is the script
    * currently open. Read-only from the UI's point of view for the same reason
@@ -143,6 +180,14 @@ export type TeleprompterState = {
    * different script from the one the operator is watching.
    */
   skipWords: string[];
+  /**
+   * What each command is bound to (FT-M04/M13/M16), by command id.
+   *
+   * Here for the same reason `skipWords` is: the projector never reads
+   * settings, so a rebind would otherwise reach the operator's preview and
+   * leave the talent's window answering the old key.
+   */
+  bindings: Record<string, StoredBinding>;
 };
 
 /** Mirror of `bugreport::BugReport` — one target's report, built by Rust. */
@@ -218,6 +263,15 @@ export type ImportReport = {
   dropped: Dropped[];
   /** Whether the text was cut at the engine's own 200,000-character limit. */
   truncated: boolean;
+  /**
+   * Whether this format's contents could be **itemised** at all.
+   *
+   * ⚠️ False for PDF. An empty `dropped` then means "we could not tell", NOT
+   * "nothing was left behind" — a PDF has no structure a text extractor can
+   * enumerate. Showing the reassuring line for a PDF was telling the operator
+   * something untrue about the format most likely to be carrying figures.
+   */
+  itemised: boolean;
 };
 
 /** Mirror of `import::ImportResult` (FT-M01). */

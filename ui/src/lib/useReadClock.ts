@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { TeleprompterState } from "../api/types";
 import { type Caesura, liveOffset, timeAtOffset } from "./caesura";
@@ -54,6 +54,42 @@ export function readSecAt(
   return countingIn > 0 ? -countingIn : anchor.baseSec + Math.max(0, raw - anchor.countdown);
 }
 
+/** Everything needed to say where the scroll is, frozen at the moment a
+ * broadcast arrived. */
+type OffsetAnchor = {
+  offset: number;
+  t: number;
+  playing: boolean;
+  countdown: number;
+  speed: number;
+};
+
+/** Freeze the scroll half of a snapshot. `t` is passed in rather than read here
+ * so the caller decides when "now" is — during render it would be impure. */
+function offsetAnchor(state: TeleprompterState, t: number): OffsetAnchor {
+  return {
+    offset: state.offset,
+    t,
+    playing: state.playing,
+    countdown: state.countdownRemaining,
+    speed: state.speed > 0 ? state.speed : 1,
+  };
+}
+
+/**
+ * Where the scroll is at `now`, in visible characters.
+ *
+ * The sibling of [`readSecAt`], split out for the same reason it was: two hooks
+ * below need this arithmetic on two different schedules — one on a 20 Hz timer,
+ * one on demand — and the pre-roll's sign convention should be written down
+ * once. The pre-roll HOLDS the scroll, so it is subtracted rather than counted.
+ */
+function offsetAt(now: number, anchor: OffsetAnchor, caesuras: Caesura[]): number {
+  const raw = anchor.playing ? (now - anchor.t) / 1000 : 0;
+  const elapsed = Math.max(0, raw - anchor.countdown);
+  return liveOffset(anchor.offset, elapsed, anchor.speed, caesuras);
+}
+
 /**
  * Where the last broadcast put the read, on the read's own clock.
  *
@@ -94,27 +130,58 @@ export function useLiveOffset(
   const [offset, setOffset] = useState(state.offset);
 
   useEffect(() => {
-    const anchor = {
-      offset: state.offset,
-      t: performance.now(),
-      playing: state.playing,
-      countdown: state.countdownRemaining,
-      speed: state.speed > 0 ? state.speed : 1,
-    };
-    const read = () => {
-      const raw = anchor.playing ? (performance.now() - anchor.t) / 1000 : 0;
-      // The pre-roll holds the scroll, so it is subtracted rather than counted
-      // — the same sign convention `readSecAt` states for the other clock.
-      const elapsed = Math.max(0, raw - anchor.countdown);
-      setOffset(liveOffset(anchor.offset, elapsed, anchor.speed, caesuras));
-    };
+    const anchor = offsetAnchor(state, performance.now());
+    const read = () => setOffset(offsetAt(performance.now(), anchor, caesuras));
     read();
     if (!active || !state.playing) return;
     const id = window.setInterval(read, TICK_MS);
     return () => window.clearInterval(id);
+    // The four scroll fields, not `state` — see the note in `useOffsetReader`:
+    // a fresh identity per broadcast would restart this timer on every
+    // keystroke of the script.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, state.playing, state.offset, state.speed, state.countdownRemaining, caesuras]);
 
   return offset;
+}
+
+/**
+ * Where the scroll is **now**, read on demand rather than on a tick.
+ *
+ * Same question as [`useLiveOffset`] and the same arithmetic, for the caller
+ * that needs the answer at one arbitrary instant — a keystroke — instead of
+ * continuously. Returns a *function*, so it costs no timer and causes no
+ * re-render at all: the marker hotkeys need to know where the read is at the
+ * moment a key is pressed, and running a 20 Hz clock in `App` to find out would
+ * re-render the whole operator window twenty times a second for a question
+ * nobody is asking in between. (That cost is exactly why `MarkerJump` and
+ * `PaceWarning` are separate components.)
+ *
+ * The anchor is taken in a **layout** effect. A passive one runs after paint,
+ * which leaves a window where a broadcast has landed and this still describes
+ * the previous one — and a hotkey pressed in that window would seek from the
+ * wrong place. It is the same reason `CaesuraEditor`'s DOM sync is a layout
+ * effect: anything read by something outside React has to be right at commit.
+ */
+export function useOffsetReader(state: TeleprompterState, caesuras: Caesura[]): () => number {
+  // `playing: false` rather than the real value, and no `performance.now()`:
+  // reading a clock during render is impure, and this initial value only has to
+  // survive until the layout effect below runs — which is before paint, and so
+  // before any keystroke can reach the reader. Not-playing means "elapsed is
+  // zero", i.e. exactly `state.offset`, which is the right answer to give in the
+  // window where nothing has happened yet.
+  const anchor = useRef({ ...offsetAnchor(state, 0), playing: false });
+
+  useLayoutEffect(() => {
+    anchor.current = offsetAnchor(state, performance.now());
+    // ⚠️ The four scroll fields, NOT `state`. A broadcast arrives as fresh JSON,
+    // so `state` has a new identity on every one — including the ones that
+    // changed only the script — and depending on it would re-anchor per
+    // keystroke. Only these four affect where the scroll is.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.offset, state.playing, state.countdownRemaining, state.speed]);
+
+  return useCallback(() => offsetAt(performance.now(), anchor.current, caesuras), [caesuras]);
 }
 
 export function useReadClock(

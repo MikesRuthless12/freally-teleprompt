@@ -5,6 +5,7 @@ import type {
   BugReportTarget,
   DisplayInfo,
   EulaStatus,
+  HotkeyStatus,
   ImportResult,
   MirrorStatus,
   ScriptInfo,
@@ -44,6 +45,15 @@ export const settingsSet = (next: Settings): Promise<Settings> => invoke("settin
  */
 export const onboardingSetSeen = (seen: boolean): Promise<void> =>
   invoke("onboarding_set_seen", { seen });
+
+/**
+ * Which global hotkeys the OS actually accepted (FT-M13).
+ *
+ * Read after every Apply, because that is when registration is retried: a key
+ * another application owns — or any key at all under Wayland — is refused, and
+ * the map has to say so rather than show a binding that does nothing.
+ */
+export const shortcutsStatus = (): Promise<HotkeyStatus> => invoke("shortcuts_status");
 
 export const eulaStatus = (): Promise<EulaStatus> => invoke("eula_status");
 
